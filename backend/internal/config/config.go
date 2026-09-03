@@ -12,9 +12,16 @@ import (
 type Config struct {
 	Server   ServerConfig   `yaml:"server"`
 	Database DatabaseConfig `yaml:"database"`
+	Wechat   WechatConfig   `yaml:"wechat"`
 	JWT      JWTConfig      `yaml:"jwt"`
 	Log      LogConfig      `yaml:"log"`
 	CORS     CORSConfig     `yaml:"cors"`
+}
+
+// WechatConfig holds WeChat Mini Program settings.
+type WechatConfig struct {
+	AppID     string `yaml:"appid"`      // 小程序 AppID
+	AppSecret string `yaml:"app_secret"` // 小程序 AppSecret
 }
 
 // ServerConfig holds HTTP server settings.
@@ -26,8 +33,12 @@ type ServerConfig struct {
 
 // DatabaseConfig holds database connection settings.
 type DatabaseConfig struct {
-	Driver   string `yaml:"driver"`    // sqlite, mysql
-	DSN      string `yaml:"dsn"`       // connection string
+	Driver   string `yaml:"driver"`    // mysql
+	Host     string `yaml:"host"`      // 数据库地址
+	Port     string `yaml:"port"`      // 端口
+	User     string `yaml:"user"`      // 用户名
+	Password string `yaml:"password"`  // 密码
+	DBName   string `yaml:"dbname"`    // 数据库名
 	LogLevel string `yaml:"log_level"` // silent, error, warn, info
 }
 
@@ -57,11 +68,15 @@ func Default() *Config {
 			Mode:            "debug",
 			ShutdownTimeout: 10,
 		},
-	Database: DatabaseConfig{
-		Driver:   "mysql",
-		DSN:      "root:@tcp(127.0.0.1:3306)/zoek?charset=utf8mb4&parseTime=true&loc=Local",
-		LogLevel: "warn",
-	},
+		Database: DatabaseConfig{
+			Driver:   "mysql",
+			Host:     "127.0.0.1",
+			Port:     "3306",
+			User:     "root",
+			Password: "",
+			DBName:   "zoek",
+			LogLevel: "warn",
+		},
 		JWT: JWTConfig{
 			Secret:      "zoek-dev-secret-change-in-production",
 			TokenExpiry: 168, // 7 days
@@ -70,6 +85,10 @@ func Default() *Config {
 			Level:    "info",
 			Encoding: "console",
 			Output:   "stdout",
+		},
+		Wechat: WechatConfig{
+			AppID:     "",
+			AppSecret: "",
 		},
 		CORS: CORSConfig{
 			AllowOrigins: []string{"*"},
@@ -110,8 +129,20 @@ func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("ZOEK_DB_DRIVER"); v != "" {
 		cfg.Database.Driver = v
 	}
-	if v := os.Getenv("ZOEK_DB_DSN"); v != "" {
-		cfg.Database.DSN = v
+	if v := os.Getenv("ZOEK_DB_HOST"); v != "" {
+		cfg.Database.Host = v
+	}
+	if v := os.Getenv("ZOEK_DB_PORT"); v != "" {
+		cfg.Database.Port = v
+	}
+	if v := os.Getenv("ZOEK_DB_USER"); v != "" {
+		cfg.Database.User = v
+	}
+	if v := os.Getenv("ZOEK_DB_PASSWORD"); v != "" {
+		cfg.Database.Password = v
+	}
+	if v := os.Getenv("ZOEK_DB_NAME"); v != "" {
+		cfg.Database.DBName = v
 	}
 	if v := os.Getenv("ZOEK_DB_LOG_LEVEL"); v != "" {
 		cfg.Database.LogLevel = v
@@ -136,9 +167,17 @@ func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("ZOEK_CORS_ORIGINS"); v != "" {
 		cfg.CORS.AllowOrigins = strings.Split(v, ",")
 	}
+	if v := os.Getenv("ZOEK_WECHAT_APPID"); v != "" {
+		cfg.Wechat.AppID = v
+	}
+	if v := os.Getenv("ZOEK_WECHAT_APP_SECRET"); v != "" {
+		cfg.Wechat.AppSecret = v
+	}
 }
 
-// DSNString returns the database connection string.
+// DSNString builds and returns the MySQL DSN connection string.
+// Format: <user>:<password>@tcp(<host>:<port>)/<dbname>?charset=utf8mb4&parseTime=true&loc=Local
 func (c *DatabaseConfig) DSNString() string {
-	return c.DSN
+	return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=true&loc=Local",
+		c.User, c.Password, c.Host, c.Port, c.DBName)
 }

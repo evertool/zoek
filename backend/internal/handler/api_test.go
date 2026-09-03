@@ -12,6 +12,7 @@ import (
 	"github.com/lk/zoek/backend/internal/logger"
 	"github.com/lk/zoek/backend/internal/middleware"
 	"github.com/lk/zoek/backend/internal/store"
+	"github.com/lk/zoek/backend/pkg/wechat"
 	"gorm.io/driver/sqlite" // test-only: in-memory SQLite for fast tests
 	"gorm.io/gorm"
 )
@@ -34,8 +35,13 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 	r.Use(middleware.RequestID())
 	r.Use(middleware.ErrorHandler(logger.NewNop()))
 
-	authH := NewAuthHandler(s, jwt)
-	gameH := NewGameHandler(s, jwt)
+	authH := NewAuthHandler(s, jwt, wechat.NewMockClient(func(code string) (string, string, error) {
+		return "wx_openid_" + code, "", nil
+	}))
+	gameH := NewGameHandler(s, jwt, wechat.NewMockQRClient(
+		func(code string) (string, string, error) { return "wx_openid_" + code, "", nil },
+		func(page, scene string) ([]byte, error) { return []byte("mock-png-data"), nil },
+	))
 	roundH := NewRoundHandler(s)
 	adjH := NewAdjustmentHandler(s)
 	settleH := NewSettlementHandler(s)

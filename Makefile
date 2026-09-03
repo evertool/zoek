@@ -39,7 +39,7 @@ backend-test:
 
 ## backend-run: 启动后端 API 服务（端口 8080）
 backend-run:
-	@cd backend && go run ./cmd/server
+	@cd backend && go run ./cmd/server -config=config.yaml
 
 ## clean: 清理构建产物
 clean:

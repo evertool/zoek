@@ -2,7 +2,7 @@
   "miniprogramRoot": "./",
   "projectname": "zoek",
   "description": "雀友记 - 麻将牌局积分记录小程序",
-  "appid": "touristappid",
+  "appid": "wx0ea5f9ff2362fae9",
   "setting": {
     "urlCheck": false,
     "es6": true,
@@ -39,7 +39,12 @@
     "disableUseStrict": false,
     "minifyWXML": true,
     "showES6CompileOption": false,
-    "useCompilerPlugins": false
+    "useCompilerPlugins": false,
+    "compileWorklet": false,
+    "localPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
   },
   "compileType": "miniprogram",
   "libVersion": "3.5.3",
@@ -47,5 +52,10 @@
   "editorSetting": {
     "tabIndent": "insertSpaces",
     "tabSize": 2
+  },
+  "simulatorPluginLibVersion": {},
+  "packOptions": {
+    "ignore": [],
+    "include": []
   }
 }

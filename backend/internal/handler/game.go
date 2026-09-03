@@ -9,17 +9,20 @@ import (
 	"github.com/google/uuid"
 	"github.com/lk/zoek/backend/internal/errs"
 	"github.com/lk/zoek/backend/internal/middleware"
+	"github.com/lk/zoek/backend/internal/model"
 	"github.com/lk/zoek/backend/internal/store"
+	"github.com/lk/zoek/backend/pkg/wechat"
 )
 
 // GameHandler handles game table operations.
 type GameHandler struct {
 	Store      *store.Store
 	JWTManager *middleware.JWTManager
+	WxClient   *wechat.Client
 }
 
-func NewGameHandler(s *store.Store, jwt *middleware.JWTManager) *GameHandler {
-	return &GameHandler{Store: s, JWTManager: jwt}
+func NewGameHandler(s *store.Store, jwt *middleware.JWTManager, wx *wechat.Client) *GameHandler {
+	return &GameHandler{Store: s, JWTManager: jwt, WxClient: wx}
 }
 
 // ---------------------------------------------------------------------------
@@ -42,6 +45,7 @@ type CreateGameResponse struct {
 
 type JoinGameRequest struct {
 	InviteToken string `json:"invite_token"`
+	GameID     int64  `json:"game_id"`
 	Nickname    string `json:"nickname"`
 	RequestID   string `json:"request_id"`
 }
@@ -254,7 +258,15 @@ func (h *GameHandler) JoinGame(c *gin.Context) {
 	}
 	userID := middleware.GetUserID(c)
 
-	game, err := h.Store.GetGameByInviteToken(req.InviteToken)
+	var game *model.Game
+	var err error
+	if req.GameID > 0 {
+		// 从小程序码扫码进入，直接用 game_id
+		game, err = h.Store.GetGame(req.GameID)
+	} else {
+		// 从分享链接进入，用 invite_token
+		game, err = h.Store.GetGameByInviteToken(req.InviteToken)
+	}
 	if err != nil {
 		if be, ok := err.(*errs.BizError); ok {
 			c.JSON(http.StatusBadRequest, be)
@@ -455,4 +467,44 @@ func (h *GameHandler) EndGame(c *gin.Context) {
 	_ = h.Store.InvalidateJoinExpiresAt(gameID)
 
 	c.JSON(http.StatusOK, SimpleResponse{Message: "牌局已结束"})
+}
+
+// GetGameQRCode handles GET /api/v1/games/:game_id/qrcode
+// Returns a mini program QR code image (PNG) for inviting players.
+func (h *GameHandler) GetGameQRCode(c *gin.Context) {
+	gameID, err := strconv.ParseInt(c.Param("game_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
+		return
+	}
+	userID := middleware.GetUserID(c)
+
+	game, err := h.Store.GetGame(gameID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, errs.ErrNotFound)
+		return
+	}
+
+	// Check user is a player
+	_, pErr := h.Store.GetGamePlayer(gameID, userID)
+	if pErr != nil {
+		c.JSON(http.StatusForbidden, errs.ErrForbidden)
+		return
+	}
+
+	// Only generating QR for forming games
+	if game.Status != "forming" {
+		c.JSON(http.StatusBadRequest, errs.ErrGameNotForming)
+		return
+	}
+
+	// Generate QR code with scene = game_id
+	scene := strconv.FormatInt(gameID, 10)
+	pngData, err := h.WxClient.GetMiniProgramCode("pages/join/join", scene)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errs.New("QR_FAILED", "生成小程序码失败", errs.ActionRetry))
+		return
+	}
+
+	c.Data(http.StatusOK, "image/png", pngData)
 }

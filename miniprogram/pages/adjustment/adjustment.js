@@ -1,6 +1,7 @@
 // pages/adjustment/adjustment.js — 补分/退分页
 const app = getApp()
 const api = require('../../utils/api')
+const util = require('../../utils/util')
 
 Page({
   data: {
@@ -30,7 +31,9 @@ Page({
     api.get(`/games/${this.data.gameID}`).then(res => {
       const myUserID = app.globalData.userID
       // 过滤掉自己
-      const players = (res.players || []).filter(p => p.user_id !== myUserID)
+      const players = (res.players || []).filter(p => p.user_id !== myUserID).map(p => {
+        return { ...p, avatarColor: util.avatarColor(p.nickname) }
+      })
       this.setData({ players })
     })
   },

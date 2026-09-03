@@ -1,15 +1,15 @@
 <!--pages/join/join.wxml — 扫码入台页-->
 <view class="container">
-  <view class="empty-state" wx:if="{{loading && !error}}">
-    <view class="empty-icon">🀄</view>
-    <view>正在入台...</view>
+  <view class="join-page" wx:if="{{loading && !error}}">
+    <view class="join-logo">🀄</view>
+    <view class="join-text">正在加入...</view>
   </view>
 
-  <view class="empty-state" wx:if="{{error}}">
-    <view class="empty-icon">🀄</view>
-    <view>{{error}}</view>
-    <button class="btn-primary" style="margin-top: 32rpx; width: 60%;" bindtap="tryJoin" disabled="{{joining}}">
-      重新入台
+  <view class="join-page" wx:if="{{error}}">
+    <view class="join-logo">🀄</view>
+    <view class="join-error">{{error}}</view>
+    <button class="btn-primary" style="margin-top: 48rpx; width: 80%;" bindtap="retryJoin" disabled="{{joining}}">
+      重新加入
     </button>
   </view>
 </view>

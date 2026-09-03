@@ -1,10 +1,10 @@
 <!--pages/create/create.wxml — 开台页-->
 <view class="container">
   <view class="card">
-    <view class="section-title">开台</view>
-    <view class="text-secondary" style="margin-bottom: 32rpx;">输入台名，或者留空使用默认名</view>
+    <view class="create-title">开台</view>
+    <view class="text-secondary" style="margin-bottom: 32rpx;">输入台名（可选），或直接开台</view>
 
-    <view class="input-group">
+    <view class="input-group" style="margin-bottom: 40rpx;">
       <input
         class="input"
         placeholder="台名（可选）"
@@ -20,10 +20,13 @@
     </button>
   </view>
 
-  <view class="tips">
-    <view class="text-secondary">· 开台后你会自动入台</view>
-    <view class="text-secondary">· 其他雀友可以扫码入台</view>
-    <view class="text-secondary">· 最少2位雀友可以开始计分</view>
-    <view class="text-secondary">· 最多4位雀友</view>
+  <view class="tips-card">
+    <view class="tips-title">玩法说明</view>
+    <view class="tips-item">开台后你自动成为台主</view>
+    <view class="tips-item">其他雀友扫码或分享链接加入</view>
+    <view class="tips-item">最少2人可开始计分</view>
+    <view class="tips-item">最多4位雀友</view>
+    <view class="tips-item">每位雀友各自输入本局分数</view>
+    <view class="tips-item">总和必须为0才能锁定</view>
   </view>
 </view>

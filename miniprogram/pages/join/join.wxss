@@ -1,1 +1,24 @@
 /* pages/join/join.wxss */
+.join-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 200rpx 48rpx 0;
+}
+
+.join-logo {
+  font-size: 96rpx;
+  margin-bottom: 32rpx;
+}
+
+.join-text {
+  font-size: 32rpx;
+  color: var(--color-text-secondary);
+}
+
+.join-error {
+  font-size: 30rpx;
+  color: var(--color-error);
+  text-align: center;
+  line-height: 1.6;
+}

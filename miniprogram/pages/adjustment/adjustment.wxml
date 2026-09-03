@@ -26,7 +26,7 @@
         bindtap="onPlayerChange"
         data-id="{{item.player_id}}"
       >
-        <view class="player-avatar">{{item.nickname[0]}}</view>
+        <view class="player-avatar-text" style="background: {{item.avatarColor}}">{{item.nickname[0]}}</view>
         <view class="player-name">{{item.nickname}}</view>
       </view>
     </view>

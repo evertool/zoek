@@ -166,6 +166,7 @@ func (s *Store) CreateGame(creatorID int64, name, inviteToken string) (*model.Ga
 		UserID:           creatorID,
 		NicknameSnapshot: creator.Nickname,
 		Role:             "owner",
+		JoinedAt:         time.Now(),
 	}
 	if err := s.DB.Create(&player).Error; err != nil {
 		return nil, fmt.Errorf("add creator as player: %w", err)
@@ -275,6 +276,7 @@ func (s *Store) JoinGame(gameID, userID int64, nickname string) (*model.GamePlay
 		UserID:           userID,
 		NicknameSnapshot: nickname,
 		Role:             "player",
+		JoinedAt:         time.Now(),
 	}
 	if err := s.DB.Create(&player).Error; err != nil {
 		// Race condition: unique constraint violation

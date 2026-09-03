@@ -12,17 +12,17 @@
     "pages/join/join"
   ],
   "window": {
-    "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#1A1A2E",
-    "navigationBarTitleText": "雀友记",
-    "navigationBarTextStyle": "white",
-    "backgroundColor": "#FAFAFA"
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#F2F2F7",
+    "navigationBarTitleText": "雀记",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F2F2F7"
   },
   "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#E6533C",
+    "color": "#8E8E93",
+    "selectedColor": "#1A1A1A",
     "backgroundColor": "#FFFFFF",
-    "borderStyle": "black",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/index/index",
@@ -30,11 +30,11 @@
       },
       {
         "pagePath": "pages/history/history",
-        "text": "对局记录"
+        "text": "记录"
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "我"
+        "text": "我的"
       }
     ]
   },

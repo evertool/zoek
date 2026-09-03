@@ -7,16 +7,18 @@ import (
 	"github.com/lk/zoek/backend/internal/errs"
 	"github.com/lk/zoek/backend/internal/middleware"
 	"github.com/lk/zoek/backend/internal/store"
+	"github.com/lk/zoek/backend/pkg/wechat"
 )
 
 // AuthHandler handles user authentication and profile.
 type AuthHandler struct {
 	Store      *store.Store
 	JWTManager *middleware.JWTManager
+	WxClient   *wechat.Client
 }
 
-func NewAuthHandler(s *store.Store, jwt *middleware.JWTManager) *AuthHandler {
-	return &AuthHandler{Store: s, JWTManager: jwt}
+func NewAuthHandler(s *store.Store, jwt *middleware.JWTManager, wx *wechat.Client) *AuthHandler {
+	return &AuthHandler{Store: s, JWTManager: jwt, WxClient: wx}
 }
 
 // LoginRequest is the body for POST /api/v1/auth/login.
@@ -25,7 +27,7 @@ type LoginRequest struct {
 	Nickname string `json:"nickname"`
 }
 
-// Login handles WeChat code login (MVP: code maps to a simulated openid).
+// Login handles WeChat code login.
 // PRD §4.2-A: 桌主登录 → 创建牌桌
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
@@ -34,12 +36,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// MVP: derive openid from code (in production, call WeChat code2session)
-	openID := "wx_" + req.Code
+	// Call WeChat code2session to get openid
+	openID, _, err := h.WxClient.Code2Session(req.Code)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, errs.New("WX_LOGIN_FAILED", "微信登录失败", errs.ActionRetry))
+		return
+	}
 
 	nickname := req.Nickname
 	if nickname == "" {
-		nickname = "玩家" + req.Code[:min(4, len(req.Code))]
+		nickname = "玩家"
 	}
 
 	user, err := h.Store.FindOrCreateUser(openID, nickname, "")
@@ -101,11 +107,4 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		"nickname":   user.Nickname,
 		"avatar_url": user.AvatarURL,
 	})
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

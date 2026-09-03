@@ -1,12 +1,12 @@
 /* pages/score/score.wxss */
-.round-header {
+.score-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8rpx;
 }
 
-.round-info {
+.score-round {
   display: flex;
   align-items: center;
 }
@@ -14,22 +14,46 @@
 .round-num {
   font-size: 32rpx;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-accent);
 }
 
-.submit-progress {
+/* 入分进度条 */
+.progress-bar {
+  padding-bottom: 24rpx;
+  border-bottom: 1rpx solid var(--color-divider);
+  margin-bottom: 24rpx;
+}
+
+.progress-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-bottom: 24rpx;
-  border-bottom: 2rpx solid #F0F0F0;
+  margin-bottom: 16rpx;
+}
+
+.progress-text {
   font-size: 30rpx;
   font-weight: 600;
 }
 
-.score-input-area {
-  padding: 24rpx 0;
-  border-bottom: 2rpx solid #F0F0F0;
+.progress-track {
+  height: 8rpx;
+  background: var(--color-divider);
+  border-radius: 100rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 100rpx;
+  transition: width 0.3s;
+}
+
+/* 入分输入区 */
+.my-score-area {
+  padding-bottom: 24rpx;
+  border-bottom: 1rpx solid var(--color-divider);
 }
 
 .score-input-row {
@@ -40,25 +64,30 @@
 
 .score-input {
   flex: 1;
-  border: 4rpx solid var(--color-primary);
-  border-radius: 16rpx;
-  padding: 24rpx;
+  border: 2rpx solid var(--color-accent);
+  border-radius: var(--radius-md);
+  padding: 28rpx;
   font-size: 48rpx;
   font-weight: 700;
   text-align: center;
-  background: #FFF;
+  background: #FFFCF5;
 }
 
+/* 分数列表 */
 .score-list, .submit-status {
-  padding: 16rpx 0;
+  padding: 8rpx 0;
 }
 
 .score-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16rpx 0;
-  border-bottom: 1rpx solid #F5F5F5;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid var(--color-divider);
+}
+
+.score-item:last-child {
+  border-bottom: none;
 }
 
 .score-name {
@@ -70,29 +99,62 @@
   font-weight: 700;
 }
 
+/* 总和 */
 .score-sum {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 8rpx;
+  gap: 16rpx;
   padding: 24rpx 0;
   font-size: 32rpx;
   font-weight: 700;
 }
 
-.review-section {
-  padding-top: 24rpx;
+.sum-warning {
+  text-align: center;
+  color: var(--color-error);
+  font-size: 26rpx;
+  padding: 16rpx 0;
+  background: #FCE4E4;
+  border-radius: var(--radius-sm);
+  margin-bottom: 24rpx;
 }
 
+.review-section {
+  padding-top: 24rpx;
+  border-top: 1rpx solid var(--color-divider);
+}
+
+/* 调整通知 */
 .adj-notice {
-  border-left: 8rpx solid var(--color-warning);
+  border-left: 6rpx solid var(--color-accent);
 }
 
 .adj-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12rpx 0;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid var(--color-divider);
+}
+
+.adj-item:last-child { border-bottom: none; }
+
+.adj-info {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+}
+
+.adj-type {
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.adj-amount {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--color-accent);
 }
 
 .adj-actions {
@@ -102,11 +164,9 @@
 
 .mini-btn {
   font-size: 24rpx;
-  padding: 8rpx 24rpx;
-  border-radius: 8rpx;
+  padding: 8rpx 28rpx;
+  border-radius: 100rpx;
   line-height: 1.5;
-  width: auto;
-  display: inline-block;
 }
 
 .mini-accept {
@@ -115,14 +175,11 @@
 }
 
 .mini-reject {
-  background: #E0E0E0;
+  background: var(--color-divider);
   color: var(--color-text);
 }
 
-.action-bar {
-  padding: 24rpx 0;
-}
-
-.action-bar button {
-  margin-bottom: 16rpx;
+.round-complete {
+  text-align: center;
+  padding: 16rpx 0;
 }

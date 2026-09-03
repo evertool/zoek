@@ -9,26 +9,19 @@ server:
 
 database:
   driver: "mysql"           # 仅支持 mysql
-  dsn: "root:123456@tcp(127.0.0.1:3306)/zoek?charset=utf8mb4&parseTime=true&loc=Local"
+  host: "127.0.0.1"         # 数据库地址（线上填实际 IP 或域名）
+  port: "3306"             # 端口
+  user: "root"             # 用户名
+  password: "your_password" # 密码（含特殊字符直接写即可）
+  dbname: "zoek"           # 数据库名（需提前创建）
   log_level: "warn"         # silent | error | warn | info
+  # charset=utf8mb4、parseTime=true、loc=Local 由程序自动拼接，无需配置
+  # 环境变量覆盖: ZOEK_DB_HOST / ZOEK_DB_PORT / ZOEK_DB_USER / ZOEK_DB_PASSWORD / ZOEK_DB_NAME
 
-  # ── MySQL DSN 格式说明 ─────────────────────────────────────
-  # <user>:<pass>@tcp(<host>:<port>)/<dbname>?<params>
-  #
-  # 逐项说明:
-  #   root          → 数据库用户名
-  #   123456        → 数据库密码（含特殊字符用 URL 编码，如 @ → %40）
-  #   127.0.0.1     → 数据库地址（线上填实际 IP 或域名）
-  #   3306          → 端口
-  #   zoek          → 数据库名（需提前创建）
-  #   charset       → utf8mb4 支持中文和 emoji
-  #   parseTime     → 自动解析 DATETIME 为 time.Time
-  #   loc=Local     → 使用本地时区（不要用 Asia/Shanghai，含 / 会破坏 DSN 解析）
-  #
-  # 常见场景:
-  #   本地 Docker:  root:123456@tcp(127.0.0.1:3306)/zoek?charset=utf8mb4&parseTime=true&loc=Local
-  #   云数据库 RDS:  zoek_app:your_pass@tcp(rm-xxx.mysql.rds.aliyuncs.com:3306)/zoek?charset=utf8mb4&parseTime=true&loc=Local
-  #   无密码本地:    root:@tcp(127.0.0.1:3306)/zoek?charset=utf8mb4&parseTime=true&loc=Local
+wechat:
+  appid: "your_appid"
+  app_secret: "your_app_secret"
+  # 环境变量覆盖: ZOEK_WECHAT_APPID / ZOEK_WECHAT_APP_SECRET
 
 jwt:
   secret: "zoek-dev-secret-change-in-production"  # 生产环境务必修改！用 make jwt-secret 生成

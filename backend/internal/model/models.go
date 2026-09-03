@@ -46,7 +46,7 @@ type GamePlayer struct {
 	UserID           int64     `gorm:"not null;uniqueIndex:uk_game_user" json:"user_id"`
 	NicknameSnapshot string    `gorm:"type:varchar(32);not null" json:"nickname_snapshot"`
 	Role             string    `gorm:"type:varchar(16);not null;default:player" json:"role"`
-	JoinedAt         time.Time `json:"joined_at"`
+	JoinedAt         time.Time `gorm:"autoCreateTime" json:"joined_at"`
 }
 
 func (GamePlayer) TableName() string { return "game_players" }

@@ -1,58 +1,72 @@
 /* pages/room/room.wxss */
-.game-header {
+.room-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16rpx;
+  margin-bottom: 8rpx;
 }
 
-.game-name {
+.room-name {
   font-size: 36rpx;
   font-weight: 700;
 }
 
-.game-meta {
+.room-meta {
   display: flex;
   align-items: center;
+  font-size: 28rpx;
 }
 
 .player-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 24rpx;
+  gap: 32rpx;
 }
 
 .player-item {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  gap: 16rpx;
 }
 
-.player-avatar {
-  width: 64rpx;
-  height: 64rpx;
+.avatar-text {
+  width: 72rpx;
+  height: 72rpx;
   border-radius: 50%;
-  background: var(--color-primary);
-  color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28rpx;
+  font-size: 32rpx;
   font-weight: 600;
+  color: #FFFFFF;
 }
 
 .player-name {
   font-size: 28rpx;
 }
 
-.share-card {
+.invite-card {
   text-align: center;
 }
 
-.action-bar {
+.qr-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 24rpx 0;
 }
 
-.action-bar button {
-  margin-bottom: 16rpx;
+.qr-image {
+  width: 360rpx;
+  height: 360rpx;
+  border-radius: var(--radius-md);
+  border: 2rpx solid var(--color-border);
+}
+
+.qr-loading {
+  padding: 48rpx 0;
+}
+
+.qr-error {
+  padding: 24rpx 0;
 }

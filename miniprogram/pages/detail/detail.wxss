@@ -12,7 +12,7 @@
 
 .round-item {
   padding: 24rpx 0;
-  border-bottom: 2rpx solid #F5F5F5;
+  border-bottom: 1rpx solid var(--color-divider);
 }
 
 .round-item:last-child {
@@ -22,23 +22,23 @@
 .round-title {
   font-size: 30rpx;
   font-weight: 600;
-  color: var(--color-primary);
-  margin-bottom: 12rpx;
+  color: var(--color-accent);
+  margin-bottom: 16rpx;
 }
 
 .round-subs {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
+  gap: 12rpx;
 }
 
 .sub-item {
   display: flex;
   align-items: center;
-  gap: 8rpx;
-  background: #F9F9F9;
-  border-radius: 8rpx;
-  padding: 8rpx 16rpx;
+  gap: 12rpx;
+  background: var(--color-divider);
+  border-radius: var(--radius-sm);
+  padding: 12rpx 20rpx;
 }
 
 .sub-name {
@@ -56,7 +56,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16rpx 0;
-  border-bottom: 1rpx solid #F5F5F5;
+  border-bottom: 1rpx solid var(--color-divider);
 }
 
 .adj-item:last-child {

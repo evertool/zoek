@@ -1,4 +1,4 @@
-// pages/room/room.js — 台间页（房间页）
+// pages/room/room.js — 房间页
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
@@ -10,6 +10,8 @@ Page({
     players: [],
     inviteToken: '',
     qrPath: '',
+    qrLoading: false,
+    qrError: '',
     loading: true,
     isOwner: false
   },
@@ -24,12 +26,6 @@ Page({
       return
     }
     this.loadGame()
-
-    // 如果有 invite_token，生成小程序码
-    if (this.data.inviteToken) {
-      // 使用微信原生接口生成普通二维码（MVP 不接小程序码 API，用 Canvas 画 QR）
-      // 简化：用分享功能代替
-    }
   },
 
   onShow() {
@@ -42,67 +38,83 @@ Page({
     this.setData({ loading: true })
     api.get(`/games/${this.data.gameID}`).then(res => {
       const players = (res.players || []).map(p => {
-        return { ...p, isOwner: p.role === 'owner' }
+        return {
+          ...p,
+          isOwner: p.role === 'owner',
+          avatarColor: util.avatarColor(p.nickname)
+        }
       })
+      const game = {
+        ...res,
+        statusText: util.statusText(res.status),
+        statusClass: util.statusClass(res.status)
+      }
       this.setData({
-        game: {
-          ...res,
-          statusText: util.statusText(res.status),
-          statusClass: util.statusClass(res.status)
-        },
+        game,
         players,
         isOwner: res.creator_id === app.globalData.userID,
         loading: false
       })
+
+      if (game.status === 'forming' && !this.data.qrPath && !this.data.qrLoading) {
+        this.loadQRCode()
+      }
     }).catch(() => {
       this.setData({ loading: false })
     })
   },
 
-  goScore() {
-    wx.navigateTo({
-      url: `/pages/score/score?game_id=${this.data.gameID}`
-    })
-  },
+  loadQRCode() {
+    this.setData({ qrLoading: true, qrError: '' })
 
-  goSettlement() {
-    wx.navigateTo({
-      url: `/pages/settlement/settlement?game_id=${this.data.gameID}`
-    })
-  },
-
-  doStart() {
-    wx.showModal({
-      title: '开始计分',
-      content: '确定要开始计分吗？开始后不能加入新雀友。',
+    wx.request({
+      url: app.globalData.baseURL + `/games/${this.data.gameID}/qrcode`,
+      method: 'GET',
+      header: {
+        'Authorization': 'Bearer ' + app.globalData.token
+      },
+      responseType: 'arraybuffer',
       success: (res) => {
-        if (res.confirm) {
-          api.post(`/games/${this.data.gameID}/start`, {
-            request_id: api.genRequestID()
-          }).then(() => {
-            wx.showToast({ title: '开始计分', icon: 'success' })
-            this.loadGame()
-          })
+        if (res.statusCode === 200) {
+          const fs = wx.getFileSystemManager()
+          const filePath = `${wx.env.USER_DATA_PATH}/qrcode_${this.data.gameID}.png`
+          try {
+            fs.writeFileSync(filePath, res.data, 'binary')
+            this.setData({ qrPath: filePath, qrLoading: false })
+          } catch (e) {
+            const base64 = wx.arrayBufferToBase64(res.data)
+            this.setData({ qrPath: 'data:image/png;base64,' + base64, qrLoading: false })
+          }
+        } else {
+          this.setData({ qrLoading: false, qrError: '生成失败，请检查配置' })
         }
+      },
+      fail: () => {
+        this.setData({ qrLoading: false, qrError: '网络错误，请重试' })
       }
     })
   },
 
+  goScore() {
+    wx.navigateTo({ url: `/pages/score/score?game_id=${this.data.gameID}` })
+  },
+
+  goSettlement() {
+    wx.navigateTo({ url: `/pages/settlement/settlement?game_id=${this.data.gameID}` })
+  },
+
   doCancel() {
     wx.showModal({
-      title: '取消牌桌',
-      content: '确定要取消呢个牌桌吗？',
-      showCancel: true,
-      confirmColor: '#F44336',
+      title: '删除房间',
+      content: '确定要删除这个房间吗？',
+      confirmColor: '#B33A3A',
       success: (res) => {
         if (res.confirm) {
           api.post(`/games/${this.data.gameID}/cancel`, {
             request_id: api.genRequestID()
           }).then(() => {
-            wx.showToast({ title: '已取消', icon: 'success' })
-            setTimeout(() => {
-              wx.navigateBack()
-            }, 1000)
+            wx.showToast({ title: '已删除', icon: 'success' })
+            setTimeout(() => { wx.navigateBack() }, 1000)
           })
         }
       }
@@ -112,16 +124,14 @@ Page({
   doEnd() {
     wx.showModal({
       title: '散台',
-      content: '确定要散台吗？结束后将进入结算页面。',
+      content: '确定要散台吗？结束后进入结算页面。',
       success: (res) => {
         if (res.confirm) {
           api.post(`/games/${this.data.gameID}/end`, {
             request_id: api.genRequestID()
           }).then(() => {
             wx.showToast({ title: '已散台', icon: 'success' })
-            wx.redirectTo({
-              url: `/pages/settlement/settlement?game_id=${this.data.gameID}`
-            })
+            wx.redirectTo({ url: `/pages/settlement/settlement?game_id=${this.data.gameID}` })
           })
         }
       }
@@ -130,14 +140,14 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: `雀友记 — ${this.data.game ? this.data.game.name : '快来打牌！'}`,
-      path: `/pages/join/join?invite_token=${this.data.inviteToken}`
+      title: `雀记 — ${this.data.game ? this.data.game.name : '快来打牌！'}`,
+      path: `/pages/join/join?invite_token=${this.data.inviteToken || this.data.gameID}`
     }
   },
 
   onShareTimeline() {
     return {
-      title: `雀友记 — ${this.data.game ? this.data.game.name : '快来打牌！'}`
+      title: `雀记 — ${this.data.game ? this.data.game.name : '快来打牌！'}`
     }
   }
 })

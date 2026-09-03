@@ -1,6 +1,10 @@
 /* pages/history/history.wxss */
 .history-card {
-  position: relative;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: 28rpx 32rpx;
+  margin-bottom: 16rpx;
+  box-shadow: var(--shadow-sm);
 }
 
 .history-header {

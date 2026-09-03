@@ -1,48 +1,73 @@
 <!--pages/profile/profile.wxml — 我的页-->
 <view class="container">
   <!-- 未登录 -->
-  <view class="empty-state" wx:if="{{!isLoggedIn}}">
-    <view class="empty-icon">🀄</view>
-    <view>未登入</view>
-    <view class="text-secondary" style="margin-top: 16rpx;">登入后可以开台记分</view>
-    <button class="btn-primary" style="margin-top: 32rpx; width: 60%;" bindtap="doLogin">微信登入</button>
+  <view class="auth-page" wx:if="{{!isLoggedIn}}">
+    <view class="auth-logo">🀄</view>
+    <view class="auth-title">雀记</view>
+    <view class="auth-desc">登录后可以开台记分</view>
+    <button class="btn-primary" style="margin-top: 64rpx; width: 80%;" bindtap="doLogin">微信登录</button>
   </view>
 
   <!-- 已登录 -->
   <view wx:if="{{isLoggedIn}}">
-    <view class="card profile-card">
-      <view class="profile-avatar">{{nickname[0] || '?'}}</view>
-      <view class="profile-name" wx:if="{{!editing}}">{{nickname}}</view>
-      <view class="edit-area" wx:if="{{editing}}">
-        <input
-          class="nickname-input"
-          value="{{newNickname}}"
-          bindinput="onNicknameInput"
-          maxlength="16"
-          placeholder="输入新昵称"
-        />
-        <view class="edit-actions">
-          <button class="mini-btn mini-save" bindtap="saveNickname">保存</button>
-          <button class="mini-btn mini-cancel" bindtap="cancelEdit">取消</button>
-        </view>
+    <!-- 用户信息 -->
+    <view class="card profile-hero">
+      <view class="profile-avatar" wx:if="{{avatarURL}}">
+        <image src="{{avatarURL}}" mode="aspectFill" />
       </view>
-      <view class="text-secondary" wx:if="{{!editing}}" style="margin-top: 8rpx;" bindtap="startEdit">
-        修改昵称 ›
+      <view class="profile-avatar-text" wx:else style="background: {{avatarColor}}">
+        {{nickname[0] || '?'}}
       </view>
+      <view class="profile-name">{{nickname}}</view>
     </view>
 
+    <!-- 功能列表 -->
     <view class="card">
+      <view class="menu-item" bindtap="goEditProfile">
+        <view class="menu-icon">✎</view>
+        <text class="menu-label">修改资料</text>
+        <text class="menu-arrow">›</text>
+      </view>
       <view class="menu-item" bindtap="doLogout">
-        <text>退出登入</text>
-        <text class="text-secondary">›</text>
+        <view class="menu-icon">⏻</view>
+        <text class="menu-label" style="color: var(--color-error)">退出登录</text>
+        <text class="menu-arrow">›</text>
       </view>
     </view>
 
+    <!-- 关于 -->
     <view class="card about-card">
-      <view class="section-title">关于雀友记</view>
-      <view class="text-secondary" style="line-height: 1.8;">
-        雀友记系专为粤语朋友打造嘅麻将牌局积分记录工具。
-        唔使纸笔，唔使脑记，每位玩家自己提交本局分数，系统自动校验零和。
+      <view class="section-title">关于雀记</view>
+      <view class="text-secondary" style="line-height: 1.8; font-size: 26rpx;">
+        雀记是一款简洁的麻将记分工具。
+        无需纸笔，每位玩家自行输入本局分数，系统自动校验零和。
+      </view>
+    </view>
+  </view>
+
+  <!-- 编辑资料弹层 -->
+  <view class="edit-overlay" wx:if="{{editing}}">
+    <view class="edit-modal">
+      <view class="edit-title">修改资料</view>
+
+      <button class="avatar-picker" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image wx:if="{{tempAvatar}}" src="{{tempAvatar}}" mode="aspectFill" />
+        <view wx:else class="avatar-placeholder">点击选择</view>
+      </button>
+
+      <input
+        class="input"
+        type="nickname"
+        placeholder="请输入昵称"
+        placeholder-class="input-placeholder"
+        value="{{tempNickname}}"
+        bindinput="onNicknameInput"
+        style="margin-bottom: 32rpx;"
+      />
+
+      <view class="edit-actions">
+        <button class="btn-secondary" bindtap="cancelEdit">取消</button>
+        <button class="btn-primary" bindtap="saveProfile">保存</button>
       </view>
     </view>
   </view>

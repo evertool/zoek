@@ -1,45 +1,52 @@
 <!--pages/score/score.wxml — 记分页-->
 <view class="container" wx:if="{{!loading && game}}">
-  <!-- 顶部信息 -->
+  <!-- 牌局信息 -->
   <view class="card">
-    <view class="round-header">
+    <view class="score-header">
       <view class="game-name">{{game.name}}</view>
       <view class="tag {{game.statusClass}}">{{game.statusText}}</view>
     </view>
-    <view class="round-info" wx:if="{{currentRoundNumber}}">
+    <view class="score-round" wx:if="{{currentRoundNumber}}">
       <text class="round-num">第{{currentRoundNumber}}局</text>
       <text class="text-secondary" style="margin-left: 16rpx;">已完成{{completedRounds}}局</text>
     </view>
-    <view class="round-info" wx:else>
+    <view class="score-round" wx:else>
       <text class="text-secondary">已完成{{completedRounds}}局</text>
     </view>
   </view>
 
-  <!-- 待确认调整通知 -->
+  <!-- 待确认调整 -->
   <view class="card adj-notice" wx:if="{{pendingAdjustments.length > 0}}">
-    <view class="section-title">等紧确认</view>
+    <view class="section-title">待确认改分</view>
     <view class="adj-item" wx:for="{{pendingAdjustments}}" wx:key="id">
       <view class="adj-info">
-        <text>{{item.adjustment_type === 'supplement' ? '补分' : '退分'}} {{item.amount}}分</text>
+        <text class="adj-type">{{item.adjustment_type === 'supplement' ? '补分' : '退分'}}</text>
+        <text class="adj-amount">{{item.amount}}分</text>
       </view>
       <view class="adj-actions">
-        <button class="mini-btn mini-accept" bindtap="goAcceptAdjustment" data-id="{{item.id}}">确认</button>
-        <button class="mini-btn mini-reject" bindtap="goRejectAdjustment" data-id="{{item.id}}">拒绝</button>
+        <view class="mini-btn mini-accept" catchtap="goAcceptAdjustment" data-id="{{item.id}}">确认</view>
+        <view class="mini-btn mini-reject" catchtap="goRejectAdjustment" data-id="{{item.id}}">拒绝</view>
       </view>
     </view>
   </view>
 
-  <!-- 当前局信息 -->
+  <!-- 当前局 -->
   <view class="card" wx:if="{{round}}">
-    <view class="submit-progress">
-      <text>已入分 {{submittedCount}}/{{memberCount}}</text>
-      <text class="text-secondary" wx:if="{{submittedCount < memberCount}}">仲有 {{memberCount - submittedCount}} 位未入</text>
+    <!-- 入分进度 -->
+    <view class="progress-bar">
+      <view class="progress-info">
+        <text class="progress-text">已入分 {{submittedCount}}/{{memberCount}}</text>
+        <text class="text-secondary" wx:if="{{submittedCount < memberCount}}">还有 {{memberCount - submittedCount}} 位未入</text>
+      </view>
+      <view class="progress-track">
+        <view class="progress-fill" style="width: {{memberCount > 0 ? (submittedCount / memberCount * 100) : 0}}%"></view>
+      </view>
     </view>
 
     <!-- 我的入分 -->
     <block wx:if="{{roundStatus === 'open' || roundStatus === 'review'}}">
-      <view class="score-input-area">
-        <view class="text-secondary" style="margin-bottom: 12rpx;">我嘅本局分数</view>
+      <view class="my-score-area">
+        <view class="text-secondary" style="margin-bottom: 16rpx;">我的本局分数</view>
         <view class="score-input-row">
           <input
             class="score-input"
@@ -56,7 +63,7 @@
       </view>
     </block>
 
-    <!-- 复核阶段 -->
+    <!-- 核对阶段 -->
     <block wx:if="{{roundStatus === 'review'}}">
       <view class="review-section">
         <view class="section-title">本局分数</view>
@@ -69,13 +76,13 @@
           </view>
         </view>
         <view class="score-sum">
-          <text>本局总和：</text>
-          <text class="{{scoreSum > 0 ? 'text-positive' : (scoreSum < 0 ? 'text-negative' : 'text-success')}}">
+          <text>总和</text>
+          <text class="{{scoreSum > 0 ? 'text-negative' : (scoreSum < 0 ? 'text-negative' : 'text-success')}}">
             {{scoreSum > 0 ? '+' : ''}}{{scoreSum}}
           </text>
         </view>
-        <view class="text-warning" wx:if="{{scoreSum !== 0}}" style="text-align: center; margin: 16rpx 0;">
-          今局总和唔系零，请修改自己的分数
+        <view class="sum-warning" wx:if="{{scoreSum !== 0}}">
+          总和不为0，请修改分数
         </view>
         <button class="btn-primary" bindtap="doLock" wx:if="{{scoreSum === 0}}">
           确认锁定
@@ -83,13 +90,13 @@
       </view>
     </block>
 
-    <!-- open 阶段提交状态 -->
+    <!-- 等待其他人入分 -->
     <block wx:if="{{roundStatus === 'open'}}">
       <view class="submit-status">
         <view class="score-item" wx:for="{{submissions}}" wx:key="player_id">
           <view class="score-name">{{item.nickname}}</view>
           <view class="{{item.submitted ? 'text-success' : 'text-secondary'}}">
-            {{item.submitted ? '已入分' : '等紧入分'}}
+            {{item.submitted ? '已入分' : '待入分'}}
           </view>
         </view>
       </view>
@@ -98,20 +105,19 @@
 
   <!-- 底部操作 -->
   <view class="action-bar" wx:if="{{roundStatus === 'ready_for_next'}}">
-    <view class="text-success" style="text-align: center; margin-bottom: 16rpx;">
-      第{{currentRoundNumber}}局已完成，总和为0
+    <view class="round-complete">
+      <view class="text-success" style="font-size: 32rpx; font-weight: 600;">第{{currentRoundNumber}}局已完成</view>
     </view>
     <button class="btn-primary" bindtap="doNextRound">下一局</button>
-    <button class="btn-secondary" bindtap="goAdjustment">补分/退分</button>
+    <button class="btn-secondary" bindtap="goAdjustment">补分 / 退分</button>
     <button class="btn-danger" wx:if="{{isOwner}}" bindtap="doEnd">散台</button>
   </view>
 
   <view class="action-bar" wx:if="{{roundStatus === 'review'}}">
-    <button class="btn-secondary" bindtap="goAdjustment">补分/退分</button>
-    <button class="btn-danger" wx:if="{{isOwner}}" bindtap="doEnd" disabled>散台</button>
+    <button class="btn-secondary" bindtap="goAdjustment">补分 / 退分</button>
   </view>
 
   <view class="action-bar" wx:if="{{roundStatus === 'open' && mySubmitted}}">
-    <button class="btn-secondary" bindtap="goAdjustment">补分/退分</button>
+    <button class="btn-secondary" bindtap="goAdjustment">补分 / 退分</button>
   </view>
 </view>

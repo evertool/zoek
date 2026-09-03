@@ -1,33 +1,38 @@
 // pages/profile/profile.js — 我的页
 const app = getApp()
 const api = require('../../utils/api')
+const util = require('../../utils/util')
 
 Page({
   data: {
     isLoggedIn: false,
     nickname: '',
     avatarURL: '',
+    avatarColor: '',
     editing: false,
-    newNickname: ''
+    tempNickname: '',
+    tempAvatar: ''
   },
 
   onShow() {
     this.setData({
       isLoggedIn: !!app.globalData.token,
       nickname: app.globalData.nickname || '',
-      avatarURL: app.globalData.avatarURL || ''
+      avatarURL: app.globalData.avatarURL || '',
+      avatarColor: util.avatarColor(app.globalData.nickname || '')
     })
   },
 
   doLogin() {
-    wx.showLoading({ title: '登入中...' })
+    wx.showLoading({ title: '登录中...' })
     app.login().then(() => {
       wx.hideLoading()
       this.setData({
         isLoggedIn: true,
-        nickname: app.globalData.nickname
+        nickname: app.globalData.nickname,
+        avatarURL: app.globalData.avatarURL,
+        avatarColor: util.avatarColor(app.globalData.nickname)
       })
-      wx.showToast({ title: '登入成功', icon: 'success' })
     }).catch(() => {
       wx.hideLoading()
     })
@@ -35,42 +40,53 @@ Page({
 
   doLogout() {
     wx.showModal({
-      title: '退出登入',
-      content: '确定要退出登入吗？',
+      title: '退出登录',
+      content: '确定要退出吗？',
+      confirmColor: '#B33A3A',
       success: (res) => {
         if (res.confirm) {
           app.logout()
-          this.setData({ isLoggedIn: false, nickname: '' })
+          this.setData({ isLoggedIn: false, nickname: '', avatarURL: '' })
         }
       }
     })
   },
 
-  startEdit() {
+  goEditProfile() {
     this.setData({
       editing: true,
-      newNickname: this.data.nickname
+      tempNickname: this.data.nickname,
+      tempAvatar: this.data.avatarURL
     })
   },
 
-  onNicknameInput(e) {
-    this.setData({ newNickname: e.detail.value })
+  onChooseAvatar(e) {
+    this.setData({ tempAvatar: e.detail.avatarUrl })
   },
 
-  saveNickname() {
-    const name = this.data.newNickname.trim()
-    if (!name) {
-      wx.showToast({ title: '昵称不能为空', icon: 'none' })
+  onNicknameInput(e) {
+    this.setData({ tempNickname: e.detail.value })
+  },
+
+  saveProfile() {
+    const nickname = this.data.tempNickname.trim()
+    if (!nickname) {
+      wx.showToast({ title: '请输入昵称', icon: 'none' })
       return
     }
-    api.put('/user/profile', { nickname: name }).then(res => {
-      app.globalData.nickname = res.nickname
-      wx.setStorageSync('nickname', res.nickname)
+
+    wx.showLoading({ title: '保存中...' })
+    app.saveProfile(nickname, this.data.tempAvatar).then(() => {
+      wx.hideLoading()
+      wx.showToast({ title: '已保存', icon: 'success' })
       this.setData({
-        nickname: res.nickname,
+        nickname: app.globalData.nickname,
+        avatarURL: app.globalData.avatarURL,
+        avatarColor: util.avatarColor(app.globalData.nickname),
         editing: false
       })
-      wx.showToast({ title: '已更新', icon: 'success' })
+    }).catch(() => {
+      wx.hideLoading()
     })
   },
 

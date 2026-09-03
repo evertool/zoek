@@ -1,41 +1,78 @@
 <!--pages/index/index.wxml — 首页-->
 <view class="container">
-  <!-- 未登录状态 -->
-  <view class="empty-state" wx:if="{{!isLoggedIn}}">
-    <view class="empty-icon">🀄</view>
-    <view>雀友记 — 粤语麻将记分神器</view>
-    <view class="text-secondary" style="margin-top: 16rpx;">登入后开始记分</view>
-    <button class="btn-primary" style="margin-top: 32rpx; width: 60%;" bindtap="doLogin">微信登入</button>
+  <!-- 未登录 -->
+  <view class="auth-page" wx:if="{{!isLoggedIn}}">
+    <view class="auth-logo">🀄</view>
+    <view class="auth-title">雀记</view>
+    <view class="auth-desc">麻雀记分 · 简单方便</view>
+    <button class="btn-primary" bindtap="doLogin" style="margin-top: 64rpx;">微信登录</button>
   </view>
 
-  <!-- 已登录 -->
-  <block wx:if="{{isLoggedIn}}">
+  <!-- 已登录但未授权头像昵称 -->
+  <view class="auth-page" wx:if="{{isLoggedIn && needProfile}}">
+    <view class="auth-logo">🀄</view>
+    <view class="auth-title">完善资料</view>
+    <view class="auth-desc">授权头像和昵称后即可使用</view>
+
+    <view class="auth-form">
+      <!-- 头像 -->
+      <button class="avatar-picker" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image wx:if="{{tempAvatar}}" src="{{tempAvatar}}" mode="aspectFill" />
+        <view wx:else class="avatar-placeholder">点击选择</view>
+      </button>
+
+      <!-- 昵称 -->
+      <view class="nickname-row">
+        <input
+          class="input nickname-input"
+          type="nickname"
+          placeholder="请输入昵称"
+          placeholder-class="input-placeholder"
+          value="{{tempNickname}}"
+          bindinput="onNicknameInput"
+        />
+      </view>
+
+      <button class="btn-primary" bindtap="doSaveProfile">保存并使用</button>
+    </view>
+  </view>
+
+  <!-- 已登录且已授权 -->
+  <block wx:if="{{isLoggedIn && !needProfile}}">
     <!-- 开台按钮 -->
-    <view class="create-bar" bindtap="goCreate">
-      <view class="create-icon">🀄</view>
-      <view class="create-text">开台</view>
-      <view class="create-arrow">›</view>
+    <view class="hero-bar" bindtap="goCreate">
+      <view class="hero-icon">🀄</view>
+      <view class="hero-text">
+        <view class="hero-title">开台</view>
+        <view class="hero-sub">新建一局牌局</view>
+      </view>
+      <view class="hero-arrow">›</view>
     </view>
 
     <!-- 进行中牌局 -->
     <view class="section-title" wx:if="{{games.length > 0}}">进行中</view>
 
-    <view class="card game-card" wx:for="{{games}}" wx:key="game_id" bindtap="goScore" data-id="{{item.game_id}}">
-      <view class="game-header">
-        <view class="game-name">{{item.name}}</view>
-        <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+    <view class="game-card" wx:for="{{games}}" wx:key="game_id" bindtap="goRoom" data-id="{{item.game_id}}">
+      <view class="game-card-main">
+        <view class="game-card-header">
+          <view class="game-card-name">{{item.name}}</view>
+          <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+        </view>
+        <view class="game-card-info">
+          <text class="text-secondary">{{item.roundInfo}}</text>
+          <text class="text-secondary" style="margin-left: 20rpx;">{{item.player_count}}人</text>
+        </view>
       </view>
-      <view class="game-info">
-        <text class="text-secondary">{{item.roundInfo}}</text>
-        <text class="text-secondary" style="margin-left: 24rpx;">{{item.player_count}}位雀友</text>
+      <view class="game-card-delete" wx:if="{{item.status === 'forming'}}" catchtap="doDelete" data-id="{{item.game_id}}">
+        删除
       </view>
     </view>
 
     <!-- 空状态 -->
     <view class="empty-state" wx:if="{{games.length === 0 && !loading}}">
       <view class="empty-icon">🀄</view>
-      <view>未有进行中嘅牌局</view>
-      <view class="text-secondary" style="margin-top: 8rpx;">点击开台开始新一局</view>
+      <view style="font-size: 30rpx; color: var(--color-text-secondary);">暂无进行中的牌局</view>
+      <view class="text-secondary" style="margin-top: 8rpx;">点击上方开台开始新一局</view>
     </view>
-  </view>
+  </block>
 </view>

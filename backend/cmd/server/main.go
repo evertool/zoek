@@ -16,6 +16,7 @@ import (
 	"github.com/lk/zoek/backend/internal/logger"
 	"github.com/lk/zoek/backend/internal/middleware"
 	"github.com/lk/zoek/backend/internal/store"
+	"github.com/lk/zoek/backend/pkg/wechat"
 )
 
 func main() {
@@ -84,9 +85,12 @@ func main() {
 		})
 	})
 
+	// WeChat
+	wxClient := wechat.NewClient(cfg.Wechat.AppID, cfg.Wechat.AppSecret)
+
 	// Handlers
-	authHandler := handler.NewAuthHandler(s, jwtManager)
-	gameHandler := handler.NewGameHandler(s, jwtManager)
+	authHandler := handler.NewAuthHandler(s, jwtManager, wxClient)
+	gameHandler := handler.NewGameHandler(s, jwtManager, wxClient)
 	roundHandler := handler.NewRoundHandler(s)
 	adjHandler := handler.NewAdjustmentHandler(s)
 	settlementHandler := handler.NewSettlementHandler(s)
@@ -114,6 +118,7 @@ func main() {
 			auth.POST("/games/:game_id/start", gameHandler.StartGame)
 			auth.POST("/games/:game_id/cancel", gameHandler.CancelGame)
 			auth.POST("/games/:game_id/end", gameHandler.EndGame)
+			auth.GET("/games/:game_id/qrcode", gameHandler.GetGameQRCode)
 
 			// Rounds
 			auth.POST("/games/:game_id/rounds", roundHandler.CreateNextRound)
