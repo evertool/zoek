@@ -1,0 +1,15 @@
+<!--pages/join/join.wxml — 扫码入台页-->
+<view class="container">
+  <view class="empty-state" wx:if="{{loading && !error}}">
+    <view class="empty-icon">🀄</view>
+    <view>正在入台...</view>
+  </view>
+
+  <view class="empty-state" wx:if="{{error}}">
+    <view class="empty-icon">🀄</view>
+    <view>{{error}}</view>
+    <button class="btn-primary" style="margin-top: 32rpx; width: 60%;" bindtap="tryJoin" disabled="{{joining}}">
+      重新入台
+    </button>
+  </view>
+</view>

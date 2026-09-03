@@ -1,0 +1,65 @@
+<!--pages/adjustment/adjustment.wxml — 补分/退分页-->
+<view class="container">
+  <view class="card">
+    <!-- 类型选择 -->
+    <view class="section-title">类型</view>
+    <view class="type-selector">
+      <view class="type-item {{adjustmentType === 'supplement' ? 'active' : ''}}"
+            bindtap="onTypeChange" data-type="supplement">
+        补分（我 -N，对方 +N）
+      </view>
+      <view class="type-item {{adjustmentType === 'refund' ? 'active' : ''}}"
+            bindtap="onTypeChange" data-type="refund">
+        退分（我 -N，对方 +N）
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <!-- 选择雀友 -->
+    <view class="section-title">选择雀友</view>
+    <view class="player-list">
+      <view
+        class="player-item {{selectedPlayerID === item.player_id ? 'selected' : ''}}"
+        wx:for="{{players}}"
+        wx:key="player_id"
+        bindtap="onPlayerChange"
+        data-id="{{item.player_id}}"
+      >
+        <view class="player-avatar">{{item.nickname[0]}}</view>
+        <view class="player-name">{{item.nickname}}</view>
+      </view>
+    </view>
+    <view class="empty-state" wx:if="{{players.length === 0}}">
+      <view class="text-secondary">暂无其他雀友</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <!-- 数值 -->
+    <view class="section-title">分数</view>
+    <input
+      class="input"
+      type="number"
+      placeholder="输入正整数"
+      placeholder-class="input-placeholder"
+      value="{{amount}}"
+      bindinput="onAmountInput"
+    />
+
+    <!-- 原因 -->
+    <view class="section-title" style="margin-top: 32rpx;">原因（可选）</view>
+    <input
+      class="input"
+      placeholder="简单写低原因"
+      placeholder-class="input-placeholder"
+      value="{{reason}}"
+      bindinput="onReasonInput"
+      maxlength="100"
+    />
+  </view>
+
+  <button class="btn-primary" bindtap="doSubmit" disabled="{{submitting}}">
+    {{submitting ? '发送中...' : '发送请求'}}
+  </button>
+</view>

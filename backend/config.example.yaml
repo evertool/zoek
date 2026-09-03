@@ -1,0 +1,46 @@
+# 雀友记后端配置示例
+# 将此文件复制为 config.yaml 并修改为实际值
+# 环境变量覆盖优先级最高: ZOEK_<SECTION>_<FIELD>
+
+server:
+  port: "8080"
+  mode: "release"           # debug | release | test
+  shutdown_timeout: 10      # 优雅关闭超时（秒）
+
+database:
+  driver: "mysql"           # 仅支持 mysql
+  dsn: "root:123456@tcp(127.0.0.1:3306)/zoek?charset=utf8mb4&parseTime=true&loc=Local"
+  log_level: "warn"         # silent | error | warn | info
+
+  # ── MySQL DSN 格式说明 ─────────────────────────────────────
+  # <user>:<pass>@tcp(<host>:<port>)/<dbname>?<params>
+  #
+  # 逐项说明:
+  #   root          → 数据库用户名
+  #   123456        → 数据库密码（含特殊字符用 URL 编码，如 @ → %40）
+  #   127.0.0.1     → 数据库地址（线上填实际 IP 或域名）
+  #   3306          → 端口
+  #   zoek          → 数据库名（需提前创建）
+  #   charset       → utf8mb4 支持中文和 emoji
+  #   parseTime     → 自动解析 DATETIME 为 time.Time
+  #   loc=Local     → 使用本地时区（不要用 Asia/Shanghai，含 / 会破坏 DSN 解析）
+  #
+  # 常见场景:
+  #   本地 Docker:  root:123456@tcp(127.0.0.1:3306)/zoek?charset=utf8mb4&parseTime=true&loc=Local
+  #   云数据库 RDS:  zoek_app:your_pass@tcp(rm-xxx.mysql.rds.aliyuncs.com:3306)/zoek?charset=utf8mb4&parseTime=true&loc=Local
+  #   无密码本地:    root:@tcp(127.0.0.1:3306)/zoek?charset=utf8mb4&parseTime=true&loc=Local
+
+jwt:
+  secret: "zoek-dev-secret-change-in-production"  # 生产环境务必修改！用 make jwt-secret 生成
+  token_expiry: 168         # Token 有效期（小时），168 = 7 天
+
+log:
+  level: "info"             # debug | info | warn | error
+  encoding: "json"          # json | console
+  output: "stdout"         # stdout | stderr | /path/to/file.log
+
+cors:
+  allow_origins:
+    - "*"
+  # 生产环境应配置为具体域名：
+  # - "https://your-domain.com"

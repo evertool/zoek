@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- 背景: 深蓝渐变模拟 -->
+  <rect width="1024" height="1024" rx="224" fill="#1A1A2E"/>
+  <rect width="1024" height="1024" rx="224" fill="#16213E" opacity="0.5"/>
+
+  <!-- 麻将牌 - 倾斜效果（简化为圆角矩形） -->
+  <rect x="280" y="220" width="464" height="500" rx="28" fill="#F5F0E6"/>
+  <rect x="300" y="240" width="424" height="460" rx="20" fill="#FAF7F0"/>
+
+  <!-- 三张牌叠加效果 - 后面两张 -->
+  <rect x="250" y="240" width="464" height="500" rx="28" fill="#E8DFD0" opacity="0.6"/>
+  <rect x="220" y="260" width="464" height="500" rx="28" fill="#D5CCB8" opacity="0.4"/>
+
+  <!-- 最前面的牌 -->
+  <rect x="280" y="220" width="464" height="500" rx="28" fill="#F5F0E6"/>
+  <rect x="300" y="240" width="424" height="460" rx="20" fill="#FAF7F0"/>
+
+  <!-- "中"字 - 红色 -->
+  <text x="512" y="500"
+    font-family="'PingFang SC','Microsoft YaHei','SimHei',sans-serif"
+    font-size="340" font-weight="900"
+    fill="#E6533C"
+    text-anchor="middle"
+    dominant-baseline="central">中</text>
+
+  <!-- 品牌名 -->
+  <text x="512" y="830"
+    font-family="'PingFang SC','Microsoft YaHei',sans-serif"
+    font-size="52" font-weight="600"
+    fill="#F5F0E6"
+    text-anchor="middle"
+    letter-spacing="8">雀友记</text>
+</svg>

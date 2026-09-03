@@ -1,0 +1,128 @@
+/* pages/score/score.wxss */
+.round-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.round-info {
+  display: flex;
+  align-items: center;
+}
+
+.round-num {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.submit-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 24rpx;
+  border-bottom: 2rpx solid #F0F0F0;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.score-input-area {
+  padding: 24rpx 0;
+  border-bottom: 2rpx solid #F0F0F0;
+}
+
+.score-input-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.score-input {
+  flex: 1;
+  border: 4rpx solid var(--color-primary);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  font-size: 48rpx;
+  font-weight: 700;
+  text-align: center;
+  background: #FFF;
+}
+
+.score-list, .submit-status {
+  padding: 16rpx 0;
+}
+
+.score-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+
+.score-name {
+  font-size: 30rpx;
+}
+
+.score-value {
+  font-size: 36rpx;
+  font-weight: 700;
+}
+
+.score-sum {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8rpx;
+  padding: 24rpx 0;
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.review-section {
+  padding-top: 24rpx;
+}
+
+.adj-notice {
+  border-left: 8rpx solid var(--color-warning);
+}
+
+.adj-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12rpx 0;
+}
+
+.adj-actions {
+  display: flex;
+  gap: 12rpx;
+}
+
+.mini-btn {
+  font-size: 24rpx;
+  padding: 8rpx 24rpx;
+  border-radius: 8rpx;
+  line-height: 1.5;
+  width: auto;
+  display: inline-block;
+}
+
+.mini-accept {
+  background: var(--color-success);
+  color: #FFF;
+}
+
+.mini-reject {
+  background: #E0E0E0;
+  color: var(--color-text);
+}
+
+.action-bar {
+  padding: 24rpx 0;
+}
+
+.action-bar button {
+  margin-bottom: 16rpx;
+}

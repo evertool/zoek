@@ -1,0 +1,48 @@
+<!--pages/settlement/settlement.wxml — 结算页-->
+<view class="container" wx:if="{{settlement}}">
+  <view class="card">
+    <view class="settle-header">
+      <view class="settle-title">找数</view>
+      <view class="text-secondary">共{{settlement.completed_rounds}}局</view>
+      <view class="text-secondary" wx:if="{{settlement.adjustment_count > 0}}">
+        已确认改分{{settlement.adjustment_count}}条
+      </view>
+      <view class="text-secondary" wx:if="{{settlement.settlement_updated_at}}">
+        更新时间：{{settlement.settlement_updated_at}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 排名列表 -->
+  <view class="card">
+    <view class="rank-list">
+      <view class="rank-item" wx:for="{{settlement.players}}" wx:key="player_id">
+        <view class="rank-num rank-{{item.rank}}">
+          {{item.rank}}
+        </view>
+        <view class="rank-info">
+          <view class="rank-name">
+            {{item.nickname}}
+            <text class="rank-title" wx:if="{{item.title}}"> · {{item.title}}</text>
+          </view>
+          <view class="rank-detail">
+            <text class="text-secondary">改分{{item.adjustments}}条</text>
+          </view>
+        </view>
+        <view class="rank-score {{item.scoreClass}}">
+          {{item.scoreText}}
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作 -->
+  <view class="action-bar">
+    <button class="btn-secondary" bindtap="goDetail">查看逐局详情</button>
+    <button class="btn-primary" open-type="share">私密分享</button>
+  </view>
+
+  <view class="text-secondary" style="text-align: center; padding: 24rpx;">
+    本次分享仅限牌桌参与者查看详细积分
+  </view>
+</view>

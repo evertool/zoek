@@ -1,0 +1,37 @@
+<!--pages/detail/detail.wxml — 单场详情页-->
+<view class="container" wx:if="{{detail}}">
+  <view class="card">
+    <view class="detail-header">
+      <view class="detail-name">{{detail.game_name}}</view>
+      <view class="text-secondary">共{{detail.completed_rounds}}局</view>
+    </view>
+  </view>
+
+  <!-- 逐局记录 -->
+  <view class="card" wx:if="{{detail.rounds.length > 0}}">
+    <view class="section-title">逐局详情</view>
+    <view class="round-item" wx:for="{{detail.rounds}}" wx:key="round_id">
+      <view class="round-title">第{{item.round_number}}局</view>
+      <view class="round-subs">
+        <view class="sub-item" wx:for="{{item.submissions}}" wx:for-item="sub" wx:key="player_id">
+          <view class="sub-name">{{sub.nickname}}</view>
+          <view class="sub-score {{sub.scoreClass}}">{{sub.scoreText}}</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 改分记录 -->
+  <view class="card" wx:if="{{detail.adjustments.length > 0}}">
+    <view class="section-title">改分记录</view>
+    <view class="adj-item" wx:for="{{detail.adjustments}}" wx:key="id">
+      <view class="adj-info">
+        <view class="adj-type">{{item.typeText}} {{item.amountText}}</view>
+        <view class="text-secondary">{{item.reason || '无备注'}}</view>
+      </view>
+      <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+    </view>
+  </view>
+
+  <button class="btn-primary" bindtap="goSettlement">查看找数</button>
+</view>

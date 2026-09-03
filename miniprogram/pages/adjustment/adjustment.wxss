@@ -1,0 +1,72 @@
+/* pages/adjustment/adjustment.wxss */
+.type-selector {
+  display: flex;
+  gap: 16rpx;
+}
+
+.type-item {
+  flex: 1;
+  border: 2rpx solid #E0E0E0;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  text-align: center;
+  font-size: 26rpx;
+}
+
+.type-item.active {
+  border-color: var(--color-primary);
+  background: #FFF0ED;
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.player-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  border: 2rpx solid #E0E0E0;
+  border-radius: 12rpx;
+  padding: 12rpx 20rpx;
+}
+
+.player-item.selected {
+  border-color: var(--color-primary);
+  background: #FFF0ED;
+}
+
+.player-avatar {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+.player-name {
+  font-size: 28rpx;
+}
+
+.input {
+  border: 2rpx solid #E0E0E0;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  font-size: 32rpx;
+  background: #FAFAFA;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input-placeholder {
+  color: #BDBDBD;
+}

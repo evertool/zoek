@@ -1,0 +1,41 @@
+<!--pages/index/index.wxml — 首页-->
+<view class="container">
+  <!-- 未登录状态 -->
+  <view class="empty-state" wx:if="{{!isLoggedIn}}">
+    <view class="empty-icon">🀄</view>
+    <view>雀友记 — 粤语麻将记分神器</view>
+    <view class="text-secondary" style="margin-top: 16rpx;">登入后开始记分</view>
+    <button class="btn-primary" style="margin-top: 32rpx; width: 60%;" bindtap="doLogin">微信登入</button>
+  </view>
+
+  <!-- 已登录 -->
+  <block wx:if="{{isLoggedIn}}">
+    <!-- 开台按钮 -->
+    <view class="create-bar" bindtap="goCreate">
+      <view class="create-icon">🀄</view>
+      <view class="create-text">开台</view>
+      <view class="create-arrow">›</view>
+    </view>
+
+    <!-- 进行中牌局 -->
+    <view class="section-title" wx:if="{{games.length > 0}}">进行中</view>
+
+    <view class="card game-card" wx:for="{{games}}" wx:key="game_id" bindtap="goScore" data-id="{{item.game_id}}">
+      <view class="game-header">
+        <view class="game-name">{{item.name}}</view>
+        <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+      </view>
+      <view class="game-info">
+        <text class="text-secondary">{{item.roundInfo}}</text>
+        <text class="text-secondary" style="margin-left: 24rpx;">{{item.player_count}}位雀友</text>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{games.length === 0 && !loading}}">
+      <view class="empty-icon">🀄</view>
+      <view>未有进行中嘅牌局</view>
+      <view class="text-secondary" style="margin-top: 8rpx;">点击开台开始新一局</view>
+    </view>
+  </view>
+</view>

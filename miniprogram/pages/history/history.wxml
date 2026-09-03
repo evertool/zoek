@@ -1,0 +1,26 @@
+<!--pages/history/history.wxml — 对局记录列表-->
+<view class="container">
+  <view wx:if="{{games.length === 0 && !loading}}" class="empty-state">
+    <view class="empty-icon">🀄</view>
+    <view>未有对局记录</view>
+  </view>
+
+  <view class="card history-card" wx:for="{{games}}" wx:key="game_id" bindtap="goSettlement" data-id="{{item.game_id}}">
+    <view class="history-header">
+      <view class="history-name">{{item.name}}</view>
+      <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+    </view>
+    <view class="history-info">
+      <text class="text-secondary">{{item.completed_rounds}}局</text>
+      <text class="text-secondary" style="margin-left: 24rpx;">{{item.timeText}}</text>
+    </view>
+  </view>
+
+  <view class="text-secondary" style="text-align: center; padding: 24rpx;" wx:if="{{!hasMore && games.length > 0}}">
+    已经见底啦
+  </view>
+
+  <view class="text-secondary" style="text-align: center; padding: 24rpx;" wx:if="{{loading}}">
+    加载中...
+  </view>
+</view>

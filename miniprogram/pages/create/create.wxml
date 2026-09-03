@@ -1,0 +1,29 @@
+<!--pages/create/create.wxml — 开台页-->
+<view class="container">
+  <view class="card">
+    <view class="section-title">开台</view>
+    <view class="text-secondary" style="margin-bottom: 32rpx;">输入台名，或者留空使用默认名</view>
+
+    <view class="input-group">
+      <input
+        class="input"
+        placeholder="台名（可选）"
+        placeholder-class="input-placeholder"
+        value="{{name}}"
+        bindinput="onInput"
+        maxlength="20"
+      />
+    </view>
+
+    <button class="btn-primary" bindtap="doCreate" disabled="{{submitting}}">
+      {{submitting ? '开台中...' : '开台'}}
+    </button>
+  </view>
+
+  <view class="tips">
+    <view class="text-secondary">· 开台后你会自动入台</view>
+    <view class="text-secondary">· 其他雀友可以扫码入台</view>
+    <view class="text-secondary">· 最少2位雀友可以开始计分</view>
+    <view class="text-secondary">· 最多4位雀友</view>
+  </view>
+</view>

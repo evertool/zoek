@@ -1,0 +1,49 @@
+/* pages/index/index.wxss — 首页样式 */
+.create-bar {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--color-dark), #2D2D44);
+  border-radius: 16rpx;
+  padding: 28rpx 32rpx;
+  margin-bottom: 32rpx;
+}
+
+.create-bar .create-icon {
+  font-size: 48rpx;
+  margin-right: 20rpx;
+}
+
+.create-bar .create-text {
+  flex: 1;
+  color: #FFFFFF;
+  font-size: 34rpx;
+  font-weight: 600;
+}
+
+.create-bar .create-arrow {
+  color: #FFFFFF;
+  font-size: 40rpx;
+  opacity: 0.6;
+}
+
+.game-card {
+  position: relative;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.game-name {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.game-info {
+  display: flex;
+  align-items: center;
+}

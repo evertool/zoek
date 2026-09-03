@@ -1,0 +1,64 @@
+<!--pages/room/room.wxml — 台间页-->
+<view class="container" wx:if="{{game}}">
+  <!-- 台名 + 状态 -->
+  <view class="card">
+    <view class="game-header">
+      <view class="game-name">{{game.name}}</view>
+      <view class="tag {{game.statusClass}}">{{game.statusText}}</view>
+    </view>
+    <view class="game-meta" wx:if="{{game.current_round_number}}">
+      <text>今局第{{game.current_round_number}}局</text>
+      <text class="text-secondary" style="margin-left: 24rpx;">已完成{{game.completed_rounds}}局</text>
+    </view>
+    <view class="game-meta" wx:else>
+      <text class="text-secondary">已完成{{game.completed_rounds}}局</text>
+    </view>
+  </view>
+
+  <!-- 雀友列表 -->
+  <view class="card">
+    <view class="section-title">雀友 ({{players.length}}/4)</view>
+    <view class="player-list">
+      <view class="player-item" wx:for="{{players}}" wx:key="player_id">
+        <view class="player-avatar">{{item.nickname[0]}}</view>
+        <view class="player-name">{{item.nickname}}</view>
+        <view class="tag tag-forming" wx:if="{{item.isOwner}}">台主</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 分享区 -->
+  <view class="card share-card" wx:if="{{inviteToken && game.status === 'forming'}}">
+    <view class="section-title">邀请雀友</view>
+    <view class="text-secondary" style="margin-bottom: 24rpx;">分享畀其他雀友，扫码即可入台</view>
+    <button class="btn-secondary" open-type="share">分享入台链接</button>
+  </view>
+
+  <!-- 操作区 -->
+  <view class="action-bar">
+    <!-- forming 状态 -->
+    <block wx:if="{{game.status === 'forming'}}">
+      <button class="btn-primary" wx:if="{{isOwner}}" bindtap="doStart">开始计分</button>
+      <button class="btn-danger" wx:if="{{isOwner}}" bindtap="doCancel">取消牌桌</button>
+      <view class="text-secondary" style="text-align: center;" wx:if="{{!isOwner}}">等紧台主开始计分</view>
+    </block>
+
+    <!-- active 状态 -->
+    <block wx:if="{{game.status === 'active'}}">
+      <button class="btn-primary" bindtap="goScore">入分 / 计分</button>
+      <button class="btn-secondary" bindtap="goSettlement">查看当前排名</button>
+      <button class="btn-danger" wx:if="{{isOwner}}" bindtap="doEnd">散台</button>
+    </block>
+
+    <!-- ended 状态 -->
+    <block wx:if="{{game.status === 'ended'}}">
+      <button class="btn-primary" bindtap="goSettlement">查看找数</button>
+      <button class="btn-secondary" bindtap="goScore" wx:if="{{game.current_round_number}}">查看最近一局</button>
+    </block>
+
+    <!-- cancelled / expired -->
+    <block wx:if="{{game.status === 'cancelled' || game.status === 'expired'}}">
+      <view class="text-secondary" style="text-align: center;">此牌桌已{{game.statusText}}</view>
+    </block>
+  </view>
+</view>

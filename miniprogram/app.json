@@ -1,0 +1,44 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/create/create",
+    "pages/room/room",
+    "pages/score/score",
+    "pages/adjustment/adjustment",
+    "pages/settlement/settlement",
+    "pages/history/history",
+    "pages/detail/detail",
+    "pages/profile/profile",
+    "pages/join/join"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#1A1A2E",
+    "navigationBarTitleText": "雀友记",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#FAFAFA"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#E6533C",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "牌局"
+      },
+      {
+        "pagePath": "pages/history/history",
+        "text": "对局记录"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

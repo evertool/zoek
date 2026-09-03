@@ -1,0 +1,69 @@
+/* pages/detail/detail.wxss */
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-name {
+  font-size: 36rpx;
+  font-weight: 700;
+}
+
+.round-item {
+  padding: 24rpx 0;
+  border-bottom: 2rpx solid #F5F5F5;
+}
+
+.round-item:last-child {
+  border-bottom: none;
+}
+
+.round-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 12rpx;
+}
+
+.round-subs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.sub-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: #F9F9F9;
+  border-radius: 8rpx;
+  padding: 8rpx 16rpx;
+}
+
+.sub-name {
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+}
+
+.sub-score {
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.adj-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+
+.adj-item:last-child {
+  border-bottom: none;
+}
+
+.adj-type {
+  font-size: 28rpx;
+  font-weight: 600;
+}

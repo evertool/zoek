@@ -1,0 +1,165 @@
+/* app.wxss — 雀友记全局样式 */
+
+/* 品牌色系 (BRAND.md §六) */
+page {
+  --color-primary: #E6533C;       /* 麻将红 */
+  --color-dark: #1A1A2E;           /* 深蓝底 */
+  --color-accent: #F5A623;         /* 橙金 */
+  --color-success: #4CAF50;        /* 成功 */
+  --color-warning: #FF9800;       /* 警告 */
+  --color-error: #F44336;          /* 错误 */
+  --color-bg: #FAFAFA;             /* 背景 */
+  --color-text: #333333;           /* 主文字 */
+  --color-text-secondary: #999999; /* 次文字 */
+
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+/* 通用容器 */
+.container {
+  padding: 24rpx;
+}
+
+/* 卡片 */
+.card {
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
+}
+
+/* 主按钮 */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12rpx;
+  padding: 20rpx 40rpx;
+  font-size: 30rpx;
+  text-align: center;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.btn-primary[disabled] {
+  opacity: 0.5;
+}
+
+/* 次按钮 */
+.btn-secondary {
+  background-color: #F0F0F0;
+  color: var(--color-text);
+  border: none;
+  border-radius: 12rpx;
+  padding: 20rpx 40rpx;
+  font-size: 30rpx;
+  text-align: center;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 危险按钮 */
+.btn-danger {
+  background-color: var(--color-error);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12rpx;
+  padding: 20rpx 40rpx;
+  font-size: 30rpx;
+  text-align: center;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 标题 */
+.section-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  margin-bottom: 16rpx;
+}
+
+/* 文字辅助 */
+.text-secondary {
+  color: var(--color-text-secondary);
+  font-size: 24rpx;
+}
+
+.text-success {
+  color: var(--color-success);
+}
+
+.text-warning {
+  color: var(--color-warning);
+}
+
+.text-error {
+  color: var(--color-error);
+}
+
+.text-positive {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.text-negative {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+/* 空状态 */
+.empty-state {
+  text-align: center;
+  padding: 80rpx 40rpx;
+  color: var(--color-text-secondary);
+}
+
+.empty-state .empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 16rpx;
+}
+
+/* 状态标签 */
+.tag {
+  display: inline-block;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+}
+
+.tag-forming {
+  background: #E3F2FD;
+  color: #1976D2;
+}
+
+.tag-active {
+  background: #FFF3E0;
+  color: #E65100;
+}
+
+.tag-ended {
+  background: #F5F5F5;
+  color: #757575;
+}
+
+.tag-cancelled {
+  background: #FFEBEE;
+  color: #C62828;
+}
+
+.tag-pending {
+  background: #FFF9C4;
+  color: #F57F17;
+}
+
+.tag-accepted {
+  background: #E8F5E9;
+  color: #2E7D32;
+}

@@ -1,0 +1,21 @@
+/* pages/history/history.wxss */
+.history-card {
+  position: relative;
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.history-name {
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.history-info {
+  display: flex;
+  align-items: center;
+}

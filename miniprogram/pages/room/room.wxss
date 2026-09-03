@@ -1,0 +1,58 @@
+/* pages/room/room.wxss */
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.game-name {
+  font-size: 36rpx;
+  font-weight: 700;
+}
+
+.game-meta {
+  display: flex;
+  align-items: center;
+}
+
+.player-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24rpx;
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.player-avatar {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.player-name {
+  font-size: 28rpx;
+}
+
+.share-card {
+  text-align: center;
+}
+
+.action-bar {
+  padding: 24rpx 0;
+}
+
+.action-bar button {
+  margin-bottom: 16rpx;
+}

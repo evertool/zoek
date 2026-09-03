@@ -1,0 +1,49 @@
+<!--pages/profile/profile.wxml — 我的页-->
+<view class="container">
+  <!-- 未登录 -->
+  <view class="empty-state" wx:if="{{!isLoggedIn}}">
+    <view class="empty-icon">🀄</view>
+    <view>未登入</view>
+    <view class="text-secondary" style="margin-top: 16rpx;">登入后可以开台记分</view>
+    <button class="btn-primary" style="margin-top: 32rpx; width: 60%;" bindtap="doLogin">微信登入</button>
+  </view>
+
+  <!-- 已登录 -->
+  <view wx:if="{{isLoggedIn}}">
+    <view class="card profile-card">
+      <view class="profile-avatar">{{nickname[0] || '?'}}</view>
+      <view class="profile-name" wx:if="{{!editing}}">{{nickname}}</view>
+      <view class="edit-area" wx:if="{{editing}}">
+        <input
+          class="nickname-input"
+          value="{{newNickname}}"
+          bindinput="onNicknameInput"
+          maxlength="16"
+          placeholder="输入新昵称"
+        />
+        <view class="edit-actions">
+          <button class="mini-btn mini-save" bindtap="saveNickname">保存</button>
+          <button class="mini-btn mini-cancel" bindtap="cancelEdit">取消</button>
+        </view>
+      </view>
+      <view class="text-secondary" wx:if="{{!editing}}" style="margin-top: 8rpx;" bindtap="startEdit">
+        修改昵称 ›
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="menu-item" bindtap="doLogout">
+        <text>退出登入</text>
+        <text class="text-secondary">›</text>
+      </view>
+    </view>
+
+    <view class="card about-card">
+      <view class="section-title">关于雀友记</view>
+      <view class="text-secondary" style="line-height: 1.8;">
+        雀友记系专为粤语朋友打造嘅麻将牌局积分记录工具。
+        唔使纸笔，唔使脑记，每位玩家自己提交本局分数，系统自动校验零和。
+      </view>
+    </view>
+  </view>
+</view>

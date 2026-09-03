@@ -1,0 +1,89 @@
+/* pages/settlement/settlement.wxss */
+.settle-header {
+  text-align: center;
+  padding: 24rpx 0;
+}
+
+.settle-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: var(--color-dark);
+  margin-bottom: 16rpx;
+}
+
+.rank-list {
+  padding: 8rpx 0;
+}
+
+.rank-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+
+.rank-item:last-child {
+  border-bottom: none;
+}
+
+.rank-num {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 700;
+  background: #F0F0F0;
+  color: #999;
+  flex-shrink: 0;
+}
+
+.rank-1 {
+  background: linear-gradient(135deg, #FFD700, #FFA000);
+  color: #FFF;
+}
+
+.rank-2 {
+  background: linear-gradient(135deg, #C0C0C0, #90A4AE);
+  color: #FFF;
+}
+
+.rank-3 {
+  background: linear-gradient(135deg, #CD7F32, #A1887F);
+  color: #FFF;
+}
+
+.rank-info {
+  flex: 1;
+  margin-left: 24rpx;
+}
+
+.rank-name {
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.rank-title {
+  font-size: 24rpx;
+  color: var(--color-primary);
+  font-weight: 400;
+}
+
+.rank-detail {
+  margin-top: 4rpx;
+}
+
+.rank-score {
+  font-size: 40rpx;
+  font-weight: 700;
+}
+
+.action-bar {
+  padding: 24rpx 0;
+}
+
+.action-bar button {
+  margin-bottom: 16rpx;
+}

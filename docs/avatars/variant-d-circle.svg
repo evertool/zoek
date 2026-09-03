@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- 背景: 深蓝 -->
+  <rect width="1024" height="1024" rx="224" fill="#1A1A2E"/>
+
+  <!-- 圆形背景 -->
+  <circle cx="512" cy="460" r="300" fill="#E6533C"/>
+
+  <!-- 麻将牌 - 白色圆形内 -->
+  <rect x="372" y="280" width="280" height="360" rx="20" fill="#FFFFFF"/>
+
+  <!-- "中"字 - 红色 -->
+  <text x="512" y="480"
+    font-family="'PingFang SC','Microsoft YaHei','SimHei',sans-serif"
+    font-size="260" font-weight="900"
+    fill="#E6533C"
+    text-anchor="middle"
+    dominant-baseline="central">中</text>
+
+  <!-- 品牌名 -->
+  <text x="512" y="850"
+    font-family="'PingFang SC','Microsoft YaHei',sans-serif"
+    font-size="52" font-weight="600"
+    fill="#FFFFFF"
+    text-anchor="middle"
+    letter-spacing="8">雀友记</text>
+</svg>
