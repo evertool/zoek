@@ -12,15 +12,15 @@
     "pages/join/join"
   ],
   "window": {
-    "backgroundTextStyle": "dark",
-    "navigationBarBackgroundColor": "#F2F2F7",
-    "navigationBarTitleText": "雀记",
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#F7F3E8",
+    "navigationBarTitleText": "得闲开台",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#F2F2F7"
+    "backgroundColor": "#F7F3E8"
   },
   "tabBar": {
-    "color": "#8E8E93",
-    "selectedColor": "#1A1A1A",
+    "color": "#7A8480",
+    "selectedColor": "#1E6B47",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
@@ -30,11 +30,11 @@
       },
       {
         "pagePath": "pages/history/history",
-        "text": "记录"
+        "text": "对局记录"
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "我的"
+        "text": "我"
       }
     ]
   },

@@ -1,160 +1,166 @@
-/* pages/profile/profile.wxss */
+/* pages/profile/profile.wxss — 我的页（设计 v2：深绿个人卡 + 金边头像） */
 
-/* 授权页 */
-.auth-page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 160rpx 48rpx 0;
+.page {
+  padding: 32rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
-.auth-logo {
-  font-size: 120rpx;
-  margin-bottom: 24rpx;
+/* ===== 未登录 ===== */
+.empty-tile {
+  width: 120rpx;
+  height: 160rpx;
+  font-size: 56rpx;
+  margin-bottom: 28rpx;
 }
 
-.auth-title {
-  font-size: 48rpx;
-  font-weight: 700;
+.login-btn {
+  margin: 48rpx auto 0;
+  width: 100% !important;
 }
 
-.auth-desc {
-  font-size: 28rpx;
-  color: var(--color-text-secondary);
-  margin-top: 12rpx;
-}
-
-/* 用户信息卡片 */
+/* ===== 深绿个人卡 ===== */
 .profile-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48rpx 32rpx;
+  border-radius: 28rpx;
+  padding: 60rpx 36rpx 48rpx;
+  margin-bottom: 32rpx;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-deco-tile {
+  position: absolute;
+  right: -16rpx;
+  top: -12rpx;
+  width: 100rpx;
+  height: 132rpx;
+  font-size: 46rpx;
+  transform: rotate(16deg);
+  opacity: 0.85;
+  background: rgba(247, 243, 232, 0.92);
+}
+
+.avatar-frame {
+  border: 6rpx solid var(--color-gold);
+  box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.2);
 }
 
 .profile-avatar {
-  width: 128rpx;
-  height: 128rpx;
+  width: 132rpx;
+  height: 132rpx;
   border-radius: 50%;
-  overflow: hidden;
-  margin-bottom: 24rpx;
-  background: var(--color-divider);
-}
-
-.profile-avatar image {
-  width: 100%;
-  height: 100%;
-}
-
-.profile-avatar-text {
-  width: 128rpx;
-  height: 128rpx;
-  border-radius: 50%;
+  background: linear-gradient(135deg, #237652, #1E6B47);
+  color: #F7F3E8;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 56rpx;
-  font-weight: 700;
-  color: #FFFFFF;
-  margin-bottom: 24rpx;
-}
-
-.profile-name {
-  font-size: 36rpx;
-  font-weight: 600;
-}
-
-/* 功能菜单 */
-.menu-item {
-  display: flex;
-  align-items: center;
-  padding: 28rpx 0;
-  border-bottom: 1rpx solid var(--color-divider);
-  font-size: 30rpx;
-}
-
-.menu-item:last-child {
-  border-bottom: none;
-}
-
-.menu-icon {
-  width: 48rpx;
-  font-size: 32rpx;
-  text-align: center;
-  margin-right: 20rpx;
-}
-
-.menu-label {
-  flex: 1;
-}
-
-.menu-arrow {
-  color: var(--color-text-tertiary);
-  font-size: 36rpx;
-}
-
-/* 编辑弹层 */
-.edit-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-}
-
-.edit-modal {
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
-  padding: 40rpx 32rpx;
-  width: 88%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.edit-title {
-  font-size: 36rpx;
-  font-weight: 600;
-  margin-bottom: 32rpx;
-}
-
-.avatar-picker {
-  width: 128rpx;
-  height: 128rpx;
-  border-radius: 50%;
-  padding: 0;
+  font-weight: 800;
+  margin: 0 auto 24rpx;
   overflow: hidden;
-  background: var(--color-divider);
-  border: 2rpx solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 32rpx;
+  box-sizing: border-box;
 }
 
-.avatar-picker::after { border: none; }
-
-.avatar-picker image {
+.profile-avatar-img {
   width: 100%;
   height: 100%;
 }
 
-.avatar-placeholder {
-  font-size: 24rpx;
-  color: var(--color-text-secondary);
+.profile-name {
+  color: #F7F3E8;
+  font-size: 38rpx;
+  font-weight: 800;
+  letter-spacing: 2rpx;
+}
+
+/* ===== 编辑昵称 ===== */
+.edit-area {
+  margin-top: 20rpx;
+}
+
+.nickname-input {
+  border: 2rpx solid rgba(247, 243, 232, 0.5);
+  border-radius: 20rpx;
+  padding: 18rpx 24rpx;
+  font-size: 30rpx;
+  text-align: center;
+  color: #F7F3E8;
+  background: rgba(247, 243, 232, 0.12);
+  margin-bottom: 20rpx;
+}
+
+.input-placeholder {
+  color: rgba(247, 243, 232, 0.4);
 }
 
 .edit-actions {
   display: flex;
   gap: 16rpx;
-  width: 100%;
+  justify-content: center;
 }
 
-.edit-actions button {
-  flex: 1;
+.mini-btn {
+  font-size: 24rpx;
+  padding: 10rpx 36rpx;
+  border-radius: 28rpx;
+  line-height: 1.5;
+}
+
+.mini-save {
+  background: var(--color-cta);
+  color: #FFF;
+}
+
+.mini-cancel {
+  background: rgba(247, 243, 232, 0.16);
+  color: rgba(247, 243, 232, 0.75);
+}
+
+.edit-link {
+  color: rgba(247, 243, 232, 0.6);
+  font-size: 24rpx;
+  margin-top: 12rpx;
+}
+
+/* ===== 设置分组 ===== */
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10rpx 0;
+  font-size: 30rpx;
+  color: var(--color-text);
+}
+
+.menu-item-left {
+  display: flex;
+  align-items: center;
+}
+
+.menu-icon {
+  width: 48rpx;
+  height: 62rpx;
+  font-size: 22rpx;
+  margin-right: 20rpx;
+}
+
+.menu-arrow {
+  color: var(--color-text-tertiary);
+  font-size: 40rpx;
+  font-weight: 300;
+}
+
+/* ===== 关于 ===== */
+.about-text {
+  font-size: 26rpx;
+  color: var(--color-text-secondary);
+  line-height: 1.8;
+}
+
+.about-slogan {
+  margin-top: 20rpx;
+  font-size: 24rpx;
+  color: #8C6B25;
+  letter-spacing: 2rpx;
 }

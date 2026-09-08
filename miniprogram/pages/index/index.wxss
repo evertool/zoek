@@ -1,148 +1,326 @@
-/* pages/index/index.wxss */
+/* pages/index/index.wxss — 首页（设计 v2：米白宣纸底 + 牌桌绿 + 红橙 CTA） */
 
-/* 登录/授权页 */
-.auth-page {
+.page {
+  padding: 32rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* ===== 未登录品牌开屏 ===== */
+.login-hero {
+  min-height: 92vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 160rpx 48rpx 0;
+  justify-content: center;
+  text-align: center;
+  padding: 60rpx 24rpx;
 }
 
-.auth-logo {
-  font-size: 120rpx;
-  margin-bottom: 24rpx;
+.hero-tiles {
+  position: relative;
+  width: 340rpx;
+  height: 280rpx;
+  margin-bottom: 48rpx;
 }
 
-.auth-title {
-  font-size: 48rpx;
-  font-weight: 700;
+.hero-tile {
+  position: absolute;
+  width: 150rpx;
+  height: 200rpx;
+  font-size: 72rpx;
+}
+
+.hero-tile-back {
+  left: 12rpx;
+  top: 40rpx;
+  transform: rotate(-14deg);
+  opacity: 0.9;
+}
+
+.hero-tile-mid {
+  left: 96rpx;
+  top: 10rpx;
+  transform: rotate(-2deg);
+  z-index: 2;
+}
+
+.hero-tile-front {
+  right: 14rpx;
+  top: 48rpx;
+  transform: rotate(12deg);
+  z-index: 3;
   color: var(--color-text);
 }
 
-.auth-desc {
-  font-size: 28rpx;
-  color: var(--color-text-secondary);
-  margin-top: 12rpx;
+.hero-brand {
+  font-size: 64rpx;
+  font-weight: 800;
+  letter-spacing: 10rpx;
+  color: var(--color-text);
 }
 
-.auth-form {
-  width: 100%;
-  margin-top: 64rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.avatar-picker {
-  width: 160rpx;
-  height: 160rpx;
-  border-radius: 50%;
-  padding: 0;
-  overflow: hidden;
-  background: var(--color-divider);
-  border: 2rpx solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 40rpx;
-}
-
-.avatar-picker::after { border: none; }
-
-.avatar-picker image {
-  width: 100%;
-  height: 100%;
-}
-
-.avatar-placeholder {
-  font-size: 24rpx;
-  color: var(--color-text-secondary);
-}
-
-.nickname-row {
-  width: 100%;
-  margin-bottom: 40rpx;
-}
-
-.nickname-input {
-  text-align: center;
-}
-
-/* 开台按钮 */
-.hero-bar {
-  display: flex;
-  align-items: center;
-  background: var(--color-primary);
-  border-radius: var(--radius-lg);
-  padding: 32rpx;
-  margin-bottom: 32rpx;
-  box-shadow: var(--shadow-md);
-}
-
-.hero-icon {
-  font-size: 48rpx;
-  margin-right: 24rpx;
-}
-
-.hero-text {
-  flex: 1;
-}
-
-.hero-title {
-  color: #FFFFFF;
-  font-size: 34rpx;
-  font-weight: 600;
+.hero-slogan {
+  margin-top: 22rpx;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 3rpx;
 }
 
 .hero-sub {
-  color: rgba(255,255,255,0.6);
+  margin-top: 12rpx;
   font-size: 24rpx;
-  margin-top: 4rpx;
+  color: var(--color-text-secondary);
 }
 
-.hero-arrow {
-  color: rgba(255,255,255,0.6);
-  font-size: 40rpx;
+.login-btn {
+  margin-top: 88rpx;
+  width: 100% !important;
 }
 
-/* 牌局卡片 */
-.game-card {
+/* ===== 品牌头部 ===== */
+.brand-bar {
   display: flex;
   align-items: center;
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
-  padding: 28rpx 32rpx;
-  margin-bottom: 16rpx;
-  box-shadow: var(--shadow-sm);
+  padding: 8rpx 4rpx 28rpx;
 }
 
-.game-card-main {
+.brand-tile {
+  width: 76rpx;
+  height: 98rpx;
+  font-size: 40rpx;
+  margin-right: 22rpx;
+  flex-shrink: 0;
+}
+
+.brand-name {
+  font-size: 38rpx;
+  font-weight: 800;
+  letter-spacing: 4rpx;
+  color: var(--color-text);
+}
+
+/* ===== 完善资料卡 ===== */
+.profile-card {
+  border: 2rpx dashed var(--color-gold);
+}
+
+.profile-tip {
+  margin: -8rpx 0 28rpx;
+}
+
+.avatar-chooser {
+  width: 144rpx;
+  height: 144rpx;
+  padding: 0;
+  margin: 0 auto 28rpx;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  overflow: hidden;
+  line-height: 1;
+}
+
+.avatar-img {
+  width: 144rpx;
+  height: 144rpx;
+  border-radius: 50%;
+  border: 4rpx solid var(--color-gold);
+  box-sizing: border-box;
+  display: block;
+}
+
+.avatar-placeholder {
+  width: 144rpx;
+  height: 144rpx;
+  border-radius: 50%;
+  border: 4rpx dashed var(--color-gold);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  color: #8C6B25;
+  background: var(--color-gold-light);
+}
+
+.text-input {
+  background: var(--color-card-warm);
+  border: 2rpx solid var(--color-border);
+  border-radius: 20rpx;
+  padding: 20rpx 26rpx;
+  font-size: 28rpx;
+  margin-bottom: 32rpx;
+}
+
+.input-placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.save-profile-btn {
+  margin-top: 8rpx;
+}
+
+/* ===== 开台主视觉卡（深绿） ===== */
+.create-card {
+  display: flex;
+  align-items: center;
+  padding: 44rpx 36rpx;
+  margin-bottom: 36rpx;
+  position: relative;
+  overflow: hidden;
+}
+
+.create-card::after {
+  content: '';
+  position: absolute;
+  right: -70rpx;
+  top: -70rpx;
+  width: 260rpx;
+  height: 260rpx;
+  border-radius: 50%;
+  background: rgba(247, 243, 232, 0.08);
+}
+
+.create-left {
   flex: 1;
 }
 
-.game-card-header {
+.create-title {
+  font-size: 44rpx;
+  font-weight: 800;
+  letter-spacing: 6rpx;
+  color: #F7F3E8;
+}
+
+.create-desc {
+  font-size: 24rpx;
+  color: rgba(247, 243, 232, 0.72);
+  margin-top: 10rpx;
+}
+
+.create-tiles {
+  position: relative;
+  width: 170rpx;
+  height: 150rpx;
+  flex-shrink: 0;
+  margin-right: 8rpx;
+}
+
+.create-tile {
+  position: absolute;
+  width: 78rpx;
+  height: 106rpx;
+  font-size: 38rpx;
+}
+
+.create-tile-b1 {
+  left: 0;
+  top: 30rpx;
+  transform: rotate(-14deg);
+  background: rgba(247, 243, 232, 0.92);
+}
+
+.create-tile-b2 {
+  left: 44rpx;
+  top: 18rpx;
+  transform: rotate(-4deg);
+  background: rgba(247, 243, 232, 0.96);
+  z-index: 2;
+}
+
+.create-tile-b3 {
+  left: 88rpx;
+  top: 6rpx;
+  transform: rotate(8deg);
+  z-index: 3;
+}
+
+.create-arrow {
+  color: rgba(247, 243, 232, 0.85);
+  font-size: 52rpx;
+  font-weight: 300;
+  flex-shrink: 0;
+}
+
+/* ===== 区块头 ===== */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 20rpx;
+  padding: 0 8rpx;
+}
+
+/* ===== 进行中牌局卡 ===== */
+.game-card {
+  padding: 30rpx 32rpx;
+  margin-bottom: 22rpx;
+}
+
+.game-card-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8rpx;
+  margin-bottom: 22rpx;
 }
 
-.game-card-name {
+.game-name {
   font-size: 32rpx;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 16rpx;
 }
 
-.game-card-info {
+.game-card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.game-round-info {
   display: flex;
   align-items: center;
 }
 
-.game-card-delete {
-  flex-shrink: 0;
-  margin-left: 16rpx;
-  padding: 12rpx 24rpx;
-  background: #FCE4E4;
-  color: #B33A3A;
+.game-round-tile {
+  width: 46rpx;
+  height: 60rpx;
+  font-size: 26rpx;
+  margin-right: 16rpx;
+}
+
+.game-round-text {
   font-size: 24rpx;
-  border-radius: 100rpx;
+  color: var(--color-text-secondary);
+}
+
+.game-card-ops {
+  display: flex;
+  align-items: center;
+}
+
+.game-players {
+  margin-right: 20rpx;
+}
+
+.game-delete {
+  font-size: 24rpx;
+  color: var(--color-error);
+  padding: 6rpx 18rpx;
+  border: 2rpx solid var(--color-error);
+  border-radius: 24rpx;
+  opacity: 0.85;
+}
+
+/* ===== 空状态 ===== */
+.empty-tile {
+  width: 120rpx;
+  height: 160rpx;
+  font-size: 56rpx;
+  margin-bottom: 28rpx;
 }

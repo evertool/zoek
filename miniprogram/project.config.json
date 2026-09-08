@@ -1,7 +1,7 @@
 {
   "miniprogramRoot": "./",
   "projectname": "zoek",
-  "description": "雀友记 - 麻将牌局积分记录小程序",
+  "description": "得闲开台 - 麻将牌局积分记录小程序",
   "appid": "wx0ea5f9ff2362fae9",
   "setting": {
     "urlCheck": false,

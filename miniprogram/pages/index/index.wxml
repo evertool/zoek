@@ -1,78 +1,92 @@
-<!--pages/index/index.wxml — 首页-->
-<view class="container">
-  <!-- 未登录 -->
-  <view class="auth-page" wx:if="{{!isLoggedIn}}">
-    <view class="auth-logo">🀄</view>
-    <view class="auth-title">雀记</view>
-    <view class="auth-desc">麻雀记分 · 简单方便</view>
-    <button class="btn-primary" bindtap="doLogin" style="margin-top: 64rpx;">微信登录</button>
-  </view>
+<!--pages/index/index.wxml — 首页（得闲开台）-->
+<view class="page">
 
-  <!-- 已登录但未授权头像昵称 -->
-  <view class="auth-page" wx:if="{{isLoggedIn && needProfile}}">
-    <view class="auth-logo">🀄</view>
-    <view class="auth-title">完善资料</view>
-    <view class="auth-desc">授权头像和昵称后即可使用</view>
-
-    <view class="auth-form">
-      <!-- 头像 -->
-      <button class="avatar-picker" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
-        <image wx:if="{{tempAvatar}}" src="{{tempAvatar}}" mode="aspectFill" />
-        <view wx:else class="avatar-placeholder">点击选择</view>
-      </button>
-
-      <!-- 昵称 -->
-      <view class="nickname-row">
-        <input
-          class="input nickname-input"
-          type="nickname"
-          placeholder="请输入昵称"
-          placeholder-class="input-placeholder"
-          value="{{tempNickname}}"
-          bindinput="onNicknameInput"
-        />
-      </view>
-
-      <button class="btn-primary" bindtap="doSaveProfile">保存并使用</button>
+  <!-- ===== 未登录：品牌视觉 + 登入 CTA ===== -->
+  <view class="login-hero" wx:if="{{!isLoggedIn}}">
+    <view class="hero-tiles">
+      <view class="mj-tile mj-tile-green hero-tile hero-tile-back">發</view>
+      <view class="mj-tile mj-tile-gold hero-tile hero-tile-back hero-tile-mid">中</view>
+      <view class="mj-tile hero-tile hero-tile-front">得</view>
     </view>
+    <view class="hero-brand">得闲开台</view>
+    <view class="hero-slogan">粤语麻将记分神器</view>
+    <view class="hero-sub">自己记自己嘅分，零和校验唔使争拗</view>
+    <button class="btn-primary login-btn" bindtap="doLogin">微信登入</button>
   </view>
 
-  <!-- 已登录且已授权 -->
-  <block wx:if="{{isLoggedIn && !needProfile}}">
-    <!-- 开台按钮 -->
-    <view class="hero-bar" bindtap="goCreate">
-      <view class="hero-icon">🀄</view>
-      <view class="hero-text">
-        <view class="hero-title">开台</view>
-        <view class="hero-sub">新建一局牌局</view>
+  <!-- ===== 已登录 ===== -->
+  <block wx:if="{{isLoggedIn}}">
+
+    <!-- 品牌头部 -->
+    <view class="brand-bar">
+      <view class="mj-tile mj-tile-green brand-tile">中</view>
+      <view class="brand-name">得闲开台</view>
+    </view>
+
+    <!-- 完善资料 -->
+    <view class="card profile-card" wx:if="{{needProfile}}">
+      <view class="section-title">完善资料</view>
+      <view class="text-secondary profile-tip">开台之前，先俾雀友认得你</view>
+      <button class="avatar-chooser" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image class="avatar-img" src="{{tempAvatar}}" wx:if="{{tempAvatar}}" />
+        <view class="avatar-placeholder" wx:else>选头像</view>
+      </button>
+      <input
+        class="text-input"
+        type="nickname"
+        placeholder="输入昵称"
+        placeholder-class="input-placeholder"
+        value="{{tempNickname}}"
+        bindinput="onNicknameInput"
+        maxlength="20"
+      />
+      <button class="btn-green save-profile-btn" bindtap="doSaveProfile">保存资料</button>
+    </view>
+
+    <!-- 开台入口：深绿大卡 -->
+    <view class="card-green create-card" bindtap="goCreate" wx:if="{{!needProfile}}">
+      <view class="create-left">
+        <view class="create-title">开台</view>
+        <view class="create-desc">开新牌桌，邀请雀友入台</view>
       </view>
-      <view class="hero-arrow">›</view>
+      <view class="create-tiles">
+        <view class="mj-tile mj-tile-green create-tile create-tile-b1">東</view>
+        <view class="mj-tile mj-tile-green create-tile create-tile-b2">南</view>
+        <view class="mj-tile create-tile create-tile-b3">中</view>
+      </view>
+      <view class="create-arrow">›</view>
     </view>
 
     <!-- 进行中牌局 -->
-    <view class="section-title" wx:if="{{games.length > 0}}">进行中</view>
+    <block wx:if="{{!needProfile}}">
+      <view class="section-header" wx:if="{{games.length > 0}}">
+        <text class="section-title">进行中</text>
+        <text class="text-secondary">{{games.length}}局</text>
+      </view>
 
-    <view class="game-card" wx:for="{{games}}" wx:key="game_id" bindtap="goRoom" data-id="{{item.game_id}}">
-      <view class="game-card-main">
-        <view class="game-card-header">
-          <view class="game-card-name">{{item.name}}</view>
+      <view class="card game-card" wx:for="{{games}}" wx:key="game_id" bindtap="goRoom" data-id="{{item.game_id}}">
+        <view class="game-card-top">
+          <view class="game-name">{{item.name}}</view>
           <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
         </view>
-        <view class="game-card-info">
-          <text class="text-secondary">{{item.roundInfo}}</text>
-          <text class="text-secondary" style="margin-left: 20rpx;">{{item.player_count}}人</text>
+        <view class="game-card-bottom">
+          <view class="game-round-info">
+            <view class="mj-tile mj-tile-green game-round-tile">{{item.current_round_number || item.completed_rounds}}</view>
+            <text class="game-round-text">{{item.roundInfo}}</text>
+          </view>
+          <view class="game-card-ops">
+            <text class="text-secondary game-players">{{item.player_count}}位雀友</text>
+            <view class="game-delete" catchtap="doDelete" data-id="{{item.game_id}}">删除</view>
+          </view>
         </view>
       </view>
-      <view class="game-card-delete" wx:if="{{item.status === 'forming'}}" catchtap="doDelete" data-id="{{item.game_id}}">
-        删除
-      </view>
-    </view>
 
-    <!-- 空状态 -->
-    <view class="empty-state" wx:if="{{games.length === 0 && !loading}}">
-      <view class="empty-icon">🀄</view>
-      <view style="font-size: 30rpx; color: var(--color-text-secondary);">暂无进行中的牌局</view>
-      <view class="text-secondary" style="margin-top: 8rpx;">点击上方开台开始新一局</view>
-    </view>
+      <!-- 空状态 -->
+      <view class="empty-state" wx:if="{{games.length === 0 && !loading}}">
+        <view class="mj-tile mj-tile-green empty-tile">白</view>
+        <view class="empty-text">未有进行中嘅牌局</view>
+        <view class="text-secondary" style="margin-top: 8rpx;">点击开台开始新一局</view>
+      </view>
+    </block>
   </block>
 </view>

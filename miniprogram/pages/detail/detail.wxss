@@ -1,49 +1,105 @@
-/* pages/detail/detail.wxss */
-.detail-header {
+/* pages/detail/detail.wxss — 单场详情（设计 v2：时间线 + 金边调整卡） */
+
+.page {
+  padding: 32rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* ===== 头部卡 ===== */
+.hero-card {
   display: flex;
-  justify-content: space-between;
   align-items: center;
 }
 
-.detail-name {
-  font-size: 36rpx;
-  font-weight: 700;
+.hero-tile {
+  width: 84rpx;
+  height: 110rpx;
+  font-size: 40rpx;
+  flex-shrink: 0;
+  margin-right: 26rpx;
 }
 
+.hero-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.hero-name {
+  font-size: 38rpx;
+  font-weight: 800;
+  color: var(--color-text);
+  margin-bottom: 6rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 逐局时间线 ===== */
 .round-item {
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid var(--color-divider);
+  display: flex;
+  padding-bottom: 28rpx;
 }
 
 .round-item:last-child {
-  border-bottom: none;
+  padding-bottom: 8rpx;
 }
 
-.round-title {
-  font-size: 30rpx;
-  font-weight: 600;
-  color: var(--color-accent);
-  margin-bottom: 16rpx;
+.round-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 22rpx;
+  flex-shrink: 0;
+}
+
+.round-num-tile {
+  width: 60rpx;
+  height: 78rpx;
+  font-size: 28rpx;
+  flex-shrink: 0;
+}
+
+.round-line {
+  flex: 1;
+  width: 3rpx;
+  min-height: 24rpx;
+  background: var(--color-border);
+  margin-top: 8rpx;
+}
+
+.round-body {
+  flex: 1;
+  min-width: 0;
+  padding-top: 8rpx;
+}
+
+.round-num {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 14rpx;
 }
 
 .round-subs {
   display: flex;
   flex-wrap: wrap;
-  gap: 12rpx;
+  gap: 14rpx;
 }
 
-.sub-item {
+.sub-chip {
   display: flex;
   align-items: center;
-  gap: 12rpx;
-  background: var(--color-divider);
-  border-radius: var(--radius-sm);
-  padding: 12rpx 20rpx;
+  background: var(--color-card-warm);
+  border: 1rpx solid var(--color-border);
+  border-radius: 40rpx;
+  padding: 8rpx 20rpx;
 }
 
 .sub-name {
-  font-size: 26rpx;
+  font-size: 24rpx;
   color: var(--color-text-secondary);
+  margin-right: 10rpx;
 }
 
 .sub-score {
@@ -51,19 +107,30 @@
   font-weight: 700;
 }
 
-.adj-item {
+/* ===== 改分记录（金色左边条） ===== */
+.adj-card {
+  border-left: 8rpx solid var(--color-gold);
+}
+
+.adj-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16rpx 0;
-  border-bottom: 1rpx solid var(--color-divider);
+  padding: 20rpx 0;
+  border-bottom: 1rpx dashed var(--color-border);
 }
 
-.adj-item:last-child {
+.adj-row:last-child {
   border-bottom: none;
 }
 
 .adj-type {
   font-size: 28rpx;
   font-weight: 600;
+  color: var(--color-text);
+}
+
+/* ===== 底部操作 ===== */
+.action-bar {
+  padding: 32rpx 0 12rpx;
 }

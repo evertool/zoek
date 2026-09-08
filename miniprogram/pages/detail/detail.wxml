@@ -1,31 +1,41 @@
 <!--pages/detail/detail.wxml — 单场详情页-->
-<view class="container" wx:if="{{detail}}">
-  <view class="card">
-    <view class="detail-header">
-      <view class="detail-name">{{detail.game_name}}</view>
+<view class="page" wx:if="{{detail}}">
+  <!-- 头部：台名 + 局数 -->
+  <view class="card hero-card">
+    <view class="hero-tile mj-tile">詳</view>
+    <view class="hero-main">
+      <view class="hero-name">{{detail.game_name}}</view>
       <view class="text-secondary">共{{detail.completed_rounds}}局</view>
     </view>
   </view>
 
-  <!-- 逐局记录 -->
+  <!-- 逐局记录（时间线） -->
   <view class="card" wx:if="{{detail.rounds.length > 0}}">
     <view class="section-title">逐局详情</view>
-    <view class="round-item" wx:for="{{detail.rounds}}" wx:key="round_id">
-      <view class="round-title">第{{item.round_number}}局</view>
-      <view class="round-subs">
-        <view class="sub-item" wx:for="{{item.submissions}}" wx:for-item="sub" wx:key="player_id">
-          <view class="sub-name">{{sub.nickname}}</view>
-          <view class="sub-score {{sub.scoreClass}}">{{sub.scoreText}}</view>
+    <view class="timeline">
+      <view class="round-item" wx:for="{{detail.rounds}}" wx:key="round_id">
+        <view class="round-rail">
+          <view class="round-num-tile mj-tile {{item.round_number % 2 === 0 ? 'mj-tile-green' : ''}}">{{item.round_number}}</view>
+          <view class="round-line" wx:if="{{index < detail.rounds.length - 1}}"></view>
+        </view>
+        <view class="round-body">
+          <view class="round-num">第{{item.round_number}}局</view>
+          <view class="round-subs">
+            <view class="sub-chip" wx:for="{{item.submissions}}" wx:for-item="sub" wx:key="player_id">
+              <view class="sub-name">{{sub.nickname}}</view>
+              <view class="sub-score {{sub.scoreClass}}">{{sub.scoreText}}</view>
+            </view>
+          </view>
         </view>
       </view>
     </view>
   </view>
 
-  <!-- 改分记录 -->
-  <view class="card" wx:if="{{detail.adjustments.length > 0}}">
+  <!-- 改分记录（金色左边条） -->
+  <view class="card adj-card" wx:if="{{detail.adjustments.length > 0}}">
     <view class="section-title">改分记录</view>
-    <view class="adj-item" wx:for="{{detail.adjustments}}" wx:key="id">
-      <view class="adj-info">
+    <view class="adj-row" wx:for="{{detail.adjustments}}" wx:key="id">
+      <view class="adj-left">
         <view class="adj-type">{{item.typeText}} {{item.amountText}}</view>
         <view class="text-secondary">{{item.reason || '无备注'}}</view>
       </view>
@@ -33,5 +43,7 @@
     </view>
   </view>
 
-  <button class="btn-primary" bindtap="goSettlement">查看找数</button>
+  <view class="action-bar safe-bottom">
+    <button class="btn-primary" bindtap="goSettlement">查看找数</button>
+  </view>
 </view>

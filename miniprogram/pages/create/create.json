@@ -1,4 +1,7 @@
 {
   "usingComponents": {},
-  "navigationBarTitleText": "开台"
+  "navigationBarTitleText": "开台",
+  "navigationBarBackgroundColor": "#F7F3E8",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#F7F3E8"
 }

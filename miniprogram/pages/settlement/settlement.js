@@ -71,7 +71,7 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: `雀友记 — ${this.data.gameName} 找数结果`,
+      title: `得闲开台 — ${this.data.gameName} 找数结果`,
       path: `/pages/settlement/settlement?game_id=${this.data.gameID}`
     }
   }

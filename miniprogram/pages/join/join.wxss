@@ -1,24 +1,68 @@
-/* pages/join/join.wxss */
-.join-page {
+/* pages/join/join.wxss — 入台页（设计 v2） */
+
+.page {
+  padding: 32rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.join-state {
+  min-height: 80vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 200rpx 48rpx 0;
+  justify-content: center;
+  text-align: center;
+  padding: 0 40rpx;
 }
 
-.join-logo {
-  font-size: 96rpx;
-  margin-bottom: 32rpx;
+.join-tiles {
+  position: relative;
+  width: 180rpx;
+  height: 170rpx;
+  margin-bottom: 36rpx;
 }
 
-.join-text {
-  font-size: 32rpx;
-  color: var(--color-text-secondary);
+.join-tile {
+  position: absolute;
+  width: 96rpx;
+  height: 128rpx;
+  font-size: 46rpx;
+}
+
+.join-tile-b {
+  left: 4rpx;
+  top: 28rpx;
+  transform: rotate(-12deg);
+  opacity: 0.9;
+}
+
+.join-tile-a {
+  right: 8rpx;
+  top: 6rpx;
+  transform: rotate(8deg);
+  z-index: 2;
+}
+
+.join-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 12rpx;
+  letter-spacing: 2rpx;
 }
 
 .join-error {
-  font-size: 30rpx;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 20rpx;
   color: var(--color-error);
-  text-align: center;
-  line-height: 1.6;
+  font-size: 26rpx;
+  border: 1rpx solid var(--color-cta-light);
+  background: var(--color-cta-light);
+}
+
+.join-actions {
+  width: 100%;
+  margin-top: 40rpx;
 }

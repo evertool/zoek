@@ -1,25 +1,84 @@
-/* pages/history/history.wxss */
-.history-card {
-  background: var(--color-card);
-  border-radius: var(--radius-lg);
-  padding: 28rpx 32rpx;
-  margin-bottom: 16rpx;
-  box-shadow: var(--shadow-sm);
+/* pages/history/history.wxss — 对局记录（设计 v2） */
+
+.page {
+  padding: 32rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
-.history-header {
+/* ===== 记录卡：麻将牌 + 内容 + 箭头 ===== */
+.game-card {
+  display: flex;
+  align-items: center;
+  background: var(--color-card);
+  border-radius: 28rpx;
+  padding: 30rpx 28rpx;
+  margin-bottom: 22rpx;
+  box-shadow: 0 6rpx 28rpx rgba(35, 53, 43, 0.06);
+  border: 1rpx solid var(--color-border);
+}
+
+.card-tile {
+  width: 64rpx;
+  height: 84rpx;
+  font-size: 28rpx;
+  flex-shrink: 0;
+  margin-right: 24rpx;
+}
+
+.card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8rpx;
+  margin-bottom: 12rpx;
 }
 
-.history-name {
+.card-name {
   font-size: 32rpx;
-  font-weight: 600;
+  font-weight: 700;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 16rpx;
 }
 
-.history-info {
+.card-bottom {
   display: flex;
   align-items: center;
+}
+
+.card-time {
+  margin-left: 24rpx;
+  color: var(--color-text-tertiary);
+  font-size: 24rpx;
+}
+
+.card-arrow {
+  color: var(--color-text-tertiary);
+  font-size: 44rpx;
+  font-weight: 300;
+  flex-shrink: 0;
+  margin-left: 12rpx;
+}
+
+/* ===== 空状态 ===== */
+.empty-tile {
+  width: 120rpx;
+  height: 160rpx;
+  font-size: 56rpx;
+  margin-bottom: 28rpx;
+}
+
+/* ===== 加载提示 ===== */
+.load-tip {
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: 24rpx;
+  padding: 32rpx 0;
 }

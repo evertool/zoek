@@ -1,4 +1,4 @@
-// app.js — 雀记小程序入口
+// app.js — 得闲开台小程序入口
 const api = require('./utils/api')
 
 App({

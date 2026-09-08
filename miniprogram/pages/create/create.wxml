@@ -1,32 +1,41 @@
 <!--pages/create/create.wxml — 开台页-->
-<view class="container">
-  <view class="card">
-    <view class="create-title">开台</view>
-    <view class="text-secondary" style="margin-bottom: 32rpx;">输入台名（可选），或直接开台</view>
-
-    <view class="input-group" style="margin-bottom: 40rpx;">
-      <input
-        class="input"
-        placeholder="台名（可选）"
-        placeholder-class="input-placeholder"
-        value="{{name}}"
-        bindinput="onInput"
-        maxlength="20"
-      />
+<view class="page">
+  <!-- 品牌小头部 -->
+  <view class="hero">
+    <view class="hero-tiles">
+      <view class="hero-tile hero-tile-back mj-tile mj-tile-green">發</view>
+      <view class="hero-tile hero-tile-front mj-tile">中</view>
     </view>
+    <view class="hero-title">开台</view>
+    <view class="hero-desc">输入台名，或者留空使用默认名</view>
+  </view>
 
+  <!-- 表单 -->
+  <view class="card form-card">
+    <view class="input-label">台名（可选）</view>
+    <input
+      class="text-input"
+      placeholder="今晚麻将"
+      placeholder-class="input-placeholder"
+      value="{{name}}"
+      bindinput="onInput"
+      maxlength="20"
+    />
+    <view class="input-count">{{name.length}}/20</view>
+  </view>
+
+  <!-- 贴士 -->
+  <view class="card card-warm tips-card">
+    <view class="tips-title">开台须知</view>
+    <view class="tip-item"><text class="tip-dot">·</text>开台后你会自动入台</view>
+    <view class="tip-item"><text class="tip-dot">·</text>其他雀友可以扫码入台</view>
+    <view class="tip-item"><text class="tip-dot">·</text>最少 2 位雀友可以开始计分</view>
+    <view class="tip-item"><text class="tip-dot">·</text>最多 4 位雀友</view>
+  </view>
+
+  <view class="action-bar safe-bottom">
     <button class="btn-primary" bindtap="doCreate" disabled="{{submitting}}">
       {{submitting ? '开台中...' : '开台'}}
     </button>
-  </view>
-
-  <view class="tips-card">
-    <view class="tips-title">玩法说明</view>
-    <view class="tips-item">开台后你自动成为台主</view>
-    <view class="tips-item">其他雀友扫码或分享链接加入</view>
-    <view class="tips-item">最少2人可开始计分</view>
-    <view class="tips-item">最多4位雀友</view>
-    <view class="tips-item">每位雀友各自输入本局分数</view>
-    <view class="tips-item">总和必须为0才能锁定</view>
   </view>
 </view>

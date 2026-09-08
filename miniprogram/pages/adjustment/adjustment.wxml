@@ -1,45 +1,50 @@
 <!--pages/adjustment/adjustment.wxml — 补分/退分页-->
-<view class="container">
+<view class="page">
+  <!-- 类型：对称两大块 -->
   <view class="card">
-    <!-- 类型选择 -->
     <view class="section-title">类型</view>
     <view class="type-selector">
-      <view class="type-item {{adjustmentType === 'supplement' ? 'active' : ''}}"
+      <view class="type-item type-supplement {{adjustmentType === 'supplement' ? 'active' : ''}}"
             bindtap="onTypeChange" data-type="supplement">
-        补分（我 -N，对方 +N）
+        <view class="type-tile mj-tile">补</view>
+        <view class="type-label">补分</view>
+        <view class="type-desc">我 -N，对方 +N</view>
       </view>
-      <view class="type-item {{adjustmentType === 'refund' ? 'active' : ''}}"
+      <view class="type-item type-refund {{adjustmentType === 'refund' ? 'active' : ''}}"
             bindtap="onTypeChange" data-type="refund">
-        退分（我 -N，对方 +N）
+        <view class="type-tile mj-tile mj-tile-green">退</view>
+        <view class="type-label">退分</view>
+        <view class="type-desc">我 -N，对方 +N</view>
       </view>
     </view>
   </view>
 
+  <!-- 选择对方 -->
   <view class="card">
-    <!-- 选择雀友 -->
     <view class="section-title">选择雀友</view>
-    <view class="player-list">
+    <view class="player-list" wx:if="{{players.length > 0}}">
       <view
-        class="player-item {{selectedPlayerID === item.player_id ? 'selected' : ''}}"
+        class="player-pick {{selectedPlayerID === item.player_id ? 'selected' : ''}}"
         wx:for="{{players}}"
         wx:key="player_id"
         bindtap="onPlayerChange"
         data-id="{{item.player_id}}"
       >
-        <view class="player-avatar-text" style="background: {{item.avatarColor}}">{{item.nickname[0]}}</view>
+        <view class="player-avatar" style="{{item.avatarColor ? 'background:' + item.avatarColor : ''}}">{{item.nickname[0]}}</view>
         <view class="player-name">{{item.nickname}}</view>
+        <view class="pick-check" wx:if="{{selectedPlayerID === item.player_id}}">✓</view>
       </view>
     </view>
-    <view class="empty-state" wx:if="{{players.length === 0}}">
+    <view class="empty-state" wx:if="{{players.length === 0}}" style="padding: 40rpx;">
       <view class="text-secondary">暂无其他雀友</view>
     </view>
   </view>
 
+  <!-- 分数和原因 -->
   <view class="card">
-    <!-- 数值 -->
     <view class="section-title">分数</view>
     <input
-      class="input"
+      class="score-input"
       type="number"
       placeholder="输入正整数"
       placeholder-class="input-placeholder"
@@ -47,10 +52,9 @@
       bindinput="onAmountInput"
     />
 
-    <!-- 原因 -->
-    <view class="section-title" style="margin-top: 32rpx;">原因（可选）</view>
+    <view class="section-title reason-title">原因（可选）</view>
     <input
-      class="input"
+      class="text-input"
       placeholder="简单写低原因"
       placeholder-class="input-placeholder"
       value="{{reason}}"
@@ -59,7 +63,9 @@
     />
   </view>
 
-  <button class="btn-primary" bindtap="doSubmit" disabled="{{submitting}}">
-    {{submitting ? '发送中...' : '发送请求'}}
-  </button>
+  <view class="action-bar safe-bottom">
+    <button class="btn-primary" bindtap="doSubmit" disabled="{{submitting}}">
+      {{submitting ? '发送中...' : '发送请求'}}
+    </button>
+  </view>
 </view>

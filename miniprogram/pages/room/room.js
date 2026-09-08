@@ -13,6 +13,7 @@ Page({
     qrLoading: false,
     qrError: '',
     loading: true,
+    starting: false,
     isOwner: false
   },
 
@@ -99,6 +100,22 @@ Page({
     wx.navigateTo({ url: `/pages/score/score?game_id=${this.data.gameID}` })
   },
 
+  doStart() {
+    if (this.data.starting) return
+    this.setData({ starting: true })
+    // 创建第 1 局，服务端将牌桌置为 active
+    api.post(`/games/${this.data.gameID}/rounds`, {
+      request_id: api.genRequestID()
+    }).then(() => {
+      this.setData({ starting: false })
+      wx.showToast({ title: '开始计分', icon: 'success' })
+      this.goScore()
+    }).catch(() => {
+      this.setData({ starting: false })
+      this.loadGame()
+    })
+  },
+
   goSettlement() {
     wx.navigateTo({ url: `/pages/settlement/settlement?game_id=${this.data.gameID}` })
   },
@@ -140,14 +157,14 @@ Page({
 
   onShareAppMessage() {
     return {
-      title: `雀记 — ${this.data.game ? this.data.game.name : '快来打牌！'}`,
+      title: `得闲开台 — ${this.data.game ? this.data.game.name : '快来打牌！'}`,
       path: `/pages/join/join?invite_token=${this.data.inviteToken || this.data.gameID}`
     }
   },
 
   onShareTimeline() {
     return {
-      title: `雀记 — ${this.data.game ? this.data.game.name : '快来打牌！'}`
+      title: `得闲开台 — ${this.data.game ? this.data.game.name : '快来打牌！'}`
     }
   }
 })

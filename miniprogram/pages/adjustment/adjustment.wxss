@@ -1,59 +1,150 @@
-/* pages/adjustment/adjustment.wxss */
+/* pages/adjustment/adjustment.wxss — 补分/退分页（设计 v2） */
+
+.page {
+  padding: 32rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* ===== 类型选择：对称两大块 ===== */
 .type-selector {
   display: flex;
-  gap: 16rpx;
+  gap: 20rpx;
 }
 
 .type-item {
   flex: 1;
-  border: 2rpx solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 20rpx;
+  border: 3rpx solid var(--color-border);
+  border-radius: 24rpx;
+  padding: 28rpx 24rpx;
   text-align: center;
-  font-size: 26rpx;
+  background: var(--color-card-warm);
+  transition: all 0.2s ease;
+}
+
+.type-item.active.type-supplement {
+  border-color: var(--color-cta);
+  background: var(--color-cta-light);
+}
+
+.type-item.active.type-refund {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.type-tile {
+  width: 72rpx;
+  height: 94rpx;
+  font-size: 36rpx;
+  margin: 0 auto 16rpx;
+}
+
+.type-label {
+  font-size: 32rpx;
+  font-weight: 800;
+  margin-bottom: 6rpx;
+  color: var(--color-text);
+}
+
+.type-item.active.type-supplement .type-label {
+  color: var(--color-cta);
+}
+
+.type-item.active.type-refund .type-label {
+  color: var(--color-primary);
+}
+
+.type-desc {
+  font-size: 22rpx;
   color: var(--color-text-secondary);
 }
 
-.type-item.active {
-  border-color: var(--color-accent);
-  background: #FFFCF5;
-  color: var(--color-accent);
-  font-weight: 600;
-}
-
+/* ===== 选择雀友 ===== */
 .player-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 16rpx;
+  gap: 20rpx;
 }
 
-.player-item {
+.player-pick {
   display: flex;
   align-items: center;
-  gap: 12rpx;
-  border: 2rpx solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 12rpx 20rpx;
+  border: 3rpx solid var(--color-border);
+  border-radius: 48rpx;
+  padding: 12rpx 28rpx 12rpx 14rpx;
+  background: var(--color-card-warm);
+  transition: all 0.2s ease;
 }
 
-.player-item.selected {
-  border-color: var(--color-accent);
-  background: #FFFCF5;
+.player-pick.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 
-.player-avatar-text {
-  width: 48rpx;
-  height: 48rpx;
+.player-avatar {
+  width: 56rpx;
+  height: 56rpx;
   border-radius: 50%;
+  background: var(--color-primary);
+  color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24rpx;
+  font-size: 26rpx;
   font-weight: 600;
-  color: #FFFFFF;
-  background: var(--color-accent);
+  margin-right: 14rpx;
 }
 
 .player-name {
+  font-size: 26rpx;
+}
+
+.pick-check {
+  margin-left: 12rpx;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== 分数和原因 ===== */
+.score-input {
+  border: 3rpx solid var(--color-primary);
+  border-radius: 24rpx;
+  padding: 30rpx;
+  font-size: 48rpx;
+  font-weight: 800;
+  text-align: center;
+  background: var(--color-card-warm);
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--color-cta);
+}
+
+.reason-title {
+  margin-top: 36rpx;
+}
+
+.text-input {
+  border: 2rpx solid var(--color-border);
+  border-radius: 20rpx;
+  padding: 24rpx;
   font-size: 28rpx;
+  background: var(--color-card-warm);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input-placeholder {
+  color: var(--color-text-tertiary);
+}
+
+/* ===== 底部操作 ===== */
+.action-bar {
+  padding: 32rpx 0 12rpx;
 }

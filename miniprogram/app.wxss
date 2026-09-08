@@ -1,169 +1,195 @@
-/* app.wxss — 雀记全局设计系统 */
+/* app.wxss — 得闲开台全局样式
+ * 色系参照 docs/design 设计图（v2 重构）
+ * 米白宣纸底 + 牌桌深绿 + 红橙 CTA + 金色点缀，麻将牌视觉母题
+ */
 
-/* ========== 设计变量 ========== */
 page {
-  --color-primary: #2B2B2B;
-  --color-primary-light: #5C5C5C;
-  --color-accent: #D4A24C;
-  --color-accent-light: #E8C894;
-  --color-success: #3D6B3D;
-  --color-error: #B33A3A;
-  --color-info: #3B5998;
-  --color-bg: #F2F2F7;
-  --color-card: #FFFFFF;
-  --color-text: #1A1A1A;
-  --color-text-secondary: #8E8E93;
-  --color-text-tertiary: #C4C4C6;
-  --color-border: #E5E5EA;
-  --color-divider: #F0F0F2;
+  /* 品牌色系（设计图 v2） */
+  --color-primary: #1E6B47;        /* 牌桌深绿（主品牌色） */
+  --color-primary-dark: #145036;   /* 深绿按压态 */
+  --color-primary-light: #E4F0E9;  /* 浅绿背景 */
+  --color-cta: #E8442E;            /* 红橙 CTA（主按钮） */
+  --color-cta-light: #FDE8E4;      /* 浅红背景 */
+  --color-gold: #C9A254;           /* 金色点缀 */
+  --color-gold-light: #F6EEDC;     /* 浅金背景 */
+  --color-dark: #23352B;           /* 墨绿近黑（标题文字） */
+  --color-success: #3E8E5A;        /* 成功绿 */
+  --color-success-light: #E4F0E9;  /* 浅绿背景 */
+  --color-warning: #E8842E;        /* 警告橙 */
+  --color-warning-light: #FDF0E2; /* 浅橙背景 */
+  --color-error: #C93A2E;          /* 错误红 */
+  --color-bg: #F7F3E8;             /* 米白宣纸背景（设计图主底色） */
+  --color-card: #FFFFFF;           /* 卡片白 */
+  --color-card-warm: #FCFAF3;     /* 暖白卡片 */
+  --color-text: #23352B;           /* 主文字墨绿 */
+  --color-text-secondary: #7A8480; /* 次文字灰绿 */
+  --color-text-tertiary: #B8C0BB;  /* 三级文字 */
+  --color-border: #EDE7D8;         /* 米色边框 */
 
-  --radius-sm: 8rpx;
-  --radius-md: 16rpx;
-  --radius-lg: 24rpx;
-  --radius-xl: 32rpx;
-  --shadow-sm: 0 1rpx 4rpx rgba(0,0,0,0.04);
-  --shadow-md: 0 2rpx 16rpx rgba(0,0,0,0.06);
-
-  background: var(--color-bg);
+  background-color: var(--color-bg);
   color: var(--color-text);
-  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
   font-size: 28rpx;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-/* ========== 通用容器 ========== */
-.container {
-  padding: 24rpx 24rpx 120rpx;
+/* ========== 页面容器 ========== */
+.page {
+  padding: 32rpx 32rpx calc(env(safe-area-inset-bottom) + 40rpx);
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 /* ========== 卡片 ========== */
 .card {
   background: var(--color-card);
-  border-radius: var(--radius-lg);
-  padding: 32rpx;
-  margin-bottom: 20rpx;
-  box-shadow: var(--shadow-sm);
+  border-radius: 28rpx;
+  padding: 36rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 6rpx 28rpx rgba(35, 53, 43, 0.06);
+  border: 1rpx solid var(--color-border);
+}
+
+.card-warm {
+  background: var(--color-card-warm);
+}
+
+/* 深绿实底卡片（设计图中的主视觉卡） */
+.card-green {
+  background: linear-gradient(160deg, #237652 0%, #1E6B47 55%, #175A3B 100%);
+  color: #F7F3E8;
+  border: none;
+  box-shadow: 0 12rpx 32rpx rgba(30, 107, 71, 0.3);
 }
 
 /* ========== 按钮 ========== */
+/* 红橙主 CTA */
 .btn-primary {
-  background: var(--color-primary);
+  background: linear-gradient(135deg, #F0603F 0%, #E8442E 100%);
   color: #FFFFFF;
   border: none;
-  border-radius: var(--radius-md);
-  padding: 24rpx 0;
+  border-radius: 48rpx;
+  padding: 24rpx 48rpx;
   font-size: 30rpx;
-  font-weight: 500;
+  font-weight: 600;
   text-align: center;
+  display: block;
   width: 100%;
   box-sizing: border-box;
-  line-height: 1.4;
+  letter-spacing: 2rpx;
+  box-shadow: 0 10rpx 24rpx rgba(232, 68, 46, 0.28);
 }
 
-.btn-primary::after { border: none; }
-.btn-primary[disabled] { opacity: 0.4; }
+.btn-primary[disabled] {
+  opacity: 0.4;
+  box-shadow: none;
+}
 
-.btn-accent {
-  background: var(--color-accent);
+/* 深绿按钮（次级确认动作） */
+.btn-green {
+  background: linear-gradient(135deg, #237652 0%, #1E6B47 100%);
   color: #FFFFFF;
   border: none;
-  border-radius: var(--radius-md);
-  padding: 24rpx 0;
+  border-radius: 48rpx;
+  padding: 24rpx 48rpx;
   font-size: 30rpx;
-  font-weight: 500;
+  font-weight: 600;
   text-align: center;
+  display: block;
   width: 100%;
   box-sizing: border-box;
+  letter-spacing: 2rpx;
+  box-shadow: 0 10rpx 24rpx rgba(30, 107, 71, 0.28);
 }
 
-.btn-accent::after { border: none; }
+.btn-green[disabled] {
+  opacity: 0.4;
+  box-shadow: none;
+}
 
 .btn-secondary {
   background: var(--color-card);
   color: var(--color-text);
   border: 2rpx solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 22rpx 0;
+  border-radius: 48rpx;
+  padding: 24rpx 48rpx;
   font-size: 30rpx;
+  font-weight: 500;
   text-align: center;
+  display: block;
   width: 100%;
   box-sizing: border-box;
 }
-
-.btn-secondary::after { border: none; }
 
 .btn-danger {
   background: transparent;
   color: var(--color-error);
   border: 2rpx solid var(--color-error);
-  border-radius: var(--radius-md);
-  padding: 22rpx 0;
+  border-radius: 48rpx;
+  padding: 24rpx 48rpx;
   font-size: 30rpx;
+  font-weight: 500;
   text-align: center;
+  display: block;
   width: 100%;
   box-sizing: border-box;
 }
 
-.btn-danger::after { border: none; }
+/* ========== 麻将牌视觉母题 ========== */
+/* 立体麻将牌：米白牌面 + 圆角 + 底部厚度 */
+.mj-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #FFFEF9 0%, #F3EEDF 100%);
+  border-radius: 18%;
+  border: 1rpx solid #E8E0CC;
+  box-shadow: 0 6rpx 0 #D8CFB6, 0 10rpx 18rpx rgba(35, 53, 43, 0.15);
+  color: var(--color-cta);
+  font-weight: 800;
+  line-height: 1;
+}
 
-/* ========== 文字 ========== */
+.mj-tile-green {
+  color: var(--color-primary);
+}
+
+.mj-tile-gold {
+  color: var(--color-gold);
+}
+
+/* ========== 标题 ========== */
 .section-title {
-  font-size: 28rpx;
-  font-weight: 600;
+  font-size: 30rpx;
+  font-weight: 700;
   color: var(--color-text);
   margin-bottom: 20rpx;
   letter-spacing: 1rpx;
 }
 
+/* ========== 文字辅助 ========== */
 .text-secondary {
   color: var(--color-text-secondary);
   font-size: 24rpx;
 }
 
-.text-tertiary {
-  color: var(--color-text-tertiary);
-  font-size: 24rpx;
+.text-success { color: var(--color-success); }
+.text-warning { color: var(--color-warning); }
+.text-error { color: var(--color-error); }
+
+.text-positive {
+  color: var(--color-cta);
+  font-weight: 700;
 }
 
-.text-success { color: var(--color-success); font-weight: 600; }
-.text-error { color: var(--color-error); font-weight: 600; }
-.text-positive { color: var(--color-success); font-weight: 700; }
-.text-negative { color: var(--color-error); font-weight: 700; }
-
-.text-lg { font-size: 36rpx; font-weight: 700; }
-.text-xl { font-size: 44rpx; font-weight: 700; }
-.text-xxl { font-size: 56rpx; font-weight: 700; }
-
-/* ========== 状态标签 ========== */
-.tag {
-  display: inline-block;
-  padding: 4rpx 16rpx;
-  border-radius: 100rpx;
-  font-size: 22rpx;
-  font-weight: 500;
+.text-negative {
+  color: var(--color-primary);
+  font-weight: 700;
 }
 
-.tag-forming { background: #E8F0FE; color: #3B5998; }
-.tag-active { background: #FFF4E6; color: #B8772E; }
-.tag-ended { background: #F0F0F0; color: #8E8E93; }
-.tag-cancelled { background: #FCE4E4; color: #B33A3A; }
-.tag-expired { background: #F0F0F0; color: #8E8E93; }
-.tag-pending { background: #FFF9E6; color: #B8772E; }
-.tag-accepted { background: #E8F5E9; color: #3D6B3D; }
-
-/* ========== 输入框 ========== */
-.input {
-  width: 100%;
-  border: 2rpx solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 24rpx;
-  font-size: 30rpx;
-  background: var(--color-card);
-  box-sizing: border-box;
-}
-
-.input-placeholder {
-  color: var(--color-text-tertiary);
+.text-zero {
+  color: var(--color-text-secondary);
+  font-weight: 600;
 }
 
 /* ========== 空状态 ========== */
@@ -174,68 +200,69 @@ page {
 }
 
 .empty-state .empty-icon {
-  font-size: 80rpx;
+  font-size: 96rpx;
   margin-bottom: 24rpx;
+  opacity: 0.6;
 }
 
-/* ========== 加载 ========== */
-.loading-text {
-  text-align: center;
+.empty-state .empty-text {
+  font-size: 30rpx;
+  margin-bottom: 8rpx;
+}
+
+/* ========== 状态标签 ========== */
+.tag {
+  display: inline-block;
+  padding: 6rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  font-weight: 500;
+}
+
+.tag-forming {
+  background: var(--color-gold-light);
+  color: #8C6B25;
+}
+
+.tag-active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.tag-ended {
+  background: #EFEDE6;
   color: var(--color-text-secondary);
-  font-size: 24rpx;
-  padding: 40rpx 0;
 }
 
-/* ========== 操作栏 ========== */
-.action-bar {
-  padding: 24rpx 0;
+.tag-cancelled {
+  background: var(--color-cta-light);
+  color: var(--color-error);
 }
 
-.action-bar button {
-  margin-bottom: 16rpx;
+.tag-pending {
+  background: var(--color-warning-light);
+  color: #B25E14;
 }
 
-.action-bar button:last-child {
-  margin-bottom: 0;
+.tag-accepted {
+  background: var(--color-success-light);
+  color: var(--color-success);
 }
 
-/* ========== 头像 ========== */
-.avatar {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 50%;
-  overflow: hidden;
-  background: var(--color-divider);
-  flex-shrink: 0;
+/* ========== 底部操作栏（固定） ========== */
+.footer-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20rpx 32rpx calc(env(safe-area-inset-bottom) + 20rpx);
+  background: rgba(251, 249, 245, 0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1rpx solid var(--color-border);
+  z-index: 50;
 }
 
-.avatar image {
-  width: 100%;
-  height: 100%;
-}
-
-.avatar-text {
-  width: 80rpx;
-  height: 80rpx;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #FFFFFF;
-  background: var(--color-accent);
-  flex-shrink: 0;
-}
-
-/* ========== 列表项 ========== */
-.list-item {
-  display: flex;
-  align-items: center;
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid var(--color-divider);
-}
-
-.list-item:last-child {
-  border-bottom: none;
+/* ========== 底部安全区 ========== */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
 }

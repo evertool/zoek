@@ -1,15 +1,25 @@
 <!--pages/join/join.wxml — 扫码入台页-->
-<view class="container">
-  <view class="join-page" wx:if="{{loading && !error}}">
-    <view class="join-logo">🀄</view>
-    <view class="join-text">正在加入...</view>
+<view class="page">
+  <!-- 入台中 -->
+  <view class="join-state" wx:if="{{loading && !error}}">
+    <view class="join-tiles">
+      <view class="join-tile join-tile-b mj-tile mj-tile-green">發</view>
+      <view class="join-tile join-tile-a mj-tile">中</view>
+    </view>
+    <view class="join-title">正在入台...</view>
+    <view class="text-secondary">正在带您进入牌桌</view>
   </view>
 
-  <view class="join-page" wx:if="{{error}}">
-    <view class="join-logo">🀄</view>
-    <view class="join-error">{{error}}</view>
-    <button class="btn-primary" style="margin-top: 48rpx; width: 80%;" bindtap="retryJoin" disabled="{{joining}}">
-      重新加入
-    </button>
+  <!-- 入台失败 -->
+  <view class="join-state" wx:if="{{error}}">
+    <view class="join-tiles">
+      <view class="join-tile join-tile-b mj-tile mj-tile-gold">白</view>
+      <view class="join-tile join-tile-a mj-tile">中</view>
+    </view>
+    <view class="join-title">入唔到台</view>
+    <view class="join-error card">{{error}}</view>
+    <view class="join-actions">
+      <button class="btn-primary" bindtap="tryJoin" disabled="{{joining}}">重新入台</button>
+    </view>
   </view>
 </view>

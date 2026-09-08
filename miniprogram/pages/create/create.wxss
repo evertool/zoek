@@ -1,23 +1,120 @@
-/* pages/create/create.wxss */
-.create-title {
-  font-size: 40rpx;
-  font-weight: 700;
-  margin-bottom: 8rpx;
+/* pages/create/create.wxss — 开台页（设计 v2） */
+
+.page {
+  padding: 32rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
+/* ===== 头部 ===== */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx 0 48rpx;
+}
+
+.hero-tiles {
+  position: relative;
+  width: 170rpx;
+  height: 160rpx;
+  margin-bottom: 20rpx;
+}
+
+.hero-tile {
+  position: absolute;
+  width: 92rpx;
+  height: 124rpx;
+  font-size: 44rpx;
+}
+
+.hero-tile-back {
+  left: 6rpx;
+  top: 26rpx;
+  transform: rotate(-12deg);
+  opacity: 0.9;
+}
+
+.hero-tile-front {
+  right: 10rpx;
+  top: 8rpx;
+  transform: rotate(8deg);
+  z-index: 2;
+}
+
+.hero-title {
+  font-size: 44rpx;
+  font-weight: 800;
+  letter-spacing: 8rpx;
+  color: var(--color-text);
+}
+
+.hero-desc {
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+}
+
+/* ===== 表单卡 ===== */
+.form-card {
+  padding: 36rpx;
+}
+
+.input-label {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 18rpx;
+}
+
+.text-input {
+  background: var(--color-card-warm);
+  border: 2rpx solid var(--color-border);
+  border-radius: 20rpx;
+  padding: 22rpx 26rpx;
+  font-size: 30rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input-placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.input-count {
+  margin-top: 12rpx;
+  text-align: right;
+  font-size: 22rpx;
+  color: var(--color-text-tertiary);
+}
+
+/* ===== 贴士卡 ===== */
 .tips-card {
-  padding: 32rpx;
+  border: 1rpx solid var(--color-border);
 }
 
 .tips-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: var(--color-text-secondary);
+  font-size: 26rpx;
+  font-weight: 700;
+  color: var(--color-primary);
   margin-bottom: 16rpx;
+  letter-spacing: 2rpx;
 }
 
-.tips-item {
-  font-size: 26rpx;
+.tip-item {
+  font-size: 24rpx;
   color: var(--color-text-secondary);
   line-height: 2;
+}
+
+.tip-dot {
+  color: var(--color-gold);
+  font-weight: 800;
+  margin-right: 12rpx;
+}
+
+/* ===== 底部操作 ===== */
+.action-bar {
+  margin-top: 48rpx;
+  padding: 0 8rpx;
 }

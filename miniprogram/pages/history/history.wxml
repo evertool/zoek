@@ -1,26 +1,33 @@
-<!--pages/history/history.wxml — 对局记录-->
-<view class="container">
+<!--pages/history/history.wxml — 对局记录列表-->
+<view class="page">
+  <!-- 空状态 -->
   <view class="empty-state" wx:if="{{games.length === 0 && !loading}}">
-    <view class="empty-icon">🀄</view>
-    <view style="font-size: 30rpx; color: var(--color-text-secondary);">暂无对局记录</view>
+    <view class="empty-tile mj-tile mj-tile-green">記</view>
+    <view class="empty-text">未有对局记录</view>
+    <view class="text-secondary" style="margin-top: 8rpx;">打完牌散台后就會出现</view>
   </view>
 
-  <view class="history-card" wx:for="{{games}}" wx:key="game_id" bindtap="goSettlement" data-id="{{item.game_id}}">
-    <view class="history-header">
-      <view class="history-name">{{item.name}}</view>
-      <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+  <!-- 记录列表 -->
+  <view class="game-card" wx:for="{{games}}" wx:key="game_id" bindtap="goSettlement" data-id="{{item.game_id}}">
+    <view class="card-tile mj-tile mj-tile-green">局</view>
+    <view class="card-body">
+      <view class="card-top">
+        <view class="card-name">{{item.name}}</view>
+        <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+      </view>
+      <view class="card-bottom">
+        <text class="text-secondary">{{item.completed_rounds}}局</text>
+        <text class="card-time">{{item.timeText}}</text>
+      </view>
     </view>
-    <view class="history-info">
-      <text class="text-secondary">{{item.completed_rounds}}局</text>
-      <text class="text-secondary" style="margin-left: 20rpx;">{{item.timeText}}</text>
-    </view>
+    <view class="card-arrow">›</view>
   </view>
 
-  <view class="loading-text" wx:if="{{!hasMore && games.length > 0}}">
-    没有更多了
+  <view class="load-tip" wx:if="{{!hasMore && games.length > 0}}">
+    已经见底啦
   </view>
 
-  <view class="loading-text" wx:if="{{loading}}">
+  <view class="load-tip" wx:if="{{loading}}">
     加载中...
   </view>
 </view>

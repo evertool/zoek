@@ -1,78 +1,81 @@
-<!--pages/room/room.wxml — 房间页-->
-<view class="container" wx:if="{{game}}">
-  <!-- 牌局信息 -->
-  <view class="card">
-    <view class="room-header">
-      <view class="room-name">{{game.name}}</view>
+<!--pages/room/room.wxml — 台间页-->
+<view class="page" wx:if="{{game}}">
+  <!-- 深绿主视觉头部卡 -->
+  <view class="hero card-green">
+    <view class="hero-deco mj-tile hero-deco-tile">中</view>
+    <view class="hero-row">
+      <view class="hero-name">{{game.name}}</view>
       <view class="tag {{game.statusClass}}">{{game.statusText}}</view>
     </view>
-    <view class="room-meta" wx:if="{{game.current_round_number}}">
-      <text>第{{game.current_round_number}}局</text>
-      <text class="text-secondary" style="margin-left: 20rpx;">已完成{{game.completed_rounds}}局</text>
+    <view class="hero-info" wx:if="{{game.current_round_number}}">
+      <text class="hero-round">今局第{{game.current_round_number}}局</text>
+      <text class="hero-dot">·</text>
+      <text class="hero-completed">已完成{{game.completed_rounds}}局</text>
     </view>
-    <view class="room-meta" wx:else>
-      <text class="text-secondary">已完成{{game.completed_rounds}}局</text>
+    <view class="hero-info" wx:else>
+      <text class="hero-completed">已完成{{game.completed_rounds}}局</text>
     </view>
   </view>
 
   <!-- 雀友列表 -->
   <view class="card">
-    <view class="section-title">雀友 ({{players.length}}/4)</view>
-    <view class="player-list">
-      <view class="player-item" wx:for="{{players}}" wx:key="player_id">
-        <view class="avatar-text" style="background: {{item.avatarColor}}">{{item.nickname[0]}}</view>
+    <view class="section-header">
+      <text class="section-title">雀友</text>
+      <text class="text-secondary">{{players.length}} / 4</text>
+    </view>
+    <view class="player-grid">
+      <view class="player-cell" wx:for="{{players}}" wx:key="player_id">
+        <view class="player-avatar {{item.isOwner ? 'avatar-owner' : ''}}" style="{{item.avatarColor ? 'background:' + item.avatarColor : ''}}">{{item.nickname[0]}}</view>
         <view class="player-name">{{item.nickname}}</view>
         <view class="tag tag-forming" wx:if="{{item.isOwner}}">台主</view>
+      </view>
+      <!-- 空位 -->
+      <view class="player-cell player-empty" wx:if="{{players.length < 4}}">
+        <view class="player-avatar avatar-empty">+</view>
+        <view class="player-name text-secondary">等紧入台</view>
       </view>
     </view>
   </view>
 
-  <!-- 邀请区（组台中） -->
-  <view class="card invite-card" wx:if="{{game.status === 'forming'}}">
-    <view class="section-title">邀请雀友</view>
-    <view class="text-secondary" style="margin-bottom: 24rpx;">扫码或分享链接即可加入</view>
-
-    <!-- 小程序码 -->
-    <view class="qr-area" wx:if="{{qrPath}}">
-      <image class="qr-image" src="{{qrPath}}" mode="aspectFit" />
-      <view class="text-secondary" style="margin-top: 16rpx;">{{players.length}}/4 已加入</view>
+  <!-- 分享区（含 QR 码） -->
+  <view class="card share-card" wx:if="{{inviteToken && game.status === 'forming'}}">
+    <view class="share-title">邀请雀友</view>
+    <view class="share-desc">分享畀其他雀友，扫码即可入台</view>
+    <view class="qr-frame">
+      <image class="qr-img" src="{{qrPath}}" mode="aspectFit" wx:if="{{qrPath}}" />
+      <view class="qr-loading" wx:if="{{qrLoading}}">生成二维码中...</view>
+      <view class="qr-error" wx:if="{{qrError}}">{{qrError}}</view>
     </view>
-    <view class="qr-loading" wx:elif="{{qrLoading}}">
-      <view class="text-secondary">正在生成二维码...</view>
-    </view>
-    <view class="qr-error" wx:elif="{{qrError}}">
-      <view class="text-error">{{qrError}}</view>
-      <button class="btn-secondary" style="margin-top: 16rpx;" bindtap="loadQRCode">重新生成</button>
-    </view>
-
-    <!-- 邀请按钮 -->
-    <button class="btn-accent" open-type="share" style="margin-top: 24rpx;">邀请好友</button>
+    <button class="btn-green share-btn" open-type="share">分享入台链接</button>
   </view>
 
   <!-- 操作区 -->
-  <view class="action-bar">
+  <view class="action-bar safe-bottom">
     <!-- forming 状态 -->
     <block wx:if="{{game.status === 'forming'}}">
-      <view class="text-secondary" style="text-align: center; margin-bottom: 16rpx;">等齐雀友加入后开始计分</view>
-      <button class="btn-danger" wx:if="{{isOwner}}" bindtap="doCancel">删除房间</button>
+      <button class="btn-primary" wx:if="{{isOwner}}" bindtap="doStart">开始计分</button>
+      <button class="btn-danger" wx:if="{{isOwner}}" bindtap="doCancel">取消牌桌</button>
+      <view class="waiting-text" wx:if="{{!isOwner}}">
+        <view class="waiting-tile mj-tile mj-tile-green">等</view>
+        等紧台主开始计分
+      </view>
     </block>
 
     <!-- active 状态 -->
     <block wx:if="{{game.status === 'active'}}">
       <button class="btn-primary" bindtap="goScore">入分 / 计分</button>
-      <button class="btn-secondary" bindtap="goSettlement">查看排名</button>
+      <button class="btn-secondary" bindtap="goSettlement">查看当前排名</button>
       <button class="btn-danger" wx:if="{{isOwner}}" bindtap="doEnd">散台</button>
     </block>
 
     <!-- ended 状态 -->
     <block wx:if="{{game.status === 'ended'}}">
-      <button class="btn-primary" bindtap="goSettlement">查看结算</button>
-      <button class="btn-secondary" bindtap="goScore" wx:if="{{game.current_round_number}}">查看最近一局</button>
+      <button class="btn-primary" bindtap="goSettlement">查看找数</button>
     </block>
 
     <!-- cancelled / expired -->
     <block wx:if="{{game.status === 'cancelled' || game.status === 'expired'}}">
-      <view class="text-secondary" style="text-align: center;">此牌桌已{{game.statusText}}</view>
+      <view class="waiting-text">此牌桌已{{game.statusText}}</view>
     </block>
   </view>
 </view>
