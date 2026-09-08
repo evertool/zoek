@@ -1,4 +1,6 @@
-/* pages/adjustment/adjustment.wxss — 补分/退分页（设计 v2） */
+/* pages/adjustment/adjustment.wxss — 补分/退分页 v4 白底卡通版
+ * 补分红 / 退分绿对称选择块 + 麻将牌选择块
+ */
 
 .page {
   padding: 32rpx;
@@ -23,13 +25,13 @@
 }
 
 .type-item.active.type-supplement {
-  border-color: var(--color-cta);
-  background: var(--color-cta-light);
+  border-color: var(--color-red);
+  background: var(--color-red-soft);
 }
 
 .type-item.active.type-refund {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
+  border-color: var(--color-green);
+  background: var(--color-green-light);
 }
 
 .type-tile {
@@ -47,11 +49,11 @@
 }
 
 .type-item.active.type-supplement .type-label {
-  color: var(--color-cta);
+  color: var(--color-red);
 }
 
 .type-item.active.type-refund .type-label {
-  color: var(--color-primary);
+  color: var(--color-green);
 }
 
 .type-desc {
@@ -77,15 +79,15 @@
 }
 
 .player-pick.selected {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
+  border-color: var(--color-green);
+  background: var(--color-green-light);
 }
 
 .player-avatar {
   width: 56rpx;
   height: 56rpx;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-green);
   color: #FFFFFF;
   display: flex;
   align-items: center;
@@ -104,7 +106,7 @@
   width: 34rpx;
   height: 34rpx;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-green);
   color: #fff;
   font-size: 22rpx;
   display: flex;
@@ -114,7 +116,7 @@
 
 /* ===== 分数和原因 ===== */
 .score-input {
-  border: 3rpx solid var(--color-primary);
+  border: 3rpx solid var(--color-red);
   border-radius: 24rpx;
   padding: 30rpx;
   font-size: 48rpx;
@@ -123,7 +125,7 @@
   background: var(--color-card-warm);
   width: 100%;
   box-sizing: border-box;
-  color: var(--color-cta);
+  color: var(--color-red);
 }
 
 .reason-title {

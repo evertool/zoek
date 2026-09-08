@@ -1,30 +1,65 @@
-/* app.wxss — 得闲开台全局样式
- * 色系参照 docs/design 设计图（v2 重构）
- * 米白宣纸底 + 牌桌深绿 + 红橙 CTA + 金色点缀，麻将牌视觉母题
+/* app.wxss — 得闲开台全局样式 v4
+ * 白底 + 卡通麻将风格
+ * 暖白宣纸底 + 鲜活配色 + 卡通3D麻将牌
  */
 
+/* ========== 品牌色系（v4 白底卡通版） ========== */
 page {
-  /* 品牌色系（设计图 v2） */
-  --color-primary: #1E6B47;        /* 牌桌深绿（主品牌色） */
-  --color-primary-dark: #145036;   /* 深绿按压态 */
-  --color-primary-light: #E4F0E9;  /* 浅绿背景 */
-  --color-cta: #E8442E;            /* 红橙 CTA（主按钮） */
-  --color-cta-light: #FDE8E4;      /* 浅红背景 */
-  --color-gold: #C9A254;           /* 金色点缀 */
-  --color-gold-light: #F6EEDC;     /* 浅金背景 */
-  --color-dark: #23352B;           /* 墨绿近黑（标题文字） */
-  --color-success: #3E8E5A;        /* 成功绿 */
-  --color-success-light: #E4F0E9;  /* 浅绿背景 */
-  --color-warning: #E8842E;        /* 警告橙 */
-  --color-warning-light: #FDF0E2; /* 浅橙背景 */
-  --color-error: #C93A2E;          /* 错误红 */
-  --color-bg: #F7F3E8;             /* 米白宣纸背景（设计图主底色） */
-  --color-card: #FFFFFF;           /* 卡片白 */
-  --color-card-warm: #FCFAF3;     /* 暖白卡片 */
-  --color-text: #23352B;           /* 主文字墨绿 */
-  --color-text-secondary: #7A8480; /* 次文字灰绿 */
-  --color-text-tertiary: #B8C0BB;  /* 三级文字 */
-  --color-border: #EDE7D8;         /* 米色边框 */
+  /* 主背景 — 暖白宣纸底 */
+  --color-bg: #FFF8EF;
+  --color-bg-soft: #FAF3E8;
+  --color-bg-warm: #FCFAF3;
+
+  /* 卡片白 */
+  --color-card: #FFFFFF;
+  --color-card-warm: #FCFAF3;
+
+  /* 麻将红（品牌主色 / CTA） */
+  --color-red: #E8442E;
+  --color-red-dark: #C8402B;
+  --color-red-light: #FF6B54;
+  --color-red-soft: #FFE8E4;
+  --color-red-glow: rgba(232, 68, 46, 0.2);
+
+  /* 牌桌绿（次级色） */
+  --color-green: #1E6B47;
+  --color-green-dark: #145036;
+  --color-green-light: #E4F0E9;
+  --color-green-soft: #D4EDDF;
+
+  /* 金色点缀 */
+  --color-gold: #C9A254;
+  --color-gold-dark: #A8851E;
+  --color-gold-light: #F6EEDC;
+  --color-gold-glow: rgba(201, 162, 84, 0.25);
+
+  /* 靛蓝（深色文字 / 强调） */
+  --color-indigo: #1A1A2E;
+  --color-indigo-light: #2D2D4A;
+
+  /* 麻将牌面色 */
+  --color-tile: #FFFEF8;
+  --color-tile-light: #FAF7F0;
+  --color-tile-dark: #F0EBE0;
+  --color-tile-shadow: #D5CCB8;
+
+  /* 文字色 */
+  --color-text: #1A1A2E;
+  --color-text-secondary: #6B6B7A;
+  --color-text-tertiary: #B0B0BC;
+  --color-text-inverse: #FFFFFF;
+
+  /* 边框 */
+  --color-border: #EDE7D8;
+  --color-border-light: #F5F0E6;
+
+  /* 功能色 */
+  --color-success: #34A853;
+  --color-success-soft: #E0F3E7;
+  --color-warning: #F29D00;
+  --color-warning-soft: #FFF4E0;
+  --color-error: #EA4335;
+  --color-error-soft: #FCE8E6;
 
   background-color: var(--color-bg);
   color: var(--color-text);
@@ -35,9 +70,10 @@ page {
 
 /* ========== 页面容器 ========== */
 .page {
-  padding: 32rpx 32rpx calc(env(safe-area-inset-bottom) + 40rpx);
+  padding: 32rpx;
   min-height: 100vh;
   box-sizing: border-box;
+  position: relative;
 }
 
 /* ========== 卡片 ========== */
@@ -46,7 +82,7 @@ page {
   border-radius: 28rpx;
   padding: 36rpx;
   margin-bottom: 24rpx;
-  box-shadow: 0 6rpx 28rpx rgba(35, 53, 43, 0.06);
+  box-shadow: 0 6rpx 28rpx rgba(26, 26, 46, 0.06);
   border: 1rpx solid var(--color-border);
 }
 
@@ -54,30 +90,99 @@ page {
   background: var(--color-card-warm);
 }
 
-/* 深绿实底卡片（设计图中的主视觉卡） */
+/* 深绿渐变实底卡 */
 .card-green {
-  background: linear-gradient(160deg, #237652 0%, #1E6B47 55%, #175A3B 100%);
-  color: #F7F3E8;
+  background: linear-gradient(160deg, #2A8055 0%, #1E6B47 55%, #175A3B 100%);
+  color: #FFF8EF;
   border: none;
-  box-shadow: 0 12rpx 32rpx rgba(30, 107, 71, 0.3);
+  box-shadow: 0 12rpx 32rpx rgba(30, 107, 71, 0.25);
 }
 
-/* ========== 按钮 ========== */
+/* ========== 麻将牌母题（v4 卡通3D版） ========== */
+.mj-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #FFFEF9 0%, #F5F0E6 60%, #E8DFD0 100%);
+  border-radius: 18%;
+  position: relative;
+  font-weight: 900;
+  line-height: 1;
+  /* 卡通3D厚度：多层底部偏移阴影 */
+  box-shadow:
+    0 4rpx 0 #D8CFB6,
+    0 7rpx 0 #C8BFA6,
+    0 10rpx 0 #B8AF96,
+    0 16rpx 24rpx rgba(26, 26, 46, 0.12),
+    inset 0 3rpx 8rpx rgba(26, 26, 46, 0.06);
+  border: 2rpx solid rgba(216, 207, 182, 0.4);
+  text-shadow: 0 2rpx 0 rgba(255, 255, 255, 0.5);
+  z-index: 1;
+}
+
+.mj-tile-red {
+  color: var(--color-red);
+}
+
+.mj-tile-green {
+  color: var(--color-green);
+}
+
+.mj-tile-gold {
+  color: var(--color-gold-dark);
+}
+
+/* 白板牌 — 空白牌面 + 蓝色内框（模拟真实白板） */
+.mj-tile-blank {
+  color: transparent;
+}
+
+.blank-inner {
+  position: absolute;
+  top: 14%;
+  left: 14%;
+  right: 14%;
+  bottom: 14%;
+  border: 4rpx solid #2D5A9D;
+  border-radius: 8%;
+  background: transparent;
+  z-index: 2;
+}
+
+.mj-tile-navy {
+  color: var(--color-indigo);
+}
+
+/* ========== 按钮（v4 卡通版） ========== */
+
 /* 红橙主 CTA */
 .btn-primary {
-  background: linear-gradient(135deg, #F0603F 0%, #E8442E 100%);
+  background: linear-gradient(135deg, #FF7A60 0%, #E8442E 50%, #D33A28 100%);
   color: #FFFFFF;
   border: none;
-  border-radius: 48rpx;
-  padding: 24rpx 48rpx;
-  font-size: 30rpx;
-  font-weight: 600;
+  border-radius: 100rpx;
+  padding: 28rpx 48rpx;
+  font-size: 32rpx;
+  font-weight: 700;
   text-align: center;
   display: block;
   width: 100%;
   box-sizing: border-box;
-  letter-spacing: 2rpx;
-  box-shadow: 0 10rpx 24rpx rgba(232, 68, 46, 0.28);
+  letter-spacing: 4rpx;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 8rpx 20rpx rgba(232, 68, 46, 0.3),
+    inset 0 3rpx 0 rgba(255, 255, 255, 0.25),
+    inset 0 -4rpx 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btn-primary:active {
+  transform: scale(0.95);
+  box-shadow:
+    0 4rpx 12rpx rgba(232, 68, 46, 0.25),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.2);
 }
 
 .btn-primary[disabled] {
@@ -85,21 +190,29 @@ page {
   box-shadow: none;
 }
 
-/* 深绿按钮（次级确认动作） */
+/* 深绿按钮 */
 .btn-green {
-  background: linear-gradient(135deg, #237652 0%, #1E6B47 100%);
+  background: linear-gradient(135deg, #2E8A5E 0%, #1E6B47 50%, #145036 100%);
   color: #FFFFFF;
   border: none;
-  border-radius: 48rpx;
-  padding: 24rpx 48rpx;
-  font-size: 30rpx;
-  font-weight: 600;
+  border-radius: 100rpx;
+  padding: 28rpx 48rpx;
+  font-size: 32rpx;
+  font-weight: 700;
   text-align: center;
   display: block;
   width: 100%;
   box-sizing: border-box;
-  letter-spacing: 2rpx;
-  box-shadow: 0 10rpx 24rpx rgba(30, 107, 71, 0.28);
+  letter-spacing: 4rpx;
+  box-shadow:
+    0 8rpx 20rpx rgba(30, 107, 71, 0.25),
+    inset 0 3rpx 0 rgba(255, 255, 255, 0.15),
+    inset 0 -4rpx 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.btn-green:active {
+  transform: scale(0.95);
 }
 
 .btn-green[disabled] {
@@ -107,64 +220,88 @@ page {
   box-shadow: none;
 }
 
+/* 次级按钮 */
 .btn-secondary {
   background: var(--color-card);
   color: var(--color-text);
   border: 2rpx solid var(--color-border);
-  border-radius: 48rpx;
-  padding: 24rpx 48rpx;
-  font-size: 30rpx;
-  font-weight: 500;
+  border-radius: 100rpx;
+  padding: 28rpx 48rpx;
+  font-size: 32rpx;
+  font-weight: 600;
   text-align: center;
   display: block;
   width: 100%;
   box-sizing: border-box;
+  letter-spacing: 4rpx;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.btn-secondary:active {
+  transform: scale(0.95);
+  background: var(--color-bg-soft);
+}
+
+/* 危险按钮 */
 .btn-danger {
   background: transparent;
   color: var(--color-error);
   border: 2rpx solid var(--color-error);
-  border-radius: 48rpx;
-  padding: 24rpx 48rpx;
-  font-size: 30rpx;
-  font-weight: 500;
+  border-radius: 100rpx;
+  padding: 28rpx 48rpx;
+  font-size: 32rpx;
+  font-weight: 600;
   text-align: center;
   display: block;
   width: 100%;
   box-sizing: border-box;
+  letter-spacing: 4rpx;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* ========== 麻将牌视觉母题 ========== */
-/* 立体麻将牌：米白牌面 + 圆角 + 底部厚度 */
-.mj-tile {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(180deg, #FFFEF9 0%, #F3EEDF 100%);
-  border-radius: 18%;
-  border: 1rpx solid #E8E0CC;
-  box-shadow: 0 6rpx 0 #D8CFB6, 0 10rpx 18rpx rgba(35, 53, 43, 0.15);
-  color: var(--color-cta);
-  font-weight: 800;
-  line-height: 1;
+.btn-danger:active {
+  transform: scale(0.95);
+  background: var(--color-error-soft);
 }
 
-.mj-tile-green {
-  color: var(--color-primary);
-}
-
-.mj-tile-gold {
-  color: var(--color-gold);
-}
-
-/* ========== 标题 ========== */
-.section-title {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: var(--color-text);
-  margin-bottom: 20rpx;
+/* ========== 标签 ========== */
+.tag {
+  display: inline-block;
+  padding: 6rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+  font-weight: 600;
   letter-spacing: 1rpx;
+}
+
+.tag-forming {
+  background: var(--color-gold-light);
+  color: var(--color-gold-dark);
+}
+
+.tag-active {
+  background: var(--color-green-light);
+  color: var(--color-green);
+}
+
+.tag-ended {
+  background: #F0EDE6;
+  color: var(--color-text-secondary);
+}
+
+.tag-cancelled {
+  background: var(--color-red-soft);
+  color: var(--color-error);
+}
+
+.tag-pending {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.tag-accepted {
+  background: var(--color-success-soft);
+  color: var(--color-success);
 }
 
 /* ========== 文字辅助 ========== */
@@ -173,17 +310,13 @@ page {
   font-size: 24rpx;
 }
 
-.text-success { color: var(--color-success); }
-.text-warning { color: var(--color-warning); }
-.text-error { color: var(--color-error); }
-
 .text-positive {
-  color: var(--color-cta);
+  color: var(--color-red);
   font-weight: 700;
 }
 
 .text-negative {
-  color: var(--color-primary);
+  color: var(--color-green);
   font-weight: 700;
 }
 
@@ -191,6 +324,10 @@ page {
   color: var(--color-text-secondary);
   font-weight: 600;
 }
+
+.text-success { color: var(--color-success); }
+.text-warning { color: var(--color-warning); }
+.text-error { color: var(--color-error); }
 
 /* ========== 空状态 ========== */
 .empty-state {
@@ -202,7 +339,7 @@ page {
 .empty-state .empty-icon {
   font-size: 96rpx;
   margin-bottom: 24rpx;
-  opacity: 0.6;
+  opacity: 0.4;
 }
 
 .empty-state .empty-text {
@@ -210,59 +347,72 @@ page {
   margin-bottom: 8rpx;
 }
 
-/* ========== 状态标签 ========== */
-.tag {
-  display: inline-block;
-  padding: 6rpx 20rpx;
-  border-radius: 20rpx;
-  font-size: 22rpx;
-  font-weight: 500;
-}
-
-.tag-forming {
-  background: var(--color-gold-light);
-  color: #8C6B25;
-}
-
-.tag-active {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-}
-
-.tag-ended {
-  background: #EFEDE6;
-  color: var(--color-text-secondary);
-}
-
-.tag-cancelled {
-  background: var(--color-cta-light);
-  color: var(--color-error);
-}
-
-.tag-pending {
-  background: var(--color-warning-light);
-  color: #B25E14;
-}
-
-.tag-accepted {
-  background: var(--color-success-light);
-  color: var(--color-success);
-}
-
-/* ========== 底部操作栏（固定） ========== */
+/* ========== 底部操作栏 ========== */
 .footer-bar {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   padding: 20rpx 32rpx calc(env(safe-area-inset-bottom) + 20rpx);
-  background: rgba(251, 249, 245, 0.95);
-  backdrop-filter: blur(12px);
+  background: rgba(255, 248, 239, 0.92);
+  backdrop-filter: blur(20px);
   border-top: 1rpx solid var(--color-border);
   z-index: 50;
 }
 
-/* ========== 底部安全区 ========== */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* ========== 全局动画 ========== */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(40rpx); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.85); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes tileBounceIn {
+  0% { opacity: 0; transform: scale(0.3) translateY(-40rpx); }
+  50% { opacity: 1; transform: scale(1.08) translateY(8rpx); }
+  70% { transform: scale(0.96) translateY(-3rpx); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16rpx); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* 动画工具类 */
+.anim-fade-up { animation: fadeInUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-fade-scale { animation: fadeInScale 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-bounce-in { animation: tileBounceIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.anim-float { animation: float 3s ease-in-out infinite; }
+.anim-float-slow { animation: float 5s ease-in-out infinite; }
+.anim-wiggle { animation: wiggle 2s ease-in-out infinite; }
+.anim-pulse { animation: pulse 2s ease-in-out infinite; }
+
+/* 延迟工具类 */
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.5s; }
+.delay-6 { animation-delay: 0.6s; }
+.delay-7 { animation-delay: 0.7s; }
+.delay-8 { animation-delay: 0.8s; }

@@ -8,10 +8,11 @@ import (
 
 // User maps to the users table (PRD §7.2).
 type User struct {
-	ID        int64          `gorm:"primaryKey;autoIncrement" json:"id"`
-	OpenID    string         `gorm:"column:openid;type:varchar(64);uniqueIndex;not null" json:"openid"`
-	Nickname  string         `gorm:"type:varchar(32);not null" json:"nickname"`
-	AvatarURL string         `gorm:"type:varchar(512)" json:"avatar_url"`
+	ID       int64  `gorm:"primaryKey;autoIncrement" json:"id"`
+	OpenID   string `gorm:"column:openid;type:varchar(64);uniqueIndex;not null" json:"openid"`
+	Nickname string `gorm:"type:varchar(32);not null" json:"nickname"`
+	// AvatarURL 保存 base64 数据 URL（MVP 无对象存储，头像经压缩后持久存库）
+	AvatarURL string         `gorm:"type:mediumtext" json:"avatar_url"`
 	CreatedAt time.Time      `json:"created_at"`
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
@@ -97,3 +98,14 @@ type ScoreAdjustment struct {
 }
 
 func (ScoreAdjustment) TableName() string { return "score_adjustments" }
+
+// GameHidden records a user hiding an ended game from their own history list
+// (用户删除对局记录：仅对自己隐藏，不影响其他参与者)。
+type GameHidden struct {
+	ID        int64     `gorm:"primaryKey;autoIncrement" json:"id"`
+	GameID    int64     `gorm:"not null;uniqueIndex:uk_game_hidden" json:"game_id"`
+	UserID    int64     `gorm:"not null;uniqueIndex:uk_game_hidden" json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+func (GameHidden) TableName() string { return "game_hiddens" }

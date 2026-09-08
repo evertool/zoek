@@ -1,26 +1,67 @@
-<!--pages/index/index.wxml — 首页（得闲开台）-->
+<!--pages/index/index.wxml — 首页 v4 白底卡通版-->
+
 <view class="page">
 
-  <!-- ===== 未登录：品牌视觉 + 登入 CTA ===== -->
+  <!-- ===== 未登录：品牌开屏页 ===== -->
   <view class="login-hero" wx:if="{{!isLoggedIn}}">
-    <view class="hero-tiles">
-      <view class="mj-tile mj-tile-green hero-tile hero-tile-back">發</view>
-      <view class="mj-tile mj-tile-gold hero-tile hero-tile-back hero-tile-mid">中</view>
-      <view class="mj-tile hero-tile hero-tile-front">得</view>
+
+    <!-- 麻将牌从天而降动画区 -->
+    <view class="tile-rain-area">
+      <!-- Lottie 背景装饰动画（可选） -->
+      <view class="lottie-wrap" wx:if="{{!lottieError}}">
+        <canvas id="lottie-login" type="2d" class="lottie-canvas"></canvas>
+      </view>
+
+      <!-- CSS 麻将牌从各方向飞入 + 弹跳 -->
+      <view class="tile-rain-stage">
+        <view class="hero-aura"></view>
+        <!-- 牌1: 發 — 从正上方掉落 -->
+        <view class="mj-tile rain-tile rain-tile-1 mj-tile-green anim-drop-1">發</view>
+        <!-- 牌2: 中 — 从左上方弧形飞入 -->
+        <view class="mj-tile rain-tile rain-tile-2 mj-tile-red anim-drop-2">中</view>
+        <!-- 牌3: 白板 — 从右上方弧形飞入（空白牌面+内框） -->
+        <view class="mj-tile rain-tile rain-tile-3 mj-tile-blank anim-drop-3">
+          <view class="blank-inner"></view>
+        </view>
+        <!-- 牌4: 南 — 从左下方飞入 -->
+        <view class="mj-tile rain-tile rain-tile-4 mj-tile-gold anim-drop-4">南</view>
+        <!-- 牌5: 北 — 从右下方飞入 -->
+        <view class="mj-tile rain-tile rain-tile-5 mj-tile-red anim-drop-5">北</view>
+        <!-- 牌6: 東 — 从正上方延迟掉落 -->
+        <view class="mj-tile rain-tile rain-tile-6 mj-tile-green anim-drop-6">東</view>
+      </view>
     </view>
-    <view class="hero-brand">得闲开台</view>
-    <view class="hero-slogan">粤语麻将记分神器</view>
-    <view class="hero-sub">自己记自己嘅分，零和校验唔使争拗</view>
-    <button class="btn-primary login-btn" bindtap="doLogin">微信登入</button>
+
+    <!-- 品牌名 -->
+    <view class="hero-brand anim-fade-up delay-5">得闲开台</view>
+
+    <!-- 标语 -->
+    <view class="hero-slogan anim-fade-up delay-6">粤语麻将记分神器</view>
+    <view class="hero-sub anim-fade-up delay-7">自己记自己嘅分，零和校验唔使争拗</view>
+
+    <!-- 登录按钮 -->
+    <view class="login-btn-wrap anim-fade-up delay-8">
+      <button class="btn-primary login-btn" bindtap="doLogin">微信登入</button>
+    </view>
+
+    <!-- 底部品牌印记 -->
+    <view class="hero-footer anim-fade-up delay-8">
+      <view class="footer-line"></view>
+      <text class="footer-text">雀友一齐打，分数唔用争</text>
+      <view class="footer-line"></view>
+    </view>
   </view>
 
   <!-- ===== 已登录 ===== -->
   <block wx:if="{{isLoggedIn}}">
 
     <!-- 品牌头部 -->
-    <view class="brand-bar">
-      <view class="mj-tile mj-tile-green brand-tile">中</view>
-      <view class="brand-name">得闲开台</view>
+    <view class="brand-bar anim-fade-up">
+      <view class="brand-bar-tile mj-tile mj-tile-red anim-float">中</view>
+      <view class="brand-bar-text">
+        <view class="brand-bar-name">得闲开台</view>
+        <view class="brand-bar-sub">雀友，开台啦</view>
+      </view>
     </view>
 
     <!-- 完善资料 -->
@@ -28,8 +69,11 @@
       <view class="section-title">完善资料</view>
       <view class="text-secondary profile-tip">开台之前，先俾雀友认得你</view>
       <button class="avatar-chooser" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
-        <image class="avatar-img" src="{{tempAvatar}}" wx:if="{{tempAvatar}}" />
-        <view class="avatar-placeholder" wx:else>选头像</view>
+        <image class="avatar-img" src="{{tempAvatar}}" mode="aspectFill" wx:if="{{tempAvatar}}" />
+        <view class="avatar-placeholder" wx:else>
+          <text class="avatar-placeholder-icon">+</text>
+          <text class="avatar-placeholder-text">选头像</text>
+        </view>
       </button>
       <input
         class="text-input"
@@ -43,28 +87,32 @@
       <button class="btn-green save-profile-btn" bindtap="doSaveProfile">保存资料</button>
     </view>
 
-    <!-- 开台入口：深绿大卡 -->
-    <view class="card-green create-card" bindtap="goCreate" wx:if="{{!needProfile}}">
+    <!-- 开台入口 -->
+    <view class="create-card anim-fade-up delay-2" bindtap="goCreate" wx:if="{{!needProfile}}">
+      <view class="create-card-bg"></view>
       <view class="create-left">
         <view class="create-title">开台</view>
         <view class="create-desc">开新牌桌，邀请雀友入台</view>
       </view>
       <view class="create-tiles">
-        <view class="mj-tile mj-tile-green create-tile create-tile-b1">東</view>
-        <view class="mj-tile mj-tile-green create-tile create-tile-b2">南</view>
-        <view class="mj-tile create-tile create-tile-b3">中</view>
+        <view class="mj-tile mj-tile-green create-tile create-tile-1 anim-float">東</view>
+        <view class="mj-tile mj-tile-gold create-tile create-tile-2 anim-float-slow">南</view>
+        <view class="mj-tile mj-tile-red create-tile create-tile-3 anim-float">中</view>
       </view>
       <view class="create-arrow">›</view>
     </view>
 
     <!-- 进行中牌局 -->
     <block wx:if="{{!needProfile}}">
-      <view class="section-header" wx:if="{{games.length > 0}}">
+      <view class="section-header anim-fade-up delay-3" wx:if="{{games.length > 0}}">
         <text class="section-title">进行中</text>
-        <text class="text-secondary">{{games.length}}局</text>
+        <view class="section-count">
+          <text class="count-num">{{games.length}}</text>
+          <text class="count-text">局</text>
+        </view>
       </view>
 
-      <view class="card game-card" wx:for="{{games}}" wx:key="game_id" bindtap="goRoom" data-id="{{item.game_id}}">
+      <view class="game-card anim-fade-up" wx:for="{{games}}" wx:key="game_id" bindtap="goRoom" data-id="{{item.game_id}}">
         <view class="game-card-top">
           <view class="game-name">{{item.name}}</view>
           <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
@@ -82,8 +130,8 @@
       </view>
 
       <!-- 空状态 -->
-      <view class="empty-state" wx:if="{{games.length === 0 && !loading}}">
-        <view class="mj-tile mj-tile-green empty-tile">白</view>
+      <view class="empty-state anim-fade-up delay-4" wx:if="{{games.length === 0 && !loading}}">
+        <view class="mj-tile mj-tile-green empty-tile anim-float">白</view>
         <view class="empty-text">未有进行中嘅牌局</view>
         <view class="text-secondary" style="margin-top: 8rpx;">点击开台开始新一局</view>
       </view>

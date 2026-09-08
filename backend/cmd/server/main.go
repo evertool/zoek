@@ -94,6 +94,7 @@ func main() {
 	roundHandler := handler.NewRoundHandler(s)
 	adjHandler := handler.NewAdjustmentHandler(s)
 	settlementHandler := handler.NewSettlementHandler(s)
+	leaderboardHandler := handler.NewLeaderboardHandler(s)
 
 	// API v1
 	v1 := r.Group("/api/v1")
@@ -119,6 +120,7 @@ func main() {
 			auth.POST("/games/:game_id/cancel", gameHandler.CancelGame)
 			auth.POST("/games/:game_id/end", gameHandler.EndGame)
 			auth.GET("/games/:game_id/qrcode", gameHandler.GetGameQRCode)
+			auth.POST("/games/:game_id/hide", gameHandler.HideGame)
 
 			// Rounds
 			auth.POST("/games/:game_id/rounds", roundHandler.CreateNextRound)
@@ -138,6 +140,10 @@ func main() {
 			// Settlement and History
 			auth.GET("/games/:game_id/settlement", settlementHandler.GetSettlement)
 			auth.GET("/games/:game_id/history", settlementHandler.GetHistoryDetail)
+
+			// 雀友榜和个人数据
+			auth.GET("/leaderboard", leaderboardHandler.GetLeaderboard)
+			auth.GET("/user/stats", leaderboardHandler.GetUserStats)
 		}
 	}
 

@@ -1,4 +1,6 @@
-/* pages/join/join.wxss — 入台页（设计 v2） */
+/* pages/join/join.wxss — 入台页 v4 白底卡通版
+ * 卡通3D牌堆状态图 + 红CTA
+ */
 
 .page {
   padding: 32rpx;
@@ -45,11 +47,11 @@
 }
 
 .join-title {
-  font-size: 36rpx;
-  font-weight: 700;
-  color: var(--color-text);
+  font-size: 38rpx;
+  font-weight: 800;
+  color: var(--color-indigo);
   margin-bottom: 12rpx;
-  letter-spacing: 2rpx;
+  letter-spacing: 3rpx;
 }
 
 .join-error {
@@ -58,8 +60,8 @@
   margin-top: 20rpx;
   color: var(--color-error);
   font-size: 26rpx;
-  border: 1rpx solid var(--color-cta-light);
-  background: var(--color-cta-light);
+  border: 1rpx solid var(--color-red-soft);
+  background: var(--color-red-soft);
 }
 
 .join-actions {

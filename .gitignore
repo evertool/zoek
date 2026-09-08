@@ -30,3 +30,6 @@ logs/
 coverage.out
 coverage.html
 .codeartsdoer/
+
+# Mini program npm deps (构建产物 miniprogram_npm 保留提交，node_modules 不入库)
+miniprogram/node_modules/

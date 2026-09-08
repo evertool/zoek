@@ -1,8 +1,8 @@
-<!--pages/room/room.wxml — 台间页-->
+<!--pages/room/room.wxml — 房间页 v5：常驻邀请 + 实时雀友 + 欢迎动画-->
 <view class="page" wx:if="{{game}}">
   <!-- 深绿主视觉头部卡 -->
-  <view class="hero card-green">
-    <view class="hero-deco mj-tile hero-deco-tile">中</view>
+  <view class="hero card-green anim-fade-up">
+    <view class="hero-deco mj-tile hero-deco-tile anim-wiggle">中</view>
     <view class="hero-row">
       <view class="hero-name">{{game.name}}</view>
       <view class="tag {{game.statusClass}}">{{game.statusText}}</view>
@@ -18,57 +18,65 @@
   </view>
 
   <!-- 雀友列表 -->
-  <view class="card">
+  <view class="card anim-fade-up delay-2">
     <view class="section-header">
-      <text class="section-title">雀友</text>
+      <text class="section-title">台上的雀友</text>
       <text class="text-secondary">{{players.length}} / 4</text>
     </view>
     <view class="player-grid">
-      <view class="player-cell" wx:for="{{players}}" wx:key="player_id">
+      <view class="player-cell anim-bounce-in" wx:for="{{players}}" wx:key="player_id">
         <view class="player-avatar {{item.isOwner ? 'avatar-owner' : ''}}" style="{{item.avatarColor ? 'background:' + item.avatarColor : ''}}">{{item.nickname[0]}}</view>
         <view class="player-name">{{item.nickname}}</view>
         <view class="tag tag-forming" wx:if="{{item.isOwner}}">台主</view>
       </view>
       <!-- 空位 -->
-      <view class="player-cell player-empty" wx:if="{{players.length < 4}}">
+      <view class="player-cell player-empty anim-bounce-in" wx:if="{{players.length < 4}}">
         <view class="player-avatar avatar-empty">+</view>
         <view class="player-name text-secondary">等紧入台</view>
       </view>
     </view>
   </view>
 
-  <!-- 分享区（含 QR 码） -->
-  <view class="card share-card" wx:if="{{inviteToken && game.status === 'forming'}}">
-    <view class="share-title">邀请雀友</view>
-    <view class="share-desc">分享畀其他雀友，扫码即可入台</view>
+  <!-- 邀请卡：未满员常驻，扫码 / 分享都可以入台，所有雀友都能转发 -->
+  <view class="card share-card anim-fade-up delay-3" wx:if="{{canInvite}}">
+    <view class="share-title">等雀友入台</view>
+    <view class="share-desc">微信扫一扫入台，或者转发畀好友 / 雀群</view>
     <view class="qr-frame">
       <image class="qr-img" src="{{qrPath}}" mode="aspectFit" wx:if="{{qrPath}}" />
       <view class="qr-loading" wx:if="{{qrLoading}}">生成二维码中...</view>
       <view class="qr-error" wx:if="{{qrError}}">{{qrError}}</view>
     </view>
-    <button class="btn-green share-btn" open-type="share">分享入台链接</button>
+    <button class="btn-green share-btn" open-type="share">转发邀请</button>
+  </view>
+
+  <!-- 欢迎动画 overlay：有雀友入台时弹出 -->
+  <view class="welcome-overlay" wx:if="{{welcome}}">
+    <view class="welcome-mask"></view>
+    <view class="welcome-box">
+      <canvas type="2d" id="lottie-welcome" class="welcome-canvas"></canvas>
+      <view class="welcome-text">{{welcomeName}} 入台啦！</view>
+    </view>
   </view>
 
   <!-- 操作区 -->
   <view class="action-bar safe-bottom">
-    <!-- forming 状态 -->
+    <!-- forming：等雀友入台，人够自动开局 -->
     <block wx:if="{{game.status === 'forming'}}">
-      <button class="btn-primary" wx:if="{{isOwner}}" bindtap="doStart">开始计分</button>
-      <button class="btn-danger" wx:if="{{isOwner}}" bindtap="doCancel">取消牌桌</button>
-      <view class="waiting-text" wx:if="{{!isOwner}}">
-        <view class="waiting-tile mj-tile mj-tile-green">等</view>
-        等紧台主开始计分
+      <view class="waiting-text">
+        <view class="waiting-tile mj-tile mj-tile-green anim-float">等</view>
+        等紧雀友入台，人齐自动开局
       </view>
+      <button class="btn-danger" wx:if="{{isOwner}}" bindtap="doCancel">取消牌桌</button>
     </block>
 
-    <!-- active 状态 -->
+    <!-- active -->
     <block wx:if="{{game.status === 'active'}}">
       <button class="btn-primary" bindtap="goScore">入分 / 计分</button>
       <button class="btn-secondary" bindtap="goSettlement">查看当前排名</button>
       <button class="btn-danger" wx:if="{{isOwner}}" bindtap="doEnd">散台</button>
     </block>
 
-    <!-- ended 状态 -->
+    <!-- ended -->
     <block wx:if="{{game.status === 'ended'}}">
       <button class="btn-primary" bindtap="goSettlement">查看找数</button>
     </block>

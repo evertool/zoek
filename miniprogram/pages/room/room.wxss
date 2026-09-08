@@ -1,4 +1,6 @@
-/* pages/room/room.wxss — 台间页（设计 v2：深绿主视觉 + 米白底） */
+/* pages/room/room.wxss — 台间页 v4 白底卡通版
+ * 深绿主视觉卡 + 卡通3D雀友头像 + 虚线QR邀请框
+ */
 
 .page {
   padding: 32rpx;
@@ -23,7 +25,7 @@
   height: 146rpx;
   font-size: 52rpx;
   transform: rotate(16deg);
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
 .hero-row {
@@ -36,7 +38,7 @@
 }
 
 .hero-name {
-  color: #F7F3E8;
+  color: #FFF8EF;
   font-size: 40rpx;
   font-weight: 800;
   letter-spacing: 2rpx;
@@ -60,12 +62,12 @@
 }
 
 .hero-dot {
-  color: rgba(247, 243, 232, 0.5);
+  color: rgba(255, 248, 239, 0.5);
   margin: 0 16rpx;
 }
 
 .hero-completed {
-  color: rgba(247, 243, 232, 0.7);
+  color: rgba(255, 248, 239, 0.7);
   font-size: 24rpx;
 }
 
@@ -99,7 +101,7 @@
   width: 96rpx;
   height: 96rpx;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-green);
   color: #FFFFFF;
   display: flex;
   align-items: center;
@@ -108,11 +110,14 @@
   font-weight: 700;
   margin-bottom: 12rpx;
   box-sizing: border-box;
+  box-shadow:
+    inset 0 3rpx 0 rgba(255, 255, 255, 0.2),
+    0 4rpx 12rpx rgba(30, 107, 71, 0.25);
 }
 
 .avatar-owner {
   border: 5rpx solid var(--color-gold);
-  box-shadow: 0 6rpx 14rpx rgba(201, 162, 84, 0.35);
+  box-shadow: 0 6rpx 14rpx var(--color-gold-glow);
 }
 
 .avatar-empty {
@@ -120,7 +125,8 @@
   color: var(--color-text-tertiary);
   font-size: 44rpx;
   font-weight: 300;
-  border: 2rpx dashed var(--color-text-tertiary);
+  border: 3rpx dashed var(--color-text-tertiary);
+  box-shadow: none;
 }
 
 .player-name {
@@ -136,7 +142,7 @@
 /* ========== 分享卡片（QR） ========== */
 .share-card {
   text-align: center;
-  border: 2rpx dashed var(--color-primary);
+  border: 2rpx dashed var(--color-green);
   background: var(--color-card);
 }
 
@@ -158,7 +164,7 @@
   height: 360rpx;
   margin: 0 auto 28rpx;
   background: #FFFFFF;
-  border: 6rpx solid var(--color-primary);
+  border: 6rpx solid var(--color-green);
   border-radius: 20rpx;
   display: flex;
   align-items: center;
@@ -237,4 +243,49 @@
   height: 94rpx;
   font-size: 34rpx;
   margin-bottom: 20rpx;
+}
+
+/* ========== 欢迎动画 overlay ========== */
+.welcome-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.welcome-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(26, 26, 46, 0.45);
+}
+
+.welcome-box {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: fadeInScale 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.welcome-canvas {
+  width: 400rpx;
+  height: 300rpx;
+}
+
+.welcome-text {
+  margin-top: 8rpx;
+  font-size: 40rpx;
+  font-weight: 900;
+  letter-spacing: 4rpx;
+  color: #FFF8EF;
+  text-shadow: 0 4rpx 16rpx rgba(26, 26, 46, 0.4);
 }

@@ -3,6 +3,14 @@ const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
 
+// 安全加载 lottie（npm 构建失败时不会阻断页面）
+let lottie = null
+try {
+  lottie = require('lottie-miniprogram')
+} catch (e) {
+  console.warn('lottie-miniprogram not available, using CSS fallback')
+}
+
 Page({
   data: {
     games: [],
@@ -10,7 +18,8 @@ Page({
     isLoggedIn: false,
     needProfile: false,
     tempAvatar: '',
-    tempNickname: ''
+    tempNickname: '',
+    lottieError: false
   },
 
   onShow() {
@@ -19,11 +28,62 @@ Page({
 
     this.setData({ isLoggedIn, needProfile })
 
+    // 未登录时初始化 Lottie 动画
+    if (!isLoggedIn && lottie && !this._lottieLoaded) {
+      this._lottieLoaded = true
+      setTimeout(() => this.initLottie(), 100)
+    }
+
     if (isLoggedIn && !needProfile) {
       this.loadGames()
     } else {
       this.setData({ loading: false })
     }
+  },
+
+  /** 加载 Lottie 麻将牌动画 */
+  initLottie() {
+    if (!lottie) {
+      this.setData({ lottieError: true })
+      return
+    }
+    // lottie-miniprogram 的 path 只支持 http 协议
+    // 本地文件需要用 animationData 直接传 JSON 对象
+    let animationData = null
+    try {
+      animationData = require('../../assets/animations/login-tiles.js')
+    } catch (e) {
+      console.error('Lottie JSON load failed:', e)
+      this.setData({ lottieError: true })
+      return
+    }
+    const query = wx.createSelectorQuery()
+    query.select('#lottie-login').fields({ node: true, size: true }).exec((res) => {
+      if (!res || !res[0] || !res[0].node) {
+        this.setData({ lottieError: true })
+        return
+      }
+      const canvas = res[0].node
+      const ctx = canvas.getContext('2d')
+      const dpr = wx.getSystemInfoSync().pixelRatio
+      canvas.width = res[0].width * dpr
+      canvas.height = res[0].height * dpr
+      ctx.scale(dpr, dpr)
+      try {
+        lottie.loadAnimation({
+          loop: true,
+          autoplay: true,
+          animationData: animationData,
+          rendererSettings: {
+            context: ctx,
+            dpr: dpr
+          }
+        })
+      } catch (err) {
+        console.error('Lottie load failed:', err)
+        this.setData({ lottieError: true })
+      }
+    })
   },
 
   onPullDownRefresh() {
@@ -95,12 +155,13 @@ Page({
     }
 
     wx.showLoading({ title: '保存中...' })
-    // 先上传头像（这里简化：直接用微信临时路径，实际生产需上传到 OSS）
-    // 临时方案：直接保存 URL
-    app.saveProfile(nickname, avatarURL).then(() => {
+    // 头像转 base64 持久保存，避免微信临时路径重启后失效
+    util.avatarToDataUrl(avatarURL).then(dataUrl => {
+      return app.saveProfile(nickname, dataUrl)
+    }).then(() => {
       wx.hideLoading()
       wx.showToast({ title: '已完善', icon: 'success' })
-      this.setData({ needProfile: false })
+      this.setData({ needProfile: false, tempAvatar: '', tempNickname: '' })
       this.loadGames()
     }).catch(() => {
       wx.hideLoading()
@@ -108,6 +169,7 @@ Page({
   },
 
   // ===== 列表操作 =====
+  // PRD v1.0 §4.2-A: 开台零摩擦——点按钮直接创建牌桌并进入房间，不填台名
   goCreate() {
     if (!app.globalData.token) {
       this.doLogin()
@@ -117,7 +179,22 @@ Page({
       this.setData({ needProfile: true })
       return
     }
-    wx.navigateTo({ url: '/pages/create/create' })
+    if (this._creating) return
+    this._creating = true
+    wx.showLoading({ title: '开台中...' })
+    api.post('/games', {
+      name: '',
+      request_id: api.genRequestID()
+    }).then(res => {
+      wx.hideLoading()
+      this._creating = false
+      wx.navigateTo({
+        url: `/pages/room/room?game_id=${res.game_id}&invite_token=${res.invite_token}`
+      })
+    }).catch(() => {
+      wx.hideLoading()
+      this._creating = false
+    })
   },
 
   goRoom(e) {

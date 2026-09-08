@@ -1,10 +1,10 @@
-<!--pages/settlement/settlement.wxml — 结算页-->
+<!--pages/settlement/settlement.wxml — 结算页 v4 白底卡通版-->
 <view class="page" wx:if="{{settlement}}">
   <!-- 深绿找数主视觉 -->
-  <view class="hero card-green">
+  <view class="hero card-green anim-fade-up">
     <view class="hero-tiles">
-      <view class="hero-tile hero-tile-back mj-tile mj-tile-gold">發</view>
-      <view class="hero-tile hero-tile-front mj-tile">中</view>
+      <view class="hero-tile hero-tile-back mj-tile mj-tile-gold anim-float-slow">發</view>
+      <view class="hero-tile hero-tile-front mj-tile anim-float">中</view>
     </view>
     <view class="hero-title">找数</view>
     <view class="hero-game" wx:if="{{gameName}}">{{gameName}}</view>
@@ -18,9 +18,9 @@
   </view>
 
   <!-- 排名列表 -->
-  <view class="card">
+  <view class="card anim-fade-up delay-2">
     <view class="rank-list">
-      <view class="rank-item" wx:for="{{settlement.players}}" wx:key="player_id">
+      <view class="rank-item anim-fade-up" wx:for="{{settlement.players}}" wx:key="player_id">
         <!-- 排名徽章 -->
         <view class="rank-badge rank-{{item.rank}}">
           <text class="rank-num">{{item.rank}}</text>

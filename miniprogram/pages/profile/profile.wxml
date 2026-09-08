@@ -1,32 +1,38 @@
-<!--pages/profile/profile.wxml — 我的页-->
+<!--pages/profile/profile.wxml — 我的页 v4 白底卡通版-->
 <view class="page">
   <!-- 未登录 -->
   <view class="empty-state" wx:if="{{!isLoggedIn}}">
-    <view class="empty-tile mj-tile">我</view>
+    <view class="empty-tile mj-tile anim-float">我</view>
     <view class="empty-text">未登入</view>
     <view class="text-secondary" style="margin-top: 8rpx;">登入后可以开台记分</view>
-    <button class="btn-primary login-btn" bindtap="doLogin">微信登入</button>
+    <button class="btn-primary login-btn anim-fade-up delay-2" bindtap="doLogin">微信登入</button>
   </view>
 
   <!-- 已登录 -->
   <block wx:if="{{isLoggedIn}}">
     <!-- 深绿个人卡 -->
-    <view class="profile-hero card-green">
-      <view class="profile-deco mj-tile profile-deco-tile">發</view>
+    <view class="profile-hero card-green anim-fade-up">
+      <view class="profile-deco mj-tile profile-deco-tile anim-wiggle">發</view>
       <view class="profile-avatar avatar-frame" style="{{avatarColor && !avatarURL ? 'background:' + avatarColor : ''}}">
         <image class="profile-avatar-img" src="{{avatarURL}}" mode="aspectFill" wx:if="{{avatarURL}}" />
         <text wx:else>{{nickname[0] || '?'}}</text>
       </view>
       <view class="profile-name" wx:if="{{!editing}}">{{nickname}}</view>
 
-      <!-- 编辑昵称 -->
+      <!-- 编辑昵称头像 -->
       <view class="edit-area" wx:if="{{editing}}">
+        <button class="profile-avatar-edit" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+          <image class="profile-avatar-img" src="{{tempAvatar}}" mode="aspectFill" wx:if="{{tempAvatar}}" />
+          <text class="profile-avatar-add" wx:else>+</text>
+        </button>
+        <view class="avatar-edit-tip">点击授权微信头像</view>
         <input
           class="nickname-input"
+          type="nickname"
           value="{{tempNickname}}"
           bindinput="onNicknameInput"
           maxlength="16"
-          placeholder="输入新昵称"
+          placeholder="点此填入微信昵称"
           placeholder-class="input-placeholder"
         />
         <view class="edit-actions">
@@ -38,7 +44,7 @@
     </view>
 
     <!-- 设置分组 -->
-    <view class="card menu-card">
+    <view class="card menu-card anim-fade-up delay-2">
       <view class="menu-item" bindtap="doLogout">
         <view class="menu-item-left">
           <view class="menu-icon mj-tile mj-tile-green">出</view>
@@ -49,7 +55,7 @@
     </view>
 
     <!-- 关于 -->
-    <view class="card about-card">
+    <view class="card about-card anim-fade-up delay-3">
       <view class="section-title">关于得闲开台</view>
       <view class="about-text">
         得闲开台系专为粤语朋友打造嘅麻将牌局积分记录工具。

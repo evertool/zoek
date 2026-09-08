@@ -1,7 +1,6 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/create/create",
     "pages/room/room",
     "pages/score/score",
     "pages/adjustment/adjustment",
@@ -9,24 +8,29 @@
     "pages/history/history",
     "pages/detail/detail",
     "pages/profile/profile",
-    "pages/join/join"
+    "pages/join/join",
+    "pages/leaderboard/leaderboard"
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#F7F3E8",
+    "navigationBarBackgroundColor": "#FFF8EF",
     "navigationBarTitleText": "得闲开台",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#F7F3E8"
+    "backgroundColor": "#FFF8EF"
   },
   "tabBar": {
-    "color": "#7A8480",
-    "selectedColor": "#1E6B47",
+    "color": "#B0B0BC",
+    "selectedColor": "#E8442E",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/index/index",
         "text": "牌局"
+      },
+      {
+        "pagePath": "pages/leaderboard/leaderboard",
+        "text": "雀友榜"
       },
       {
         "pagePath": "pages/history/history",

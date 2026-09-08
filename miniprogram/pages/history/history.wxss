@@ -1,4 +1,6 @@
-/* pages/history/history.wxss — 对局记录（设计 v2） */
+/* pages/history/history.wxss — 对局记录 v4 白底卡通版
+ * 白卡行：麻将牌图 + 台名 + 局数时间
+ */
 
 .page {
   padding: 32rpx;
@@ -14,8 +16,13 @@
   border-radius: 28rpx;
   padding: 30rpx 28rpx;
   margin-bottom: 22rpx;
-  box-shadow: 0 6rpx 28rpx rgba(35, 53, 43, 0.06);
+  box-shadow: 0 6rpx 28rpx rgba(26, 26, 46, 0.06);
   border: 1rpx solid var(--color-border);
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.game-card:active {
+  transform: scale(0.97);
 }
 
 .card-tile {
@@ -81,4 +88,27 @@
   color: var(--color-text-tertiary);
   font-size: 24rpx;
   padding: 32rpx 0;
+}
+
+/* ===== 删除按钮 ===== */
+.card-ops {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: 12rpx;
+}
+
+.card-delete {
+  font-size: 22rpx;
+  color: var(--color-text-tertiary);
+  padding: 8rpx 18rpx;
+  border: 2rpx solid var(--color-border);
+  border-radius: 24rpx;
+  transition: all 0.25s ease;
+}
+
+.card-delete:active {
+  color: var(--color-error);
+  border-color: var(--color-error);
+  background: var(--color-error-soft);
 }

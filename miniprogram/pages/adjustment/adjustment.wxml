@@ -1,7 +1,7 @@
-<!--pages/adjustment/adjustment.wxml — 补分/退分页-->
+<!--pages/adjustment/adjustment.wxml — 补分/退分页 v4 白底卡通版-->
 <view class="page">
   <!-- 类型：对称两大块 -->
-  <view class="card">
+  <view class="card anim-fade-up">
     <view class="section-title">类型</view>
     <view class="type-selector">
       <view class="type-item type-supplement {{adjustmentType === 'supplement' ? 'active' : ''}}"
@@ -20,7 +20,7 @@
   </view>
 
   <!-- 选择对方 -->
-  <view class="card">
+  <view class="card anim-fade-up delay-2">
     <view class="section-title">选择雀友</view>
     <view class="player-list" wx:if="{{players.length > 0}}">
       <view
@@ -41,7 +41,7 @@
   </view>
 
   <!-- 分数和原因 -->
-  <view class="card">
+  <view class="card anim-fade-up delay-3">
     <view class="section-title">分数</view>
     <input
       class="score-input"

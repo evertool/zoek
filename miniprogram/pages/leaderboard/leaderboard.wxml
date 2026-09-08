@@ -1,0 +1,90 @@
+<!--pages/leaderboard/leaderboard.wxml — 雀友榜 + 个人数据-->
+<view class="page">
+  <!-- 未登录 -->
+  <view class="empty-state" wx:if="{{!isLoggedIn}}">
+    <view class="empty-tile mj-tile mj-tile-gold anim-float">榜</view>
+    <view class="empty-text">未登入</view>
+    <view class="text-secondary" style="margin-top: 8rpx;">登入后睇雀友榜同自己嘅战绩</view>
+    <button class="btn-primary login-btn anim-fade-up delay-2" bindtap="doLogin">微信登入</button>
+  </view>
+
+  <block wx:if="{{isLoggedIn}}">
+    <!-- 我的战绩 -->
+    <view class="hero card-green anim-fade-up" wx:if="{{stats}}">
+      <view class="stats-row">
+        <view class="stats-main">
+          <view class="stats-label">我嘅胜率</view>
+          <view class="stats-winrate">{{stats.win_rate}}<text class="stats-unit">%</text></view>
+          <view class="stats-sub">{{stats.games}} 场牌局</view>
+        </view>
+        <view class="stats-chips">
+          <view class="stat-chip">
+            <view class="stat-num">{{stats.wins}}</view>
+            <view class="stat-cap">胜场</view>
+          </view>
+          <view class="stat-chip">
+            <view class="stat-num">{{stats.top3_rate}}%</view>
+            <view class="stat-cap">前三率</view>
+          </view>
+          <view class="stat-chip">
+            <view class="stat-num">{{stats.avg_rank}}</view>
+            <view class="stat-cap">平均名次</view>
+          </view>
+        </view>
+      </view>
+      <view class="stats-best" wx:if="{{stats.best_score > 0}}">单场最高 <text class="best-num">+{{stats.best_score}}</text> 分</view>
+    </view>
+
+    <!-- 得分走势（Lottie 折线图） -->
+    <view class="card anim-fade-up delay-2">
+      <view class="section-header">
+        <text class="section-title">得分走势</text>
+        <text class="text-secondary" wx:if="{{trendCount}}">最近{{trendCount}}场累计得分</text>
+      </view>
+      <view class="chart-wrap" wx:if="{{trendCount >= 2}}">
+        <canvas type="2d" id="lottie-trend" class="trend-canvas"></canvas>
+      </view>
+      <view class="empty-state chart-empty" wx:else>
+        <view class="empty-tile mj-tile mj-tile-green anim-float">局</view>
+        <view class="empty-text">未够两场牌局</view>
+        <view class="text-secondary" style="margin-top: 8rpx;">打完牌散台后就會有走势图</view>
+      </view>
+    </view>
+
+    <!-- 雀友榜 -->
+    <view class="card anim-fade-up delay-3">
+      <view class="section-header">
+        <text class="section-title">雀友榜</text>
+        <text class="text-secondary">近{{days}}天 · 满{{minGames}}局入榜</text>
+      </view>
+
+      <view class="rank-list" wx:if="{{entries.length > 0}}">
+        <view class="rank-item anim-fade-up" wx:for="{{entries}}" wx:key="user_id">
+          <view class="rank-badge rank-{{item.displayRank <= 3 && item.displayRank > 0 ? item.displayRank : 'rest'}}">
+            <text class="rank-num" wx:if="{{item.displayRank}}">{{item.displayRank}}</text>
+            <text class="rank-dash" wx:else>—</text>
+          </view>
+          <view class="rank-info">
+            <view class="rank-name">
+              {{item.nickname}}
+              <text class="rank-self" wx:if="{{item.is_self}}">（你）</text>
+            </view>
+            <view class="rank-detail" wx:if="{{item.games > 0}}">{{item.games}}局 · 前三{{item.top3RateText}} · 平均第{{item.avgRankText}}名</view>
+          </view>
+          <view class="rank-score">
+            <view class="rank-winrate">{{item.winRateText}}</view>
+            <view class="rank-cap">胜率</view>
+          </view>
+        </view>
+      </view>
+
+      <view class="empty-state" wx:if="{{entries.length === 0}}" style="padding: 60rpx 40rpx;">
+        <view class="empty-tile mj-tile mj-tile-gold anim-float">空</view>
+        <view class="empty-text">近{{days}}天仲未开过台</view>
+        <view class="text-secondary" style="margin-top: 8rpx;">同雀友打完一场就会上榜</view>
+      </view>
+    </view>
+
+    <view class="load-tip" wx:if="{{loading}}">加载中...</view>
+  </block>
+</view>

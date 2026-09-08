@@ -45,6 +45,7 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 	roundH := NewRoundHandler(s)
 	adjH := NewAdjustmentHandler(s)
 	settleH := NewSettlementHandler(s)
+	lbH := NewLeaderboardHandler(s)
 
 	v1 := r.Group("/api/v1")
 	{
@@ -63,6 +64,7 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 			auth.POST("/games/:game_id/start", gameH.StartGame)
 			auth.POST("/games/:game_id/cancel", gameH.CancelGame)
 			auth.POST("/games/:game_id/end", gameH.EndGame)
+			auth.POST("/games/:game_id/hide", gameH.HideGame)
 
 			auth.POST("/games/:game_id/rounds", roundH.CreateNextRound)
 			auth.GET("/games/:game_id/rounds/current", roundH.GetCurrentRound)
@@ -79,6 +81,9 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 
 			auth.GET("/games/:game_id/settlement", settleH.GetSettlement)
 			auth.GET("/games/:game_id/history", settleH.GetHistoryDetail)
+
+			auth.GET("/leaderboard", lbH.GetLeaderboard)
+			auth.GET("/user/stats", lbH.GetUserStats)
 		}
 	}
 	return r, jwt, s
@@ -172,6 +177,81 @@ func TestLoginDuplicate(t *testing.T) {
 	}
 }
 
+// TestProfilePersistence verifies that a user who saved nickname and avatar
+// does NOT get need_profile=true on the next login (PRD §4.2-A 完善资料只弹一次).
+func TestProfilePersistence(t *testing.T) {
+	r, _, _ := testSetup(t)
+
+	loginBody := map[string]string{"code": "prof"}
+
+	// First login: fresh user needs profile
+	w := doRequest(t, r, "POST", "/api/v1/auth/login", "", loginBody)
+	assertStatus(t, w, http.StatusOK)
+	m := parseJSON(t, w)
+	if m["need_profile"] != true {
+		t.Fatalf("fresh user need_profile = %v, want true", m["need_profile"])
+	}
+	if m["avatar_url"] != "" {
+		t.Fatalf("fresh user avatar_url = %v, want empty", m["avatar_url"])
+	}
+	token := "Bearer " + m["token"].(string)
+
+	// Save profile (nickname + base64 data-URL avatar)
+	w = doRequest(t, r, "PUT", "/api/v1/user/profile", token,
+		map[string]string{"nickname": "阿强", "avatar_url": "data:image/jpeg;base64,AAAA"})
+	assertStatus(t, w, http.StatusOK)
+	m = parseJSON(t, w)
+	if m["need_profile"] != false {
+		t.Fatalf("after save need_profile = %v, want false", m["need_profile"])
+	}
+
+	// Re-login: profile must be complete, no need to fill again
+	w = doRequest(t, r, "POST", "/api/v1/auth/login", "", loginBody)
+	assertStatus(t, w, http.StatusOK)
+	m = parseJSON(t, w)
+	if m["need_profile"] != false {
+		t.Fatalf("re-login need_profile = %v, want false", m["need_profile"])
+	}
+	if m["nickname"] != "阿强" {
+		t.Fatalf("re-login nickname = %v, want 阿强", m["nickname"])
+	}
+	if m["avatar_url"] != "data:image/jpeg;base64,AAAA" {
+		t.Fatalf("re-login avatar_url = %v, want saved data URL", m["avatar_url"])
+	}
+}
+
+// TestProfileTempAvatarRejected verifies that a WeChat chooseAvatar temporary
+// path (http://tmp/, wxfile://) is not accepted as a persistent avatar: it
+// dies after app restart, so the user must still complete their profile.
+func TestProfileTempAvatarRejected(t *testing.T) {
+	r, _, _ := testSetup(t)
+
+	w := doRequest(t, r, "POST", "/api/v1/auth/login", "", map[string]string{"code": "tmpav"})
+	assertStatus(t, w, http.StatusOK)
+	m := parseJSON(t, w)
+	token := "Bearer " + m["token"].(string)
+
+	// Legacy client behaviour: saving the raw temporary avatar path
+	w = doRequest(t, r, "PUT", "/api/v1/user/profile", token,
+		map[string]string{"nickname": "阿明", "avatar_url": "http://tmp/R1S_deadbeef"})
+	assertStatus(t, w, http.StatusOK)
+	m = parseJSON(t, w)
+	if m["need_profile"] != true {
+		t.Fatalf("after saving tmp avatar need_profile = %v, want true", m["need_profile"])
+	}
+	if m["avatar_url"] != "" {
+		t.Fatalf("tmp avatar must not be stored, got %v", m["avatar_url"])
+	}
+
+	// Re-login: avatar is gone after restart, profile still incomplete
+	w = doRequest(t, r, "POST", "/api/v1/auth/login", "", map[string]string{"code": "tmpav"})
+	assertStatus(t, w, http.StatusOK)
+	m = parseJSON(t, w)
+	if m["need_profile"] != true {
+		t.Fatalf("re-login with only tmp avatar need_profile = %v, want true", m["need_profile"])
+	}
+}
+
 // ---------------------------------------------------------------------------
 // Game lifecycle tests
 // ---------------------------------------------------------------------------
@@ -225,8 +305,9 @@ func TestCreateGameDefaultName(t *testing.T) {
 	w := doRequest(t, r, "POST", "/api/v1/games", auth, map[string]string{"request_id": "r1"})
 	assertStatus(t, w, http.StatusCreated)
 	m := parseJSON(t, w)
-	if m["name"] != "未命名牌局" {
-		t.Fatalf("name = %v, want 未命名牌局", m["name"])
+	// PRD v1.0 §4.2-A: 空台名自动生成"得闲开台 M月D日"
+	if m["name"].(string) == "" {
+		t.Fatal("name should not be empty")
 	}
 }
 
@@ -571,5 +652,162 @@ func TestIdempotentNextRound(t *testing.T) {
 	}
 	if m2["round_number"].(float64) != 2 {
 		t.Fatalf("second: round_number = %v, want 2", m2["round_number"])
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Auto-start / hide / leaderboard tests
+// ---------------------------------------------------------------------------
+
+// TestJoinAutoStart verifies a forming game auto-activates with round 1 as
+// soon as the second player joins (房间页无需开始记分按钮).
+func TestJoinAutoStart(t *testing.T) {
+	r, _, _ := testSetup(t)
+
+	creator := loginAndAuth(t, r, "autostart-c")
+	// Empty name must yield the auto-generated default table name
+	w := doRequest(t, r, "POST", "/api/v1/games", creator,
+		map[string]string{"name": "", "request_id": "as-create"})
+	assertStatus(t, w, http.StatusCreated)
+	m := parseJSON(t, w)
+	gameID := int64(m["game_id"].(float64))
+	inviteToken := m["invite_token"].(string)
+	if m["name"].(string) == "" {
+		t.Fatal("game name should not be empty")
+	}
+
+	// Solo room: still forming, no round yet
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), creator, nil)
+	assertStatus(t, w, http.StatusOK)
+	if m = parseJSON(t, w); m["status"] != "forming" {
+		t.Fatalf("solo room status = %v, want forming", m["status"])
+	}
+
+	// Second player joins → game auto-starts
+	joiner := loginAndAuth(t, r, "autostart-j")
+	w = doRequest(t, r, "POST", "/api/v1/games/join", joiner,
+		map[string]string{"invite_token": inviteToken, "request_id": "as-join"})
+	assertStatus(t, w, http.StatusCreated)
+	m = parseJSON(t, w)
+	if m["status"] != "active" {
+		t.Fatalf("after 2nd join status = %v, want active", m["status"])
+	}
+
+	// Round 1 must exist for both players
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), creator, nil)
+	assertStatus(t, w, http.StatusOK)
+	m = parseJSON(t, w)
+	if m["current_round_number"] != float64(1) {
+		t.Fatalf("current_round_number = %v, want 1", m["current_round_number"])
+	}
+
+	// Third join while active: QR still works for invite, but join is blocked (members implicit lock via status != forming)
+	third := loginAndAuth(t, r, "autostart-t")
+	w = doRequest(t, r, "POST", "/api/v1/games/join", third,
+		map[string]string{"invite_token": inviteToken, "request_id": "as-join3"})
+	assertStatus(t, w, http.StatusBadRequest)
+}
+
+// TestHideGame verifies hiding an ended/cancelled game from one's own history.
+func TestHideGame(t *testing.T) {
+	r, _, _ := testSetup(t)
+
+	auth := loginAndAuth(t, r, "hider")
+	w := doRequest(t, r, "POST", "/api/v1/games", auth, map[string]string{"request_id": "h-create"})
+	assertStatus(t, w, http.StatusCreated)
+	gameID := int64(parseJSON(t, w)["game_id"].(float64))
+
+	// Cancel the forming game → lands in history list
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/cancel", gameID), auth,
+		map[string]string{"request_id": "h-cancel"})
+	assertStatus(t, w, http.StatusOK)
+
+	w = doRequest(t, r, "GET", "/api/v1/games/history", auth, nil)
+	assertStatus(t, w, http.StatusOK)
+	if m := parseJSON(t, w); m["total"] != float64(1) {
+		t.Fatalf("history total = %v, want 1", m["total"])
+	}
+
+	// Hide it
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/hide", gameID), auth,
+		map[string]string{"request_id": "h-hide"})
+	assertStatus(t, w, http.StatusOK)
+
+	// Idempotent hide
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/hide", gameID), auth,
+		map[string]string{"request_id": "h-hide2"})
+	assertStatus(t, w, http.StatusOK)
+
+	w = doRequest(t, r, "GET", "/api/v1/games/history", auth, nil)
+	assertStatus(t, w, http.StatusOK)
+	if m := parseJSON(t, w); m["total"] != float64(0) {
+		t.Fatalf("history total after hide = %v, want 0", m["total"])
+	}
+}
+
+// TestLeaderboardAndUserStats runs a full zero-sum game then checks the
+// leaderboard and personal stats endpoints.
+func TestLeaderboardAndUserStats(t *testing.T) {
+	r, _, _ := testSetup(t)
+
+	auth1 := loginAndAuth(t, r, "lb-a")
+	w := doRequest(t, r, "POST", "/api/v1/games", auth1, map[string]string{"request_id": "lb-create"})
+	assertStatus(t, w, http.StatusCreated)
+	m := parseJSON(t, w)
+	gameID := int64(m["game_id"].(float64))
+	inviteToken := m["invite_token"].(string)
+
+	auth2 := loginAndAuth(t, r, "lb-b")
+	w = doRequest(t, r, "POST", "/api/v1/games/join", auth2,
+		map[string]string{"invite_token": inviteToken, "request_id": "lb-join"})
+	assertStatus(t, w, http.StatusCreated)
+
+	// Round 1 exists via auto-start
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auth1, nil)
+	m = parseJSON(t, w)
+	roundID := int64(m["round_id"].(float64))
+
+	// Both submit +16 / -16, then lock
+	w = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth1,
+		map[string]interface{}{"score": 16, "request_id": "lb-s1"})
+	assertStatus(t, w, http.StatusOK)
+	w = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth2,
+		map[string]interface{}{"score": -16, "request_id": "lb-s2"})
+	assertStatus(t, w, http.StatusOK)
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/lock", gameID, roundID), auth1,
+		map[string]string{"request_id": "lb-lock"})
+	assertStatus(t, w, http.StatusOK)
+
+	// End the game
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auth1,
+		map[string]string{"request_id": "lb-end"})
+	assertStatus(t, w, http.StatusOK)
+
+	// Personal stats
+	w = doRequest(t, r, "GET", "/api/v1/user/stats", auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	m = parseJSON(t, w)
+	if m["games"] != float64(1) {
+		t.Fatalf("stats games = %v, want 1", m["games"])
+	}
+	if m["wins"] != float64(1) { // +16 vs -16 → rank 1
+		t.Fatalf("stats wins = %v, want 1", m["wins"])
+	}
+	trend, ok := m["trend"].([]interface{})
+	if !ok || len(trend) != 1 {
+		t.Fatalf("stats trend = %v, want 1 point", m["trend"])
+	}
+
+	// Leaderboard contains both players
+	w = doRequest(t, r, "GET", "/api/v1/leaderboard", auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	m = parseJSON(t, w)
+	lb := m["leaderboard"].([]interface{})
+	if len(lb) != 2 {
+		t.Fatalf("leaderboard size = %d, want 2", len(lb))
+	}
+	first := lb[0].(map[string]interface{})
+	if first["user_id"] == nil || first["win_rate"] != float64(100) {
+		t.Fatalf("leaderboard[0] = %v, want the winner with 100%% win rate", first)
 	}
 }

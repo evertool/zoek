@@ -11,7 +11,8 @@ Page({
     avatarColor: '',
     editing: false,
     tempNickname: '',
-    tempAvatar: ''
+    tempAvatar: '',
+    avatarChanged: false
   },
 
   onShow() {
@@ -56,12 +57,13 @@ Page({
     this.setData({
       editing: true,
       tempNickname: this.data.nickname,
-      tempAvatar: this.data.avatarURL
+      tempAvatar: this.data.avatarURL,
+      avatarChanged: false
     })
   },
 
   onChooseAvatar(e) {
-    this.setData({ tempAvatar: e.detail.avatarUrl })
+    this.setData({ tempAvatar: e.detail.avatarUrl, avatarChanged: true })
   },
 
   onNicknameInput(e) {
@@ -76,7 +78,12 @@ Page({
     }
 
     wx.showLoading({ title: '保存中...' })
-    app.saveProfile(nickname, this.data.tempAvatar).then(() => {
+    // 新选的头像需转 base64 持久保存；未更换则原样保存
+    const save = (avatarURL) => app.saveProfile(nickname, avatarURL)
+    const op = this.data.avatarChanged
+      ? util.avatarToDataUrl(this.data.tempAvatar).then(save)
+      : save(this.data.tempAvatar)
+    op.then(() => {
       wx.hideLoading()
       wx.showToast({ title: '已保存', icon: 'success' })
       this.setData({

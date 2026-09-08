@@ -1,8 +1,8 @@
-<!--pages/detail/detail.wxml — 单场详情页-->
+<!--pages/detail/detail.wxml — 单场详情页 v4 白底卡通版-->
 <view class="page" wx:if="{{detail}}">
   <!-- 头部：台名 + 局数 -->
-  <view class="card hero-card">
-    <view class="hero-tile mj-tile">詳</view>
+  <view class="card hero-card anim-fade-up">
+    <view class="hero-tile mj-tile anim-wiggle">詳</view>
     <view class="hero-main">
       <view class="hero-name">{{detail.game_name}}</view>
       <view class="text-secondary">共{{detail.completed_rounds}}局</view>
@@ -10,7 +10,7 @@
   </view>
 
   <!-- 逐局记录（时间线） -->
-  <view class="card" wx:if="{{detail.rounds.length > 0}}">
+  <view class="card anim-fade-up delay-2" wx:if="{{detail.rounds.length > 0}}">
     <view class="section-title">逐局详情</view>
     <view class="timeline">
       <view class="round-item" wx:for="{{detail.rounds}}" wx:key="round_id">
@@ -32,7 +32,7 @@
   </view>
 
   <!-- 改分记录（金色左边条） -->
-  <view class="card adj-card" wx:if="{{detail.adjustments.length > 0}}">
+  <view class="card adj-card anim-fade-up delay-3" wx:if="{{detail.adjustments.length > 0}}">
     <view class="section-title">改分记录</view>
     <view class="adj-row" wx:for="{{detail.adjustments}}" wx:key="id">
       <view class="adj-left">

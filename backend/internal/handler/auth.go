@@ -2,10 +2,12 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lk/zoek/backend/internal/errs"
 	"github.com/lk/zoek/backend/internal/middleware"
+	"github.com/lk/zoek/backend/internal/model"
 	"github.com/lk/zoek/backend/internal/store"
 	"github.com/lk/zoek/backend/pkg/wechat"
 )
@@ -61,10 +63,25 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"token":    token,
-		"user_id":  user.ID,
-		"nickname": user.Nickname,
+		"token":        token,
+		"user_id":      user.ID,
+		"nickname":     user.Nickname,
+		"avatar_url":   user.AvatarURL,
+		"need_profile": profileIncomplete(user),
 	})
+}
+
+// profileIncomplete reports whether the user still lacks nickname or avatar.
+// PRD §4.2-A: 资料完整的老用户重新登录不得再次弹出完善资料页。
+// chooseAvatar 的微信临时路径（http://tmp/、wxfile://）重启后失效，视同未设置。
+func profileIncomplete(u *model.User) bool {
+	return u.Nickname == "" || !isPersistentAvatar(u.AvatarURL)
+}
+
+// isPersistentAvatar reports whether the avatar URL survives app restarts.
+// 仅接受 base64 数据 URL 和 https 地址；微信临时路径不算完整资料。
+func isPersistentAvatar(url string) bool {
+	return strings.HasPrefix(url, "data:image") || strings.HasPrefix(url, "https://")
 }
 
 // GetProfile handles GET /api/v1/user/profile.
@@ -76,10 +93,11 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"user_id":    user.ID,
-		"nickname":   user.Nickname,
-		"avatar_url": user.AvatarURL,
-		"created_at": user.CreatedAt,
+		"user_id":      user.ID,
+		"nickname":     user.Nickname,
+		"avatar_url":   user.AvatarURL,
+		"need_profile": profileIncomplete(user),
+		"created_at":   user.CreatedAt,
 	})
 }
 
@@ -103,8 +121,9 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"user_id":    user.ID,
-		"nickname":   user.Nickname,
-		"avatar_url": user.AvatarURL,
+		"user_id":      user.ID,
+		"nickname":     user.Nickname,
+		"avatar_url":   user.AvatarURL,
+		"need_profile": profileIncomplete(user),
 	})
 }

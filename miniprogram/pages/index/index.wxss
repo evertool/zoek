@@ -1,4 +1,6 @@
-/* pages/index/index.wxss — 首页（设计 v2：米白宣纸底 + 牌桌绿 + 红橙 CTA） */
+/* pages/index/index.wxss — 首页 v4 白底卡通版
+ * 暖白宣纸底 + 卡通3D麻将牌 + 鲜活配色
+ */
 
 .page {
   padding: 32rpx;
@@ -6,9 +8,9 @@
   box-sizing: border-box;
 }
 
-/* ===== 未登录品牌开屏 ===== */
+/* ========== 未登录品牌开屏 ========== */
 .login-hero {
-  min-height: 92vh;
+  min-height: 90vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -17,102 +19,270 @@
   padding: 60rpx 24rpx;
 }
 
-.hero-tiles {
-  position: relative;
-  width: 340rpx;
-  height: 280rpx;
+/* ========== 麻将牌从天而降动画区 ========== */
+.tile-rain-area {
+  width: 500rpx;
+  height: 360rpx;
   margin-bottom: 48rpx;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.hero-tile {
+/* Lottie 背景装饰（隐藏在 CSS 牌后面） */
+.lottie-wrap {
   position: absolute;
-  width: 150rpx;
-  height: 200rpx;
-  font-size: 72rpx;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400rpx;
+  height: 300rpx;
+  opacity: 0.3;
+  z-index: 0;
 }
 
-.hero-tile-back {
-  left: 12rpx;
-  top: 40rpx;
-  transform: rotate(-14deg);
-  opacity: 0.9;
+.lottie-canvas {
+  width: 400rpx;
+  height: 300rpx;
 }
 
-.hero-tile-mid {
-  left: 96rpx;
-  top: 10rpx;
-  transform: rotate(-2deg);
+/* CSS 麻将牌动画舞台 */
+.tile-rain-stage {
+  position: relative;
+  width: 500rpx;
+  height: 360rpx;
+}
+
+/* 装饰光环 */
+.hero-aura {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 320rpx;
+  height: 320rpx;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(232, 68, 46, 0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: pulse 3s ease-in-out infinite;
+}
+
+/* 麻将牌基础样式 */
+.rain-tile {
+  position: absolute;
+  width: 100rpx;
+  height: 132rpx;
+  font-size: 48rpx;
   z-index: 2;
 }
 
-.hero-tile-front {
-  right: 14rpx;
-  top: 48rpx;
-  transform: rotate(12deg);
-  z-index: 3;
-  color: var(--color-text);
+/* === 牌的初始位置和着陆位置 === */
+/* 牌1: 發 — 从正上方掉落到左偏 */
+.rain-tile-1 { left: 60rpx; top: 180rpx; }
+
+/* 牌2: 中 — 从左上方飞入到中左 */
+.rain-tile-2 { left: 140rpx; top: 200rpx; }
+
+/* 牌3: 白板 — 从右上方飞入到中右 */
+.rain-tile-3 { left: 240rpx; top: 190rpx; }
+
+/* 牌4: 南 — 从左下方飞入到左下 */
+.rain-tile-4 { left: 80rpx; top: 220rpx; }
+
+/* 牌5: 北 — 从右下方飞入到右下 */
+.rain-tile-5 { left: 320rpx; top: 210rpx; }
+
+/* 牌6: 東 — 从正上方延迟掉落到中 */
+.rain-tile-6 { left: 200rpx; top: 170rpx; }
+
+/* === 掉落动画 keyframes === */
+
+/* 牌1: 从正上方掉落 + 弹跳 + 旋转 */
+@keyframes drop-from-top-1 {
+  0% { transform: translate(0, -400rpx) rotate(-180deg) scale(0.7); opacity: 0; }
+  10% { opacity: 1; }
+  35% { transform: translate(0, 0) rotate(-360deg) scale(1.15, 0.8); }
+  45% { transform: translate(0, -35rpx) rotate(-340deg) scale(0.9, 1.1); }
+  60% { transform: translate(0, 0) rotate(-350deg) scale(1.05, 0.95); }
+  75% { transform: translate(0, -12rpx) rotate(-348deg) scale(0.97, 1.03); }
+  90% { transform: translate(0, 0) rotate(-350deg) scale(1.02, 0.98); }
+  100% { transform: translate(0, 0) rotate(-350deg) scale(1, 1); }
+}
+.anim-drop-1 { animation: drop-from-top-1 2.5s cubic-bezier(0.25, 0.1, 0.25, 1) both; }
+
+/* 牌2: 从左上方弧形飞入 */
+@keyframes fly-from-left-top {
+  0% { transform: translate(-300rpx, -150rpx) rotate(180deg) scale(0.7); opacity: 0; }
+  10% { opacity: 1; }
+  40% { transform: translate(0, 0) rotate(360deg) scale(1.15, 0.8); }
+  50% { transform: translate(0, -30rpx) rotate(350deg) scale(0.9, 1.1); }
+  65% { transform: translate(0, 0) rotate(355deg) scale(1.05, 0.95); }
+  80% { transform: translate(0, -10rpx) rotate(353deg) scale(0.97, 1.03); }
+  100% { transform: translate(0, 0) rotate(353deg) scale(1, 1); }
+}
+.anim-drop-2 { animation: fly-from-left-top 2.5s cubic-bezier(0.25, 0.1, 0.25, 1) 0.2s both; }
+
+/* 牌3: 从右上方弧形飞入 */
+@keyframes fly-from-right-top {
+  0% { transform: translate(300rpx, -150rpx) rotate(90deg) scale(0.7); opacity: 0; }
+  10% { opacity: 1; }
+  40% { transform: translate(0, 0) rotate(270deg) scale(1.15, 0.8); }
+  50% { transform: translate(0, -30rpx) rotate(255deg) scale(0.9, 1.1); }
+  65% { transform: translate(0, 0) rotate(262deg) scale(1.05, 0.95); }
+  80% { transform: translate(0, -10rpx) rotate(260deg) scale(0.97, 1.03); }
+  100% { transform: translate(0, 0) rotate(262deg) scale(1, 1); }
+}
+.anim-drop-3 { animation: fly-from-right-top 2.5s cubic-bezier(0.25, 0.1, 0.25, 1) 0.4s both; }
+
+/* 牌4: 从左下方飞入 */
+@keyframes fly-from-left-bottom {
+  0% { transform: translate(-350rpx, 200rpx) rotate(-90deg) scale(0.7); opacity: 0; }
+  10% { opacity: 1; }
+  40% { transform: translate(0, 0) rotate(-270deg) scale(1.15, 0.8); }
+  50% { transform: translate(0, -25rpx) rotate(-255deg) scale(0.9, 1.1); }
+  65% { transform: translate(0, 0) rotate(-262deg) scale(1.05, 0.95); }
+  80% { transform: translate(0, -8rpx) rotate(-260deg) scale(0.97, 1.03); }
+  100% { transform: translate(0, 0) rotate(-262deg) scale(1, 1); }
+}
+.anim-drop-4 { animation: fly-from-left-bottom 2.5s cubic-bezier(0.25, 0.1, 0.25, 1) 0.6s both; }
+
+/* 牌5: 从右下方飞入 */
+@keyframes fly-from-right-bottom {
+  0% { transform: translate(350rpx, 200rpx) rotate(45deg) scale(0.7); opacity: 0; }
+  10% { opacity: 1; }
+  40% { transform: translate(0, 0) rotate(225deg) scale(1.15, 0.8); }
+  50% { transform: translate(0, -25rpx) rotate(210deg) scale(0.9, 1.1); }
+  65% { transform: translate(0, 0) rotate(217deg) scale(1.05, 0.95); }
+  80% { transform: translate(0, -8rpx) rotate(215deg) scale(0.97, 1.03); }
+  100% { transform: translate(0, 0) rotate(215deg) scale(1, 1); }
+}
+.anim-drop-5 { animation: fly-from-right-bottom 2.5s cubic-bezier(0.25, 0.1, 0.25, 1) 0.8s both; }
+
+/* 牌6: 从正上方延迟掉落 */
+@keyframes drop-from-top-6 {
+  0% { transform: translate(0, -500rpx) rotate(360deg) scale(0.7); opacity: 0; }
+  10% { opacity: 1; }
+  35% { transform: translate(0, 0) rotate(180deg) scale(1.15, 0.8); }
+  45% { transform: translate(0, -40rpx) rotate(200deg) scale(0.9, 1.1); }
+  60% { transform: translate(0, 0) rotate(190deg) scale(1.05, 0.95); }
+  75% { transform: translate(0, -15rpx) rotate(193deg) scale(0.97, 1.03); }
+  90% { transform: translate(0, 0) rotate(192deg) scale(1.02, 0.98); }
+  100% { transform: translate(0, 0) rotate(192deg) scale(1, 1); }
+}
+.anim-drop-6 { animation: drop-from-top-6 2.5s cubic-bezier(0.25, 0.1, 0.25, 1) 1s both; }
+
+/* 落地后持续轻微浮动 */
+@keyframes float-rest {
+  0%, 100% { transform: translateY(0) rotate(var(--rest-rot, 0deg)); }
+  50% { transform: translateY(-6rpx) rotate(var(--rest-rot, 0deg)); }
 }
 
+/* ========== 品牌名 ========== */
 .hero-brand {
-  font-size: 64rpx;
-  font-weight: 800;
-  letter-spacing: 10rpx;
-  color: var(--color-text);
+  font-size: 68rpx;
+  font-weight: 900;
+  letter-spacing: 12rpx;
+  color: var(--color-indigo);
 }
 
+/* ========== 标语 ========== */
 .hero-slogan {
-  margin-top: 22rpx;
-  font-size: 32rpx;
+  margin-top: 24rpx;
+  font-size: 34rpx;
   font-weight: 700;
-  color: var(--color-primary);
-  letter-spacing: 3rpx;
+  color: var(--color-red);
+  letter-spacing: 4rpx;
 }
 
 .hero-sub {
   margin-top: 12rpx;
-  font-size: 24rpx;
+  font-size: 25rpx;
   color: var(--color-text-secondary);
+  letter-spacing: 1rpx;
+}
+
+/* ========== 登录按钮 ========== */
+.login-btn-wrap {
+  margin-top: 80rpx;
+  width: 100%;
 }
 
 .login-btn {
-  margin-top: 88rpx;
-  width: 100% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* ===== 品牌头部 ===== */
+/* ========== 底部品牌印记 ========== */
+.hero-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 64rpx;
+  gap: 24rpx;
+}
+
+.footer-line {
+  width: 80rpx;
+  height: 2rpx;
+  background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+}
+
+.footer-text {
+  font-size: 22rpx;
+  color: var(--color-text-tertiary);
+  letter-spacing: 2rpx;
+}
+
+/* ========== 已登录 — 品牌头部 ========== */
 .brand-bar {
   display: flex;
   align-items: center;
   padding: 8rpx 4rpx 28rpx;
 }
 
-.brand-tile {
+.brand-bar-tile {
   width: 76rpx;
-  height: 98rpx;
+  height: 100rpx;
   font-size: 40rpx;
   margin-right: 22rpx;
   flex-shrink: 0;
 }
 
-.brand-name {
-  font-size: 38rpx;
-  font-weight: 800;
-  letter-spacing: 4rpx;
-  color: var(--color-text);
+.brand-bar-text {
+  display: flex;
+  flex-direction: column;
 }
 
-/* ===== 完善资料卡 ===== */
+.brand-bar-name {
+  font-size: 38rpx;
+  font-weight: 900;
+  letter-spacing: 5rpx;
+  color: var(--color-indigo);
+}
+
+.brand-bar-sub {
+  font-size: 24rpx;
+  color: var(--color-text-secondary);
+  margin-top: 4rpx;
+  letter-spacing: 1rpx;
+}
+
+/* ========== 完善资料卡 ========== */
 .profile-card {
   border: 2rpx dashed var(--color-gold);
+  margin-bottom: 24rpx;
 }
 
 .profile-tip {
   margin: -8rpx 0 28rpx;
 }
 
+/* 头像选择按钮：去除微信 button 默认样式，保证正圆 */
 .avatar-chooser {
-  width: 144rpx;
-  height: 144rpx;
+  display: block;
+  width: 148rpx;
+  height: 148rpx;
   padding: 0;
   margin: 0 auto 28rpx;
   background: transparent;
@@ -120,37 +290,57 @@
   border-radius: 50%;
   overflow: hidden;
   line-height: 1;
+  box-sizing: border-box;
+}
+
+/* 微信 button 自带的 ::after 描边必须去掉，否则圆形被切成扇形 */
+.avatar-chooser::after {
+  border: none;
+  transform: scale(1);
 }
 
 .avatar-img {
-  width: 144rpx;
-  height: 144rpx;
+  width: 148rpx;
+  height: 148rpx;
   border-radius: 50%;
   border: 4rpx solid var(--color-gold);
   box-sizing: border-box;
   display: block;
+  box-shadow: 0 4rpx 16rpx var(--color-gold-glow);
 }
 
 .avatar-placeholder {
-  width: 144rpx;
-  height: 144rpx;
+  width: 148rpx;
+  height: 148rpx;
   border-radius: 50%;
-  border: 4rpx dashed var(--color-gold);
+  border: 3rpx dashed var(--color-gold);
   box-sizing: border-box;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 26rpx;
-  color: #8C6B25;
   background: var(--color-gold-light);
+}
+
+.avatar-placeholder-icon {
+  font-size: 44rpx;
+  color: var(--color-gold);
+  line-height: 1;
+}
+
+.avatar-placeholder-text {
+  font-size: 22rpx;
+  color: var(--color-gold-dark);
+  margin-top: 4rpx;
 }
 
 .text-input {
   background: var(--color-card-warm);
   border: 2rpx solid var(--color-border);
   border-radius: 20rpx;
-  padding: 20rpx 26rpx;
-  font-size: 28rpx;
+  padding: 22rpx 26rpx;
+  font-size: 30rpx;
+  color: var(--color-text);
   margin-bottom: 32rpx;
 }
 
@@ -162,42 +352,53 @@
   margin-top: 8rpx;
 }
 
-/* ===== 开台主视觉卡（深绿） ===== */
+/* ========== 开台入口卡 ========== */
 .create-card {
+  position: relative;
   display: flex;
   align-items: center;
   padding: 44rpx 36rpx;
   margin-bottom: 36rpx;
-  position: relative;
+  border-radius: 28rpx;
   overflow: hidden;
+  background: linear-gradient(135deg, #2A8055 0%, #1E6B47 55%, #175A3B 100%);
+  box-shadow: 0 12rpx 32rpx rgba(30, 107, 71, 0.25);
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.create-card::after {
-  content: '';
+.create-card:active {
+  transform: scale(0.97);
+}
+
+/* 开台卡背景光斑 */
+.create-card-bg {
   position: absolute;
-  right: -70rpx;
-  top: -70rpx;
-  width: 260rpx;
-  height: 260rpx;
+  top: -60rpx;
+  right: -60rpx;
+  width: 240rpx;
+  height: 240rpx;
+  background: radial-gradient(circle, rgba(255, 248, 239, 0.1) 0%, transparent 70%);
   border-radius: 50%;
-  background: rgba(247, 243, 232, 0.08);
+  pointer-events: none;
 }
 
 .create-left {
   flex: 1;
+  position: relative;
 }
 
 .create-title {
-  font-size: 44rpx;
-  font-weight: 800;
-  letter-spacing: 6rpx;
-  color: #F7F3E8;
+  font-size: 46rpx;
+  font-weight: 900;
+  letter-spacing: 8rpx;
+  color: #FFF8EF;
 }
 
 .create-desc {
   font-size: 24rpx;
-  color: rgba(247, 243, 232, 0.72);
+  color: rgba(255, 248, 239, 0.7);
   margin-top: 10rpx;
+  letter-spacing: 1rpx;
 }
 
 .create-tiles {
@@ -210,53 +411,87 @@
 
 .create-tile {
   position: absolute;
-  width: 78rpx;
-  height: 106rpx;
-  font-size: 38rpx;
+  width: 76rpx;
+  height: 102rpx;
+  font-size: 36rpx;
 }
 
-.create-tile-b1 {
+.create-tile-1 {
   left: 0;
   top: 30rpx;
   transform: rotate(-14deg);
-  background: rgba(247, 243, 232, 0.92);
+  background: rgba(255, 248, 239, 0.92);
 }
 
-.create-tile-b2 {
+.create-tile-2 {
   left: 44rpx;
   top: 18rpx;
   transform: rotate(-4deg);
-  background: rgba(247, 243, 232, 0.96);
+  background: rgba(255, 248, 239, 0.96);
   z-index: 2;
 }
 
-.create-tile-b3 {
-  left: 88rpx;
+.create-tile-3 {
+  left: 90rpx;
   top: 6rpx;
   transform: rotate(8deg);
   z-index: 3;
 }
 
 .create-arrow {
-  color: rgba(247, 243, 232, 0.85);
+  color: rgba(255, 248, 239, 0.7);
   font-size: 52rpx;
   font-weight: 300;
   flex-shrink: 0;
 }
 
-/* ===== 区块头 ===== */
+/* ========== 区块头 ========== */
 .section-header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   margin-bottom: 20rpx;
   padding: 0 8rpx;
 }
 
-/* ===== 进行中牌局卡 ===== */
+.section-title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: 2rpx;
+  margin-bottom: 0;
+}
+
+.section-count {
+  display: flex;
+  align-items: baseline;
+  gap: 4rpx;
+}
+
+.count-num {
+  font-size: 36rpx;
+  font-weight: 900;
+  color: var(--color-red);
+}
+
+.count-text {
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+}
+
+/* ========== 进行中牌局卡 ========== */
 .game-card {
+  background: var(--color-card);
+  border-radius: 28rpx;
   padding: 30rpx 32rpx;
   margin-bottom: 22rpx;
+  box-shadow: 0 6rpx 28rpx rgba(26, 26, 46, 0.06);
+  border: 1rpx solid var(--color-border);
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.game-card:active {
+  transform: scale(0.97);
 }
 
 .game-card-top {
@@ -267,7 +502,7 @@
 }
 
 .game-name {
-  font-size: 32rpx;
+  font-size: 34rpx;
   font-weight: 700;
   color: var(--color-text);
   overflow: hidden;
@@ -314,10 +549,16 @@
   padding: 6rpx 18rpx;
   border: 2rpx solid var(--color-error);
   border-radius: 24rpx;
-  opacity: 0.85;
+  opacity: 0.7;
+  transition: all 0.25s ease;
 }
 
-/* ===== 空状态 ===== */
+.game-delete:active {
+  opacity: 1;
+  background: var(--color-error-soft);
+}
+
+/* ========== 空状态 ========== */
 .empty-tile {
   width: 120rpx;
   height: 160rpx;

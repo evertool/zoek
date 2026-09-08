@@ -1,8 +1,8 @@
-<!--pages/score/score.wxml — 记分页-->
+<!--pages/score/score.wxml — 记分页 v4 白底卡通版-->
 <view class="page" wx:if="{{!loading && game}}">
   <!-- 深绿状态条 -->
-  <view class="hero card-green">
-    <view class="hero-tile mj-tile hero-round-tile">{{currentRoundNumber || '局'}}</view>
+  <view class="hero card-green anim-fade-up">
+    <view class="hero-tile mj-tile hero-round-tile anim-wiggle">{{currentRoundNumber || '局'}}</view>
     <view class="hero-main">
       <view class="hero-row">
         <view class="hero-name">{{game.name}}</view>
@@ -20,7 +20,7 @@
   </view>
 
   <!-- 待确认调整 -->
-  <view class="card adj-card" wx:if="{{pendingAdjustments.length > 0}}">
+  <view class="card adj-card anim-fade-up delay-2" wx:if="{{pendingAdjustments.length > 0}}">
     <view class="section-header">
       <text class="section-title">等紧确认</text>
       <text class="text-warning">{{pendingAdjustments.length}}条</text>
@@ -37,7 +37,7 @@
   </view>
 
   <!-- 当前局信息 -->
-  <view class="card round-card" wx:if="{{round}}">
+  <view class="card round-card anim-fade-up delay-2" wx:if="{{round}}">
     <!-- 提交进度 -->
     <view class="progress-bar">
       <view class="progress-text">
@@ -92,7 +92,7 @@
           <view class="review-item" wx:for="{{submissions}}" wx:key="player_id">
             <view class="review-avatar">{{item.nickname[0]}}</view>
             <view class="review-name">{{item.nickname}}</view>
-            <view class="review-score-tile mj-tile {{item.score > 0 ? '' : (item.score < 0 ? 'mj-tile-green' : 'mj-tile-gold')}}" wx:if="{{item.submitted}}">
+            <view class="review-score-tile mj-tile {{item.score > 0 ? 'mj-tile-red' : (item.score < 0 ? 'mj-tile-green' : 'mj-tile-gold')}}" wx:if="{{item.submitted}}">
               {{item.scoreText}}
             </view>
             <view class="review-score {{item.scoreClass}}" wx:else>
@@ -118,7 +118,7 @@
 
   <!-- 底部操作 -->
   <view class="action-bar" wx:if="{{roundStatus === 'ready_for_next'}}">
-    <view class="done-text">
+    <view class="done-text anim-bounce-in">
       <view class="done-tile mj-tile mj-tile-green">✓</view>
       第{{currentRoundNumber}}局已完成
     </view>

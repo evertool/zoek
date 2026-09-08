@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -45,7 +46,7 @@ type CreateGameResponse struct {
 
 type JoinGameRequest struct {
 	InviteToken string `json:"invite_token"`
-	GameID     int64  `json:"game_id"`
+	GameID      int64  `json:"game_id"`
 	Nickname    string `json:"nickname"`
 	RequestID   string `json:"request_id"`
 }
@@ -86,6 +87,11 @@ type SimpleResponse struct {
 // Handlers
 // ---------------------------------------------------------------------------
 
+// defaultGameName returns the auto-generated table name, e.g. "得闲开台 9月9日".
+func defaultGameName() string {
+	return "得闲开台 " + strconv.Itoa(int(time.Now().Month())) + "月" + strconv.Itoa(time.Now().Day()) + "日"
+}
+
 // CreateGame handles POST /api/v1/games (PRD §4.2-A: 开桌)
 func (h *GameHandler) CreateGame(c *gin.Context) {
 	var req CreateGameRequest
@@ -95,9 +101,10 @@ func (h *GameHandler) CreateGame(c *gin.Context) {
 	}
 	userID := middleware.GetUserID(c)
 
+	// PRD v1.0 §4.2-A: 开台零摩擦，不填台名，自动生成"得闲开台 M月D日"
 	name := req.Name
 	if name == "" {
-		name = "未命名牌局"
+		name = defaultGameName()
 	}
 
 	inviteToken := uuid.New().String()
@@ -316,9 +323,22 @@ func (h *GameHandler) JoinGame(c *gin.Context) {
 		return
 	}
 
+	// 人够自动开局：凑满 2 人即激活牌桌并创建第 1 局（房间页不再设开始按钮）
+	if game.Status == "forming" {
+		_, _ = h.Store.StartGameIfReady(game.ID)
+	}
+
+	// Refresh game status after potential auto-start
+	fresh, _ := h.Store.GetGame(game.ID)
+	status := game.Status
+	if fresh != nil {
+		status = fresh.Status
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
 		"game_id":   game.ID,
 		"player_id": player.ID,
+		"status":    status,
 		"message":   "加入成功",
 	})
 }
@@ -341,6 +361,24 @@ func (h *GameHandler) StartGame(c *gin.Context) {
 	// Only creator can start
 	if game.CreatorID != userID {
 		c.JSON(http.StatusForbidden, errs.ErrForbidden)
+		return
+	}
+
+	// 人够已自动开局（JoinGame 时触发），start 幂等返回当前状态
+	if game.Status == "active" {
+		round, _ := h.Store.GetCurrentRound(gameID)
+		completed, _ := h.Store.CountLockedRounds(gameID)
+		roundNum := 0
+		if round != nil {
+			roundNum = round.RoundNumber
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"game_id":              gameID,
+			"status":               "active",
+			"current_round_number": roundNum,
+			"completed_rounds":     completed,
+			"message":              fmt.Sprintf("第%d局进行中", roundNum),
+		})
 		return
 	}
 
@@ -492,9 +530,13 @@ func (h *GameHandler) GetGameQRCode(c *gin.Context) {
 		return
 	}
 
-	// Only generating QR for forming games
-	if game.Status != "forming" {
+	// 房间未满员即可生成邀请 QR（组桌中和记分中都可以；锁员/结束后失效）
+	if game.Status != "forming" && game.Status != "active" {
 		c.JSON(http.StatusBadRequest, errs.ErrGameNotForming)
+		return
+	}
+	if game.MembersLocked {
+		c.JSON(http.StatusBadRequest, errs.ErrMembersLocked)
 		return
 	}
 
@@ -507,4 +549,40 @@ func (h *GameHandler) GetGameQRCode(c *gin.Context) {
 	}
 
 	c.Data(http.StatusOK, "image/png", pngData)
+}
+
+// HideGame handles POST /api/v1/games/:game_id/hide — 用户从自己的对局记录中
+// 删除该场牌局（仅对自己隐藏，不影响其他参与者和原始记录）。
+func (h *GameHandler) HideGame(c *gin.Context) {
+	gameID, err := strconv.ParseInt(c.Param("game_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
+		return
+	}
+	userID := middleware.GetUserID(c)
+
+	game, err := h.Store.GetGame(gameID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, errs.ErrNotFound)
+		return
+	}
+
+	// Must be a participant
+	if _, pErr := h.Store.GetGamePlayer(gameID, userID); pErr != nil {
+		c.JSON(http.StatusForbidden, errs.ErrForbidden)
+		return
+	}
+
+	// 只有已结束/失效/取消的牌局可以从记录中删除
+	if game.Status != "ended" && game.Status != "expired" && game.Status != "cancelled" {
+		c.JSON(http.StatusBadRequest, errs.New("GAME_NOT_FINISHED", "进行中的牌局不能删除", errs.ActionRefreshGame))
+		return
+	}
+
+	if err := h.Store.HideGame(userID, gameID); err != nil {
+		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+		return
+	}
+
+	c.JSON(http.StatusOK, SimpleResponse{Message: "已从对局记录删除"})
 }

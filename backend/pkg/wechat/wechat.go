@@ -150,9 +150,9 @@ func (c *Client) GetMiniProgramCode(page, scene string) ([]byte, error) {
 	url := fmt.Sprintf("https://api.weixin.qq.com/wxa/getwxacodeunlimit?access_token=%s", accessToken)
 
 	payload, _ := json.Marshal(map[string]interface{}{
-		"scene":     scene,
-		"page":      page,
-		"width":     430,
+		"scene":      scene,
+		"page":       page,
+		"width":      430,
 		"check_path": false,
 	})
 
@@ -186,8 +186,8 @@ func (c *Client) GetMiniProgramCode(page, scene string) ([]byte, error) {
 // code2session and getMiniProgramCode. For testing only.
 func NewMockQRClient(mock Code2SessionFunc, mockQR QRCodeFunc) *Client {
 	return &Client{
-		AppID:     "mock",
-		mockFunc:  mock,
+		AppID:      "mock",
+		mockFunc:   mock,
 		mockQRFunc: mockQR,
 	}
 }

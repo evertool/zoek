@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/lk/zoek/backend/internal/errs"
@@ -76,6 +78,7 @@ func (s *Store) AutoMigrate() error {
 		&model.Round{},
 		&model.RoundSubmission{},
 		&model.ScoreAdjustment{},
+		&model.GameHidden{},
 	)
 }
 
@@ -117,12 +120,13 @@ func (s *Store) GetUserByID(id int64) (*model.User, error) {
 }
 
 // UpdateUserProfile updates nickname and avatar.
+// 微信临时路径头像（http://tmp/、wxfile://）重启后失效，不接受写入。
 func (s *Store) UpdateUserProfile(id int64, nickname, avatarURL string) (*model.User, error) {
 	updates := map[string]interface{}{}
 	if nickname != "" {
 		updates["nickname"] = nickname
 	}
-	if avatarURL != "" {
+	if isPersistentAvatarURL(avatarURL) {
 		updates["avatar_url"] = avatarURL
 	}
 	if len(updates) == 0 {
@@ -132,6 +136,12 @@ func (s *Store) UpdateUserProfile(id int64, nickname, avatarURL string) (*model.
 		return nil, err
 	}
 	return s.GetUserByID(id)
+}
+
+// isPersistentAvatarURL reports whether the avatar URL survives app restarts.
+// 仅接受 base64 数据 URL 和 https 地址；与 handler.profileIncomplete 的判定保持一致。
+func isPersistentAvatarURL(url string) bool {
+	return strings.HasPrefix(url, "data:image") || strings.HasPrefix(url, "https://")
 }
 
 // ===========================================================================
@@ -207,12 +217,15 @@ func (s *Store) GetActiveGames(userID int64) ([]model.Game, error) {
 	return games, err
 }
 
-// GetHistoryGames returns ended/expired/cancelled games for a user with pagination.
+// GetHistoryGames returns ended/expired/cancelled games for a user with
+// pagination, excluding games the user has hidden from their history.
 func (s *Store) GetHistoryGames(userID int64, page, pageSize int) ([]model.Game, int64, error) {
 	var games []model.Game
 	var total int64
 
-	baseQuery := s.DB.Where("id IN (SELECT game_id FROM game_players WHERE user_id = ?) AND status IN ('ended', 'expired', 'cancelled')", userID)
+	baseQuery := s.DB.Where(
+		"id IN (SELECT game_id FROM game_players WHERE user_id = ?) AND status IN ('ended', 'expired', 'cancelled') "+
+			"AND id NOT IN (SELECT game_id FROM game_hiddens WHERE user_id = ?)", userID, userID)
 	if err := baseQuery.Model(&model.Game{}).Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
@@ -312,6 +325,53 @@ func (s *Store) UpdateGameStatus(gameID int64, expectedStatus, newStatus string)
 		return nil, err
 	}
 	return &game, nil
+}
+
+// StartGameIfReady atomically activates a forming game once it has at least 2
+// players and creates round 1. Concurrent joins race safely: only the request
+// whose conditional update touches the row creates the round.
+func (s *Store) StartGameIfReady(gameID int64) (bool, error) {
+	started := false
+	err := s.Transaction(func(tx *gorm.DB) error {
+		var count int64
+		if err := tx.Model(&model.GamePlayer{}).Where("game_id = ?", gameID).Count(&count).Error; err != nil {
+			return err
+		}
+		if count < 2 {
+			return nil
+		}
+		now := time.Now()
+		res := tx.Model(&model.Game{}).
+			Where("id = ? AND status = ?", gameID, "forming").
+			Updates(map[string]interface{}{"status": "active", "started_at": now})
+		if res.Error != nil {
+			return res.Error
+		}
+		if res.RowsAffected == 0 {
+			return nil // already started by a concurrent request
+		}
+		round := model.Round{GameID: gameID, RoundNumber: 1, Status: "open"}
+		if err := tx.Create(&round).Error; err != nil {
+			return err
+		}
+		started = true
+		return nil
+	})
+	return started, err
+}
+
+// HideGame hides an ended/expired/cancelled game from the user's history list.
+// Idempotent: duplicates are treated as success.
+func (s *Store) HideGame(userID, gameID int64) error {
+	var n int64
+	if err := s.DB.Model(&model.GameHidden{}).
+		Where("game_id = ? AND user_id = ?", gameID, userID).Count(&n).Error; err != nil {
+		return err
+	}
+	if n > 0 {
+		return nil
+	}
+	return s.DB.Create(&model.GameHidden{GameID: gameID, UserID: userID}).Error
 }
 
 // LockMembers marks a game's members as locked (PRD §2.1 rule 4).
@@ -666,6 +726,187 @@ func sortPlayerTotals(result []PlayerTotal) {
 			result[i].Rank = result[i-1].Rank
 		}
 	}
+}
+
+// ===========================================================================
+// Leaderboard and personal stats (PRD §1.4 P1 雀友榜)
+// ===========================================================================
+
+// LeaderboardEntry is one user's aggregate performance inside the viewer's
+// 雀友圈（同过台的玩家）.
+type LeaderboardEntry struct {
+	UserID    int64   `json:"user_id"`
+	Nickname  string  `json:"nickname"`
+	Games     int     `json:"games"`
+	Wins      int     `json:"wins"`
+	Top3      int     `json:"top3"`
+	WinRate   float64 `json:"win_rate"`
+	Top3Rate  float64 `json:"top3_rate"`
+	AvgRank   float64 `json:"avg_rank"`
+	IsSelf    bool    `json:"is_self"`
+	Qualified bool    `json:"qualified"` // 完成局数达到门槛，进入正式榜单
+}
+
+// TrendPoint is one ended game's final score for the personal trend chart.
+type TrendPoint struct {
+	GameID  int64  `json:"game_id"`
+	Name    string `json:"name"`
+	Total   int64  `json:"total"`
+	EndedAt string `json:"ended_at"`
+}
+
+// UserStats is the personal performance summary with per-game trend.
+type UserStats struct {
+	Games     int          `json:"games"`
+	Wins      int          `json:"wins"`
+	Top3      int          `json:"top3"`
+	WinRate   float64      `json:"win_rate"`
+	Top3Rate  float64      `json:"top3_rate"`
+	AvgRank   float64      `json:"avg_rank"`
+	BestScore int64        `json:"best_score"`
+	Trend     []TrendPoint `json:"trend"`
+}
+
+// GetLeaderboard aggregates ended games in the last `days` days across the
+// viewer's co-play games. Every participant of those games is ranked; users
+// with fewer than minGames completed games stay unqualified.
+func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardEntry, error) {
+	cutoff := time.Now().AddDate(0, 0, -days)
+
+	var games []model.Game
+	err := s.DB.Where(
+		"status = 'ended' AND ended_at >= ? AND id IN "+
+			"(SELECT game_id FROM game_players WHERE user_id = ?)", cutoff, userID).
+		Order("ended_at ASC").Find(&games).Error
+	if err != nil {
+		return nil, err
+	}
+
+	type acc struct{ games, wins, top3, rankSum int }
+	accs := map[int64]*acc{}
+	nick := map[int64]string{}
+	for _, g := range games {
+		totals, _, err := s.AggregateSettlement(g.ID)
+		if err != nil {
+			continue
+		}
+		for _, pt := range totals {
+			a := accs[pt.UserID]
+			if a == nil {
+				a = &acc{}
+				accs[pt.UserID] = a
+			}
+			a.games++
+			a.rankSum += pt.Rank
+			if pt.Rank == 1 {
+				a.wins++
+			}
+			if pt.Rank <= 3 {
+				a.top3++
+			}
+			nick[pt.UserID] = pt.Nickname
+		}
+	}
+
+	entries := make([]LeaderboardEntry, 0, len(accs))
+	for uid, a := range accs {
+		if nick[uid] == "" {
+			if u, err := s.GetUserByID(uid); err == nil {
+				nick[uid] = u.Nickname
+			}
+		}
+		e := LeaderboardEntry{
+			UserID:    uid,
+			Nickname:  nick[uid],
+			Games:     a.games,
+			Wins:      a.wins,
+			Top3:      a.top3,
+			IsSelf:    uid == userID,
+			Qualified: a.games >= minGames,
+		}
+		if a.games > 0 {
+			e.WinRate = round2(float64(a.wins) / float64(a.games) * 100)
+			e.Top3Rate = round2(float64(a.top3) / float64(a.games) * 100)
+			e.AvgRank = round2(float64(a.rankSum) / float64(a.games))
+		}
+		entries = append(entries, e)
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].Qualified != entries[j].Qualified {
+			return entries[i].Qualified
+		}
+		if entries[i].WinRate != entries[j].WinRate {
+			return entries[i].WinRate > entries[j].WinRate
+		}
+		if entries[i].AvgRank != entries[j].AvgRank {
+			return entries[i].AvgRank < entries[j].AvgRank
+		}
+		return entries[i].Games > entries[j].Games
+	})
+	return entries, nil
+}
+
+// GetUserStats summarizes the user's ended games (all time) with a trend of
+// the last maxTrend games' final scores (chronological).
+func (s *Store) GetUserStats(userID int64, maxTrend int) (*UserStats, error) {
+	var games []model.Game
+	err := s.DB.Where(
+		"status = 'ended' AND ended_at IS NOT NULL AND id IN "+
+			"(SELECT game_id FROM game_players WHERE user_id = ?)", userID).
+		Order("ended_at ASC").Find(&games).Error
+	if err != nil {
+		return nil, err
+	}
+
+	st := &UserStats{Trend: []TrendPoint{}}
+	rankSum := 0
+	for _, g := range games {
+		totals, _, err := s.AggregateSettlement(g.ID)
+		if err != nil {
+			continue
+		}
+		var mine *PlayerTotal
+		for i := range totals {
+			if totals[i].UserID == userID {
+				mine = &totals[i]
+			}
+		}
+		if mine == nil {
+			continue
+		}
+		st.Games++
+		rankSum += mine.Rank
+		if mine.Rank == 1 {
+			st.Wins++
+		}
+		if mine.Rank <= 3 {
+			st.Top3++
+		}
+		if mine.TotalScore > st.BestScore {
+			st.BestScore = mine.TotalScore
+		}
+		st.Trend = append(st.Trend, TrendPoint{
+			GameID:  g.ID,
+			Name:    g.Name,
+			Total:   mine.TotalScore,
+			EndedAt: g.EndedAt.Format("01-02"),
+		})
+	}
+	if len(st.Trend) > maxTrend {
+		st.Trend = st.Trend[len(st.Trend)-maxTrend:]
+	}
+	if st.Games > 0 {
+		st.WinRate = round2(float64(st.Wins) / float64(st.Games) * 100)
+		st.Top3Rate = round2(float64(st.Top3) / float64(st.Games) * 100)
+		st.AvgRank = round2(float64(rankSum) / float64(st.Games))
+	}
+	return st, nil
+}
+
+// round2 rounds a float to 2 decimal places.
+func round2(f float64) float64 {
+	return float64(int(f*100+0.5)) / 100
 }
 
 // GetRoundScores returns the scores for each player in a specific round.

@@ -76,5 +76,29 @@ Page({
     wx.navigateTo({
       url: `/pages/settlement/settlement?game_id=${gameID}`
     })
+  },
+
+  // 从自己的对局记录中删除（仅隐藏，不影响其他参与者）
+  doHide(e) {
+    const gameID = e.currentTarget.dataset.id
+    wx.showModal({
+      title: '删除记录',
+      content: '确定要从对局记录中删除这场牌局吗？',
+      confirmColor: '#B33A3A',
+      success: (res) => {
+        if (!res.confirm) return
+        api.post(`/games/${gameID}/hide`, {
+          request_id: api.genRequestID()
+        }).then(() => {
+          const games = this.data.games.filter(g => g.game_id !== gameID)
+          this.setData({
+            games,
+            total: Math.max(0, this.data.total - 1),
+            hasMore: games.length < this.data.total - 1
+          })
+          wx.showToast({ title: '已删除', icon: 'success' })
+        })
+      }
+    })
   }
 })

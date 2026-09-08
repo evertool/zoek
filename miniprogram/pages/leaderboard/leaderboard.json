@@ -1,8 +1,8 @@
 {
   "usingComponents": {},
-  "enablePullDownRefresh": true,
-  "navigationBarTitleText": "得闲开台",
+  "navigationBarTitleText": "雀友榜",
   "navigationBarBackgroundColor": "#FFF8EF",
   "navigationBarTextStyle": "black",
-  "backgroundColor": "#FFF8EF"
+  "backgroundColor": "#FFF8EF",
+  "enablePullDownRefresh": true
 }

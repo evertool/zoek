@@ -1,0 +1,239 @@
+/* pages/leaderboard/leaderboard.wxss — 雀友榜 v4 白底卡通版 */
+
+.page {
+  padding: 32rpx;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* ===== 未登录 / 空状态 ===== */
+.empty-tile {
+  width: 120rpx;
+  height: 160rpx;
+  font-size: 56rpx;
+  margin-bottom: 28rpx;
+}
+
+.login-btn {
+  margin: 48rpx auto 0;
+  width: 100% !important;
+}
+
+/* ===== 我的战绩 ===== */
+.hero {
+  border-radius: 28rpx;
+  padding: 44rpx 36rpx;
+  margin-bottom: 32rpx;
+  position: relative;
+  overflow: hidden;
+}
+
+.stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stats-label {
+  font-size: 24rpx;
+  color: rgba(255, 248, 239, 0.7);
+  letter-spacing: 2rpx;
+}
+
+.stats-winrate {
+  font-size: 88rpx;
+  font-weight: 900;
+  color: #FFF8EF;
+  line-height: 1.1;
+  letter-spacing: 2rpx;
+}
+
+.stats-unit {
+  font-size: 34rpx;
+  font-weight: 700;
+  margin-left: 4rpx;
+}
+
+.stats-sub {
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: rgba(255, 248, 239, 0.7);
+}
+
+.stats-chips {
+  display: flex;
+  gap: 16rpx;
+}
+
+.stat-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 248, 239, 0.12);
+  border-radius: 20rpx;
+  padding: 16rpx 18rpx;
+  min-width: 108rpx;
+  box-sizing: border-box;
+}
+
+.stat-num {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: #F6EEDC;
+}
+
+.stat-cap {
+  font-size: 20rpx;
+  color: rgba(255, 248, 239, 0.6);
+  margin-top: 6rpx;
+}
+
+.stats-best {
+  margin-top: 28rpx;
+  padding-top: 22rpx;
+  border-top: 1rpx solid rgba(255, 248, 239, 0.18);
+  font-size: 24rpx;
+  color: rgba(255, 248, 239, 0.75);
+}
+
+.best-num {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: #F6EEDC;
+}
+
+/* ===== 区块头 ===== */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  margin-bottom: 0;
+}
+
+/* ===== 走势图 ===== */
+.chart-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8rpx 0 4rpx;
+}
+
+.trend-canvas {
+  width: 640rpx;
+  height: 300rpx;
+}
+
+.chart-empty {
+  padding: 40rpx 0;
+}
+
+/* ===== 雀友榜列表 ===== */
+.rank-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx dashed var(--color-border);
+}
+
+.rank-item:last-child {
+  border-bottom: none;
+}
+
+.rank-badge {
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-right: 22rpx;
+}
+
+.rank-num {
+  font-size: 32rpx;
+  font-weight: 800;
+}
+
+.rank-dash {
+  font-size: 26rpx;
+  color: var(--color-text-tertiary);
+}
+
+.rank-1 {
+  background: linear-gradient(135deg, #D9B86A, #C9A254);
+  color: #FFF;
+  box-shadow: 0 6rpx 16rpx var(--color-gold-glow);
+}
+
+.rank-2 {
+  background: linear-gradient(135deg, #C4CBD2, #9FA8B0);
+  color: #FFF;
+}
+
+.rank-3 {
+  background: linear-gradient(135deg, #D29A6A, #C98A5B);
+  color: #FFF;
+}
+
+.rank-rest {
+  background: var(--color-bg-soft);
+  color: var(--color-text-secondary);
+  border: 1rpx solid var(--color-border);
+}
+
+.rank-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.rank-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-self {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: var(--color-red);
+}
+
+.rank-detail {
+  font-size: 22rpx;
+  color: var(--color-text-secondary);
+  margin-top: 6rpx;
+}
+
+.rank-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.rank-winrate {
+  font-size: 38rpx;
+  font-weight: 900;
+  color: var(--color-red);
+}
+
+.rank-cap {
+  font-size: 20rpx;
+  color: var(--color-text-tertiary);
+}
+
+/* ===== 加载提示 ===== */
+.load-tip {
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: 24rpx;
+  padding: 32rpx 0;
+}

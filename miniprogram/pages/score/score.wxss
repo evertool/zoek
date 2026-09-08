@@ -1,4 +1,6 @@
-/* pages/score/score.wxss — 记分页（设计 v2：深绿状态条 + 大号入分） */
+/* pages/score/score.wxss — 记分页 v4 白底卡通版
+ * 深绿状态条 + 大号红边入分框 + 正分红/负分绿牌
+ */
 
 .page {
   padding: 32rpx;
@@ -36,7 +38,7 @@
 }
 
 .hero-name {
-  color: #F7F3E8;
+  color: #FFF8EF;
   font-size: 34rpx;
   font-weight: 700;
   overflow: hidden;
@@ -57,12 +59,12 @@
 }
 
 .hero-dot {
-  color: rgba(247, 243, 232, 0.5);
+  color: rgba(255, 248, 239, 0.5);
   margin: 0 14rpx;
 }
 
 .hero-completed {
-  color: rgba(247, 243, 232, 0.7);
+  color: rgba(255, 248, 239, 0.7);
   font-size: 24rpx;
 }
 
@@ -109,12 +111,13 @@
 }
 
 .mini-accept {
-  background: var(--color-primary);
+  background: var(--color-green);
   color: #FFF;
+  box-shadow: 0 4rpx 10rpx rgba(30, 107, 71, 0.25);
 }
 
 .mini-reject {
-  background: var(--color-bg);
+  background: var(--color-card);
   color: var(--color-text-secondary);
   border: 1rpx solid var(--color-border);
 }
@@ -133,7 +136,7 @@
 .progress-done {
   font-size: 40rpx;
   font-weight: 800;
-  color: var(--color-primary);
+  color: var(--color-green);
 }
 
 .progress-total {
@@ -144,14 +147,14 @@
 
 .progress-track {
   height: 14rpx;
-  background: var(--color-bg);
+  background: var(--color-bg-soft);
   border-radius: 8rpx;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #237652, #1E6B47);
+  background: linear-gradient(90deg, #2E8A5E, #1E6B47);
   border-radius: 8rpx;
   transition: width 0.3s ease;
 }
@@ -180,16 +183,16 @@
   transform: translateY(-50%);
   font-size: 48rpx;
   font-weight: 800;
-  color: var(--color-cta);
+  color: var(--color-red);
   z-index: 2;
 }
 
 .score-sign-neg {
-  color: var(--color-primary);
+  color: var(--color-green);
 }
 
 .score-input {
-  border: 3rpx solid var(--color-primary);
+  border: 3rpx solid var(--color-red);
   border-radius: 28rpx;
   padding: 32rpx;
   font-size: 68rpx;
@@ -198,14 +201,15 @@
   background: var(--color-card-warm);
   width: 100%;
   box-sizing: border-box;
+  color: var(--color-text);
 }
 
 .input-positive {
-  color: var(--color-cta);
+  color: var(--color-red);
 }
 
 .input-negative {
-  color: var(--color-primary);
+  color: var(--color-green);
 }
 
 .input-placeholder {
@@ -229,7 +233,7 @@
   width: 64rpx;
   height: 64rpx;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-green);
   color: #FFF;
   display: flex;
   align-items: center;
@@ -281,8 +285,8 @@
   width: 64rpx;
   height: 64rpx;
   border-radius: 50%;
-  background: var(--color-text);
-  color: #F7F3E8;
+  background: var(--color-indigo);
+  color: #FFF8EF;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -79,6 +79,42 @@ function avatarColor(name) {
   return colors[Math.abs(hash) % colors.length]
 }
 
+/**
+ * 将微信授权头像的临时文件转为 base64 数据 URL。
+ * 临时路径重启后失效，转 base64 才能持久保存（MVP 无对象存储）。
+ * @param {string} filePath — chooseAvatar 返回的临时路径
+ * @returns {Promise<string>} — data:image/jpeg;base64,... 形式的数据 URL
+ */
+function avatarToDataUrl(filePath) {
+  return new Promise((resolve, reject) => {
+    if (!filePath) {
+      reject(new Error('no avatar file'))
+      return
+    }
+    if (filePath.indexOf('data:') === 0) {
+      resolve(filePath)
+      return
+    }
+    const fs = wx.getFileSystemManager()
+    const readAsBase64 = (path) => {
+      fs.readFile({
+        filePath: path,
+        encoding: 'base64',
+        success: (res) => resolve('data:image/jpeg;base64,' + res.data),
+        fail: (err) => reject(err)
+      })
+    }
+    // 先压缩控制体积；压缩不支持时（如 png）退回原图
+    wx.compressImage({
+      src: filePath,
+      quality: 60,
+      compressedWidth: 240,
+      success: (res) => readAsBase64(res.tempFilePath),
+      fail: () => readAsBase64(filePath)
+    })
+  })
+}
+
 module.exports = {
   formatScore,
   statusText,
@@ -86,5 +122,6 @@ module.exports = {
   formatTime,
   formatDateTime,
   adjustmentTypeText,
-  avatarColor
+  avatarColor,
+  avatarToDataUrl
 }
