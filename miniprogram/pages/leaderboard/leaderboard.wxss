@@ -78,7 +78,7 @@
 .rank-item-tag-tier { background: var(--primary-fixed); color: var(--on-primary-fixed); font-weight: 600; }
 .rank-item-detail { display: flex; align-items: center; gap: 16rpx; font-size: 24rpx; color: var(--on-surface-variant); margin-top: 8rpx; }
 .rank-detail-dot { width: 8rpx; height: 8rpx; border-radius: 50%; background: var(--outline-variant); }
-.rank-item-right { width: 200rpx; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; padding-left: 16rpx; }
+.rank-item-right { width: 170rpx; box-sizing: border-box; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; padding-left: 12rpx; }
 .rank-item-score { font-size: 44rpx; font-weight: 700; text-align: right; }
 .rank-item-action { margin-top: 8rpx; display: flex; align-items: center; gap: 8rpx; background: var(--primary); color: var(--on-primary); padding: 8rpx 20rpx; border-radius: var(--radius-full); font-size: 20rpx; box-shadow: var(--shadow-card); }
 .rank-action-icon { width: 26rpx; height: 26rpx; }
@@ -107,7 +107,7 @@
 
 /* 约开台分享按钮（重置 button 默认样式） */
 /* 约开台分享按钮：重置微信 button 默认样式（默认宽度会撑爆右栏导致左栏竖排） */
-.rank-item-action-btn { width: fit-content; max-width: 100%; align-self: flex-end; display: inline-flex; align-items: center; gap: 8rpx; margin: 8rpx 0 0; padding: 10rpx 24rpx; background: var(--primary); color: var(--on-primary); border-radius: var(--radius-full); font-size: 20rpx; line-height: 1.4; }
+.rank-item-action-btn { box-sizing: border-box; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8rpx; margin: 8rpx 0 0; padding: 10rpx 0; background: var(--primary); color: var(--on-primary); border-radius: var(--radius-full); font-size: 20rpx; line-height: 1.4; }
 .rank-item-action-btn::after { border: none; }
 
 /* 行内文本单行，防挤压竖排 */
