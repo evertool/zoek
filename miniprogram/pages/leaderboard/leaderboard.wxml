@@ -124,11 +124,10 @@
                   <view class="rank-item-tag rank-item-tag-tier" wx:if="{{item.tier_short}}"><text>{{item.tier_short}} {{item.stars}}★</text></view>
                 </view>
                 <view class="rank-item-detail">
-                  <text>{{item.games}} 场 · {{item.wins}} 胜</text>
-                  <text class="rank-detail-dot">·</text>
-                  <text>连胜 {{item.best_streak || 0}}</text>
-                  <text class="rank-detail-dot">·</text>
-                  <text>最高分 {{item.best_score || 0}}</text>
+                  <text>{{item.games}} 场 · {{item.wins}} 胜 · 连胜 {{item.best_streak || 0}}</text>
+                </view>
+                <view class="rank-item-detail rank-item-detail-sub">
+                  <text>最高分 {{item.best_score || 0}} · 均位 {{item.avgRankText}}</text>
                 </view>
                 <view class="rank-item-tags" wx:if="{{item.tags && item.tags.length > 0}}">
                   <text class="rank-item-tag-cell" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
