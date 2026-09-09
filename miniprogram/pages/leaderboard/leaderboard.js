@@ -103,8 +103,24 @@ Page({
         }
       })
       this._rawEntries = entries // 保存服务端原始排序，切换榜单时从这里重建
+
+      // 顶部我的卡片与列表同口径：直接取榜单里「我」这条（同一时间窗口），
+      // 未入榜（同台切磋不足 minGames）才回退到全量个人统计
+      const mine = entries.find(e => e.is_self)
+      const base = mine || stats
+      const myStats = {
+        games: base.games || 0,
+        wins: base.wins || 0,
+        win_rate: Math.round(base.win_rate || 0),
+        best_streak: base.best_streak || 0,
+        best_score: base.best_score || 0,
+        total_score: base.total_score || 0,
+        active_text: (base.games || 0) > 0 ? '本周期活跃 · 雀艺渐入佳境' : '未参与牌局',
+        my_rank: 0
+      }
+
       this.setData({
-        stats: { ...stats, active_text: stats.games > 0 ? '本周期活跃 · 雀艺渐入佳境' : '未参与牌局' },
+        stats: myStats,
         days: lb.days || 0,
         minGames: lb.min_games || 3,
         loading: false
