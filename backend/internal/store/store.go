@@ -1136,7 +1136,9 @@ type UserStats struct {
 func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardEntry, error) {
 	query := s.DB.Where(
 		"status = 'ended' AND ended_at IS NOT NULL AND id IN "+
-			"(SELECT game_id FROM game_players WHERE user_id = ?)", userID)
+			"(SELECT game_id FROM game_players WHERE user_id = ?) "+
+			// 积分榜与段位榜同口径：仅计满 4 人的排位局
+			"AND id IN (SELECT game_id FROM game_players GROUP BY game_id HAVING COUNT(*) = 4)", userID)
 	if days > 0 {
 		query = query.Where("ended_at >= ?", time.Now().AddDate(0, 0, -days))
 	}

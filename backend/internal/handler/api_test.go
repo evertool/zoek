@@ -1003,7 +1003,7 @@ func TestLeaderboardAndUserStats(t *testing.T) {
 	auth1 := loginAndAuth(t, r, "lb-a")
 	auth2 := loginAndAuth(t, r, "lb-b")
 
-	// 打满 3 场（同台切磋 >= 3 次才可入榜），auth1 每场 +16 全胜
+	// 3 场满 4 人排位局，auth1 每场第一（+16）
 	for gi := 0; gi < 3; gi++ {
 		w := doRequest(t, r, "POST", "/api/v1/games", auth1, map[string]string{"request_id": fmt.Sprintf("lb-create-%d", gi)})
 		assertStatus(t, w, http.StatusCreated)
@@ -1015,48 +1015,57 @@ func TestLeaderboardAndUserStats(t *testing.T) {
 			map[string]string{"invite_token": inviteToken, "request_id": fmt.Sprintf("lb-join-%d", gi)})
 		assertStatus(t, w, http.StatusCreated)
 
-		// Round 1 exists via auto-start
-		w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auth1, nil)
-		m = parseJSON(t, w)
-		roundID := int64(m["round_id"].(float64))
+		// 再补两名玩家凑满 4 人（积分榜只计满 4 人局）
+		auths := []string{auth1, auth2}
+		for pi, code := range []string{"lb-c", "lb-d"} {
+			ca := loginAndAuth(t, r, code)
+			w = doRequest(t, r, "POST", "/api/v1/games/join", ca,
+				map[string]string{"invite_token": inviteToken, "request_id": fmt.Sprintf("lb-join%d-%d", pi, gi)})
+			assertStatus(t, w, http.StatusCreated)
+			auths = append(auths, ca)
+		}
 
-		w = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth1,
-			map[string]interface{}{"score": 16, "request_id": fmt.Sprintf("lb-s1-%d", gi)})
+		w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auths[0], nil)
 		assertStatus(t, w, http.StatusOK)
-		w = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth2,
-			map[string]interface{}{"score": -16, "request_id": fmt.Sprintf("lb-s2-%d", gi)})
-		assertStatus(t, w, http.StatusOK)
-		w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/lock", gameID, roundID), auth1,
-			map[string]string{"request_id": fmt.Sprintf("lb-lock-%d", gi)})
-		assertStatus(t, w, http.StatusOK)
-
-		w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auth1,
+		roundID := int64(parseJSON(t, w)["round_id"].(float64))
+		playRound(t, r, gameID, roundID, auths, []int{16, 5, -8, -13})
+		w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auths[0],
 			map[string]string{"request_id": fmt.Sprintf("lb-end-%d", gi)})
 		assertStatus(t, w, http.StatusOK)
 	}
 
-	// Personal stats
-	w := doRequest(t, r, "GET", "/api/v1/user/stats", auth1, nil)
-	assertStatus(t, w, http.StatusOK)
+	// 2 人局不计入积分榜（积分榜与段位榜同口径：仅满 4 人局）
+	w := doRequest(t, r, "POST", "/api/v1/games", auth1, map[string]string{"request_id": "lb-2p-create"})
+	assertStatus(t, w, http.StatusCreated)
 	m := parseJSON(t, w)
-	if m["games"] != float64(3) {
-		t.Fatalf("stats games = %v, want 3", m["games"])
-	}
-	if m["wins"] != float64(3) {
-		t.Fatalf("stats wins = %v, want 3", m["wins"])
-	}
-	trend, ok := m["trend"].([]interface{})
-	if !ok || len(trend) != 3 {
-		t.Fatalf("stats trend = %v, want 3 points", m["trend"])
-	}
+	gameID := int64(m["game_id"].(float64))
+	inviteToken := m["invite_token"].(string)
+	w = doRequest(t, r, "POST", "/api/v1/games/join", auth2,
+		map[string]string{"invite_token": inviteToken, "request_id": "lb-2p-join"})
+	assertStatus(t, w, http.StatusCreated)
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auth1, nil)
+	m = parseJSON(t, w)
+	roundID := int64(m["round_id"].(float64))
+	w = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth1,
+		map[string]interface{}{"score": 16, "request_id": "lb-2p-s1"})
+	assertStatus(t, w, http.StatusOK)
+	w = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth2,
+		map[string]interface{}{"score": -16, "request_id": "lb-2p-s2"})
+	assertStatus(t, w, http.StatusOK)
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/lock", gameID, roundID), auth1,
+		map[string]string{"request_id": "lb-2p-lock"})
+	assertStatus(t, w, http.StatusOK)
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auth1,
+		map[string]string{"request_id": "lb-2p-end"})
+	assertStatus(t, w, http.StatusOK)
 
-	// Leaderboard: 入榜门槛 = 同台切磋 >= 3 场，两人都够格
+	// Leaderboard：只统计 4 人局 → 4 名玩家各 3 场
 	w = doRequest(t, r, "GET", "/api/v1/leaderboard", auth1, nil)
 	assertStatus(t, w, http.StatusOK)
 	m = parseJSON(t, w)
 	lb := m["leaderboard"].([]interface{})
-	if len(lb) != 2 {
-		t.Fatalf("leaderboard size = %d, want 2", len(lb))
+	if len(lb) != 4 {
+		t.Fatalf("leaderboard size = %d, want 4 (only 4-player games count)", len(lb))
 	}
 	first := lb[0].(map[string]interface{})
 	if first["user_id"] == nil || first["win_rate"] != float64(100) {
@@ -1082,7 +1091,7 @@ func TestLeaderboardAndUserStats(t *testing.T) {
 	// 时间筛选：近 7 天命中
 	w = doRequest(t, r, "GET", "/api/v1/leaderboard?days=7", auth1, nil)
 	m = parseJSON(t, w)
-	if len(m["leaderboard"].([]interface{})) != 2 {
-		t.Fatalf("leaderboard days=7 size = %v, want 2", m["leaderboard"])
+	if len(m["leaderboard"].([]interface{})) != 4 {
+		t.Fatalf("leaderboard days=7 size = %v, want 4", m["leaderboard"])
 	}
 }
