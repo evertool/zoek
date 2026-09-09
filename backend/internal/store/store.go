@@ -1081,6 +1081,7 @@ type LeaderboardEntry struct {
 	Games       int      `json:"games"`
 	Wins        int      `json:"wins"`
 	Top3        int      `json:"top3"`
+	TotalScore  int64    `json:"total_score"` // 窗口内净胜分
 	WinRate     float64  `json:"win_rate"`
 	Top3Rate    float64  `json:"top3_rate"`
 	AvgRank     float64  `json:"avg_rank"`
@@ -1138,6 +1139,7 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 
 	type acc struct {
 		games, wins, top3, rankSum int
+		netSum                     int64
 		bestStreak, curStreak      int
 		bestScore, todayBest       int
 		sumAbs                     int64
@@ -1162,6 +1164,7 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 			}
 			a.games++
 			a.rankSum += pt.Rank
+			a.netSum += pt.TotalScore
 			if pt.Rank == 1 {
 				a.wins++
 				a.curStreak++
@@ -1234,6 +1237,7 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 		}
 		e.BestStreak = a.bestStreak
 		e.BestScore = a.bestScore
+		e.TotalScore = a.netSum
 
 		// 标签规则
 		tags := []string{}

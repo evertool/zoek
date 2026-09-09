@@ -82,7 +82,7 @@
             <text class="my-stat-val text-primary">{{stats.wins}} <text class="my-stat-sub">{{stats.win_rate}}%</text></text>
           </view>
           <view class="my-rank-stat">
-            <text class="my-stat-label">连赢最高</text>
+            <text class="my-stat-label">连胜</text>
             <text class="my-stat-val">{{stats.best_streak || 0}}</text>
           </view>
           <view class="my-rank-stat">
@@ -126,7 +126,7 @@
                 <view class="rank-item-detail">
                   <text>{{item.games}} 场 · {{item.wins}} 胜</text>
                   <text class="rank-detail-dot">·</text>
-                  <text>连赢最高 {{item.best_streak || 0}}</text>
+                  <text>连胜 {{item.best_streak || 0}}</text>
                   <text class="rank-detail-dot">·</text>
                   <text>最高分 {{item.best_score || 0}}</text>
                 </view>

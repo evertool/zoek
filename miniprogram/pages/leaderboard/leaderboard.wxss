@@ -105,10 +105,14 @@
 .lb-board-tab { flex: 1; text-align: center; padding: 16rpx 0; border-radius: var(--radius-full); background: var(--surface-container-low); color: var(--on-surface-variant); font-size: 26rpx; font-weight: 500; }
 .lb-board-tab.active { background: var(--primary); color: var(--on-primary); box-shadow: var(--shadow-card); }
 
-/* 标签行 */
-.rank-item-tags { display: flex; flex-wrap: wrap; gap: 8rpx; margin-top: 8rpx; }
-.rank-item-tag-cell { padding: 2rpx 12rpx; border-radius: var(--radius-full); background: var(--surface-container-high); color: var(--on-surface-variant); font-size: 18rpx; }
-
 /* 约开台分享按钮（重置 button 默认样式） */
-.rank-item-action-btn { margin: 0; padding: 0; background: transparent; line-height: inherit; font-size: inherit; }
+/* 约开台分享按钮：重置微信 button 默认样式（默认宽度会撑爆右栏导致左栏竖排） */
+.rank-item-action-btn { width: auto; min-width: 0; display: flex; margin: 0; padding: 8rpx 20rpx; background: var(--primary); color: var(--on-primary); border-radius: var(--radius-full); font-size: 20rpx; line-height: 1.4; }
 .rank-item-action-btn::after { border: none; }
+
+/* 行内文本单行，防挤压竖排 */
+.rank-item-detail { flex-wrap: nowrap; overflow: hidden; }
+.rank-item-detail text { white-space: nowrap; flex-shrink: 0; }
+.rank-item-detail text:last-child { overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0; }
+.rank-item-tags { display: flex; flex-wrap: wrap; gap: 8rpx; margin-top: 8rpx; }
+.rank-item-tag-cell { padding: 2rpx 12rpx; border-radius: var(--radius-full); background: var(--surface-container-high); color: var(--on-surface-variant); font-size: 18rpx; white-space: nowrap; }
