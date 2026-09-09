@@ -1,0 +1,7 @@
+<svg height="42" id="svg-badge-lucky" viewBox="0 0 48 48" width="42" xmlns="http://www.w3.org/2000/svg">
+<circle cx="24" cy="24" fill="#fff1f2" r="21" stroke="#e11d48" stroke-width="2"/>
+<path d="M16 28c4-10 14-12 18-5s-6 12-14 8z" fill="#f43f5e"/>
+<circle cx="20" cy="20" fill="#ffffff" r="1.5"/>
+<polygon fill="#fbbf24" points="36,12 37,15 40,15 37,17 38,20 36,18 33,20 34,17 32,15 35,15"/>
+<polygon fill="#fbbf24" points="12,14 13,16 15,16 13,17 14,19 12,18 10,19 11,17 9,16 11,16"/>
+</svg>

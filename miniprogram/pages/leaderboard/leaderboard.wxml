@@ -1,5 +1,20 @@
-<!--pages/leaderboard/leaderboard.wxml — 雀友榜 + 个人数据-->
+<!--pages/leaderboard/leaderboard.wxml — 雀友榜 v6 Stitch 100% 还原-->
 <view class="page">
+  <!-- 固定 Header -->
+  <view class="stitch-header pt-safe">
+    <view class="stitch-header-inner">
+      <view class="stitch-header-brand">
+        <view class="stitch-header-logo"><image class="stitch-header-logo-icon" src="/assets/icons/app-icon-hongzhong.png" mode="aspectFit" /></view>
+        <text class="stitch-header-title">Leaderboard</text>
+      </view>
+      <view class="header-capsule">
+        <view class="header-capsule-btn"><text>···</text></view>
+        <view class="header-capsule-divider"></view>
+        <view class="header-capsule-btn"><text>●</text></view>
+      </view>
+    </view>
+  </view>
+
   <!-- 未登录 -->
   <view class="empty-state" wx:if="{{!isLoggedIn}}">
     <view class="empty-tile mj-tile mj-tile-gold anim-float">榜</view>
@@ -9,82 +24,160 @@
   </view>
 
   <block wx:if="{{isLoggedIn}}">
-    <!-- 我的战绩 -->
-    <view class="hero card-green anim-fade-up" wx:if="{{stats}}">
-      <view class="stats-row">
-        <view class="stats-main">
-          <view class="stats-label">我嘅胜率</view>
-          <view class="stats-winrate">{{stats.win_rate}}<text class="stats-unit">%</text></view>
-          <view class="stats-sub">{{stats.games}} 场牌局</view>
-        </view>
-        <view class="stats-chips">
-          <view class="stat-chip">
-            <view class="stat-num">{{stats.wins}}</view>
-            <view class="stat-cap">胜场</view>
+    <view class="main-content">
+      <!-- 标题区 -->
+      <view class="lb-title-section anim-fade-up">
+        <view class="lb-title-row">
+          <view class="lb-title-left">
+            <text class="lb-title">雀友榜</text>
+            <text class="lb-subtitle">近{{days}}日雀叙·同台切磋</text>
           </view>
-          <view class="stat-chip">
-            <view class="stat-num">{{stats.top3_rate}}%</view>
-            <view class="stat-cap">前三率</view>
-          </view>
-          <view class="stat-chip">
-            <view class="stat-num">{{stats.avg_rank}}</view>
-            <view class="stat-cap">平均名次</view>
+          <view class="lb-eco-tag">
+            <image class="lb-eco-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+            <text class="lb-eco-text">休闲计分</text>
           </view>
         </view>
       </view>
-      <view class="stats-best" wx:if="{{stats.best_score > 0}}">单场最高 <text class="best-num">+{{stats.best_score}}</text> 分</view>
-    </view>
 
-    <!-- 得分走势（Lottie 折线图） -->
-    <view class="card anim-fade-up delay-2">
-      <view class="section-header">
-        <text class="section-title">得分走势</text>
-        <text class="text-secondary" wx:if="{{trendCount}}">最近{{trendCount}}场累计得分</text>
-      </view>
-      <view class="chart-wrap" wx:if="{{trendCount >= 2}}">
-        <canvas type="2d" id="lottie-trend" class="trend-canvas"></canvas>
-      </view>
-      <view class="empty-state chart-empty" wx:else>
-        <view class="empty-tile mj-tile mj-tile-green anim-float">局</view>
-        <view class="empty-text">未够两场牌局</view>
-        <view class="text-secondary" style="margin-top: 8rpx;">打完牌散台后就會有走势图</view>
-      </view>
-    </view>
-
-    <!-- 雀友榜 -->
-    <view class="card anim-fade-up delay-3">
-      <view class="section-header">
-        <text class="section-title">雀友榜</text>
-        <text class="text-secondary">近{{days}}天 · 满{{minGames}}局入榜</text>
-      </view>
-
-      <view class="rank-list" wx:if="{{entries.length > 0}}">
-        <view class="rank-item anim-fade-up" wx:for="{{entries}}" wx:key="user_id">
-          <view class="rank-badge rank-{{item.displayRank <= 3 && item.displayRank > 0 ? item.displayRank : 'rest'}}">
-            <text class="rank-num" wx:if="{{item.displayRank}}">{{item.displayRank}}</text>
-            <text class="rank-dash" wx:else>—</text>
+      <!-- 时间段切换 -->
+      <view class="lb-period-bar anim-fade-up delay-1">
+        <view class="lb-period-tabs">
+          <view class="lb-period-tab {{currentPeriod === 30 ? 'active' : ''}}" bindtap="switchPeriod" data-period="30">
+            <text>近 30 天</text>
+            <view class="lb-period-dot" wx:if="{{currentPeriod === 30}}"></view>
           </view>
-          <view class="rank-info">
-            <view class="rank-name">
-              {{item.nickname}}
-              <text class="rank-self" wx:if="{{item.is_self}}">（你）</text>
+          <view class="lb-period-tab {{currentPeriod === 7 ? 'active' : ''}}" bindtap="switchPeriod" data-period="7"><text>近 7 天</text></view>
+          <view class="lb-period-tab {{currentPeriod === 0 ? 'active' : ''}}" bindtap="switchPeriod" data-period="0"><text>全部</text></view>
+        </view>
+        <view class="lb-period-footer">
+          <view class="lb-period-info">
+            <view class="lb-info-icon"><image src="/assets/icons/score-statement-history.png" mode="aspectFit" /></view>
+            <text class="lb-info-text">同台切磋 ≥ {{minGames}} 局方可入榜</text>
+          </view>
+          <text class="lb-disclaimer">纯积分不涉金钱</text>
+        </view>
+      </view>
+
+      <!-- 我的排名卡 -->
+      <view class="my-rank-card anim-fade-up delay-2" wx:if="{{stats}}">
+        <view class="my-rank-glow"></view>
+        <view class="my-rank-header">
+          <view class="my-rank-user">
+            <view class="my-rank-avatar-wrap">
+              <image class="my-rank-avatar" src="{{avatarURL}}" mode="aspectFill" wx:if="{{avatarURL}}" />
+              <view class="my-rank-avatar my-rank-placeholder" wx:else><text>{{nickname[0]}}</text></view>
+              <view class="my-rank-badge"><text>#{{stats.my_rank || 2}}</text></view>
             </view>
-            <view class="rank-detail" wx:if="{{item.games > 0}}">{{item.games}}局 · 前三{{item.top3RateText}} · 平均第{{item.avgRankText}}名</view>
+            <view class="my-rank-info">
+              <text class="my-rank-name">{{nickname}}</text>
+              <text class="my-rank-sub">{{stats.active_text || '本周期活跃 · 雀艺渐入佳境'}}</text>
+            </view>
           </view>
-          <view class="rank-score">
-            <view class="rank-winrate">{{item.winRateText}}</view>
-            <view class="rank-cap">胜率</view>
+          <view class="my-rank-score-col">
+            <text class="my-rank-score-label">净胜分</text>
+            <text class="my-rank-score-val">{{stats.total_score >= 0 ? '+' : ''}}{{stats.total_score}}</text>
+          </view>
+        </view>
+        <view class="my-rank-stats">
+          <view class="my-rank-stat">
+            <text class="my-stat-label">场次</text>
+            <text class="my-stat-val">{{stats.games}}</text>
+          </view>
+          <view class="my-rank-stat">
+            <text class="my-stat-label">胜场 (胜率)</text>
+            <text class="my-stat-val text-primary">{{stats.wins}} <text class="my-stat-sub">{{stats.win_rate}}%</text></text>
+          </view>
+          <view class="my-rank-stat">
+            <text class="my-stat-label">连赢最高</text>
+            <text class="my-stat-val">{{stats.best_streak || 0}}</text>
+          </view>
+          <view class="my-rank-stat">
+            <text class="my-stat-label">单局最高</text>
+            <text class="my-stat-val">{{stats.best_score}}</text>
+          </view>
+        </view>
+        <view class="my-rank-badges" wx:if="{{stats.badges && stats.badges.length > 0}}">
+          <text class="my-badge-label">个人勋章:</text>
+          <view class="my-badge-pill" wx:for="{{stats.badges}}" wx:key="id">
+            <text class="my-badge-icon">{{item.icon}}</text>
+            <text class="my-badge-text">{{item.name}}</text>
           </view>
         </view>
       </view>
 
-      <view class="empty-state" wx:if="{{entries.length === 0}}" style="padding: 60rpx 40rpx;">
-        <view class="empty-tile mj-tile mj-tile-gold anim-float">空</view>
-        <view class="empty-text">近{{days}}天仲未开过台</view>
-        <view class="text-secondary" style="margin-top: 8rpx;">同雀友打完一场就会上榜</view>
-      </view>
-    </view>
+      <!-- 排名列表 -->
+      <view class="rank-list-section anim-fade-up delay-3">
+        <view class="rank-list-header">
+          <text class="rank-list-title">雀友排名</text>
+          <text class="rank-list-sub">实时自动结算更新</text>
+        </view>
 
-    <view class="load-tip" wx:if="{{loading}}">加载中...</view>
+        <view class="rank-item {{item.is_self ? 'rank-item-self' : ''}} {{item.displayRank === 1 ? 'rank-item-top' : ''}}" wx:for="{{entries}}" wx:key="user_id">
+          <view class="rank-item-main">
+            <view class="rank-item-left">
+              <view class="rank-item-num-wrap" wx:if="{{item.displayRank === 1}}">
+                <image class="rank-item-trophy" src="/assets/icons/rank-1-god-crown.png" mode="aspectFit" />
+              </view>
+              <view class="rank-item-num-wrap" wx:else>
+                <text class="rank-item-num rank-item-num-{{item.displayRank <= 3 ? item.displayRank : 'rest'}}">{{item.displayRank}}</text>
+              </view>
+              <image class="rank-item-avatar" src="{{item.avatar_url}}" mode="aspectFill" wx:if="{{item.avatar_url}}" />
+              <view class="rank-item-avatar rank-item-placeholder" style="background:{{item.avatarColor}};" wx:else><text>{{item.nickname[0]}}</text></view>
+              <view class="rank-item-info">
+                <view class="rank-item-name-row">
+                  <text class="rank-item-name">{{item.nickname}}</text>
+                  <view class="rank-item-tag rank-item-tag-gold" wx:if="{{item.displayRank === 1}}"><text>榜首</text></view>
+                  <view class="rank-item-tag rank-item-tag-self" wx:if="{{item.is_self}}"><text>你本人</text></view>
+                </view>
+                <view class="rank-item-detail">
+                  <text>{{item.games}} 场 · {{item.wins}} 胜</text>
+                  <text class="rank-detail-dot">·</text>
+                  <text wx:if="{{item.best_streak}}">连赢 {{item.best_streak}}</text>
+                  <text class="rank-detail-dot" wx:if="{{item.best_streak}}">·</text>
+                  <text wx:if="{{item.best_score}}">最高分 {{item.best_score}}</text>
+                </view>
+              </view>
+            </view>
+            <view class="rank-item-right">
+              <text class="rank-item-score {{item.total_score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.total_score >= 0 ? '+' : ''}}{{item.total_score}}</text>
+              <view class="rank-item-action" wx:if="{{!item.is_self}}" bindtap="inviteFriend" data-name="{{item.nickname}}">
+                <image class="rank-action-icon" src="/assets/icons/share-wechat.png" mode="aspectFit" />
+                <text class="rank-action-text">约开台</text>
+              </view>
+              <view class="rank-item-action rank-item-action-self" wx:if="{{item.is_self}}">
+                <text class="rank-action-text-self">已在位</text>
+              </view>
+            </view>
+          </view>
+          <view class="rank-item-badges" wx:if="{{item.badges && item.badges.length > 0}}">
+            <view class="rank-badge-pill {{badge.style}}" wx:for="{{item.badges}}" wx:for-item="badge" wx:key="id">
+              <text class="rank-badge-icon">{{badge.icon}}</text>
+              <text>{{badge.name}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view class="empty-state" wx:if="{{entries.length === 0}}" style="padding: 80rpx 40rpx;">
+          <view class="empty-tile mj-tile mj-tile-gold anim-float">空</view>
+          <view class="empty-text">近{{days}}天仲未开过台</view>
+          <view class="text-secondary" style="margin-top: 8rpx;">同雀友打完一场就会上榜</view>
+        </view>
+      </view>
+
+      <!-- 底部签名 -->
+      <view class="lb-footer">
+        <view class="lb-footer-line"></view>
+        <image class="lb-footer-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+        <view class="lb-footer-line"></view>
+      </view>
+      <text class="lb-footer-text">打麻雀啫，开心最紧要 · 同分并列</text>
+      <text class="lb-footer-sub">雀聚有期 · 怡情共叙</text>
+    </view>
   </block>
+
+  <!-- Toast -->
+  <view class="toast {{showToast ? 'toast-show' : ''}}">
+    <image class="toast-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+    <text>{{toastMsg}}</text>
+  </view>
 </view>

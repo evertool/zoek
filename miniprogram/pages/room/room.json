@@ -1,9 +1,10 @@
 {
   "usingComponents": {},
+  "navigationStyle": "custom",
   "navigationBarTitleText": "台间",
-  "navigationBarBackgroundColor": "#FFF8EF",
+  "navigationBarBackgroundColor": "#f8f9ff",
   "navigationBarTextStyle": "black",
-  "backgroundColor": "#FFF8EF",
+  "backgroundColor": "#f8f9ff",
   "enableShareAppMessage": true,
   "enableShareTimeline": true
 }

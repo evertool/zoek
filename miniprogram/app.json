@@ -12,33 +12,42 @@
     "pages/leaderboard/leaderboard"
   ],
   "window": {
-    "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#FFF8EF",
+    "navigationStyle": "custom",
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#f8f9ff",
     "navigationBarTitleText": "得闲开台",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#FFF8EF"
+    "backgroundColor": "#f8f9ff"
   },
   "tabBar": {
-    "color": "#B0B0BC",
-    "selectedColor": "#E8442E",
-    "backgroundColor": "#FFFFFF",
+    "color": "#3f4943",
+    "selectedColor": "#1b6b4a",
+    "backgroundColor": "#f8f9ff",
     "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "牌局"
+        "text": "牌局",
+        "iconPath": "assets/tabbar/tab-table-default.png",
+        "selectedIconPath": "assets/tabbar/tab-table-active.png"
       },
       {
         "pagePath": "pages/leaderboard/leaderboard",
-        "text": "雀友榜"
+        "text": "雀友榜",
+        "iconPath": "assets/tabbar/tab-leaderboard-default.png",
+        "selectedIconPath": "assets/tabbar/tab-leaderboard-active.png"
       },
       {
         "pagePath": "pages/history/history",
-        "text": "对局记录"
+        "text": "翻记录",
+        "iconPath": "assets/tabbar/tab-history-default.png",
+        "selectedIconPath": "assets/tabbar/tab-history-active.png"
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "我"
+        "text": "我",
+        "iconPath": "assets/tabbar/tab-mine-default.png",
+        "selectedIconPath": "assets/tabbar/tab-mine-active.png"
       }
     ]
   },

@@ -78,7 +78,8 @@
           <view class="submit-avatar">{{item.nickname[0]}}</view>
           <view class="submit-name">{{item.nickname}}</view>
           <view class="submit-status {{item.submitted ? 'status-done' : 'status-wait'}}">
-            {{item.submitted ? '✓ 已入分' : '等紧入分'}}
+            <text wx:if="{{item.submitted}}"><image class="submit-check-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" /> 已入分</text>
+            <text wx:else>等紧入分</text>
           </view>
         </view>
       </view>
@@ -119,7 +120,7 @@
   <!-- 底部操作 -->
   <view class="action-bar" wx:if="{{roundStatus === 'ready_for_next'}}">
     <view class="done-text anim-bounce-in">
-      <view class="done-tile mj-tile mj-tile-green">✓</view>
+      <view class="done-tile mj-tile mj-tile-green"><image class="done-check-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" /></view>
       第{{currentRoundNumber}}局已完成
     </view>
     <button class="btn-primary" bindtap="doNextRound">下一局</button>

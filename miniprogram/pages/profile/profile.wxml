@@ -1,5 +1,20 @@
-<!--pages/profile/profile.wxml — 我的页 v4 白底卡通版-->
+<!--pages/profile/profile.wxml — 我的页 v6 Stitch 100% 还原-->
 <view class="page">
+  <!-- 固定 Header -->
+  <view class="stitch-header pt-safe">
+    <view class="stitch-header-inner">
+      <view class="stitch-header-brand">
+        <view class="stitch-header-logo"><image class="stitch-header-logo-icon" src="/assets/icons/app-icon-hongzhong.png" mode="aspectFit" /></view>
+        <text class="stitch-header-title">Profile Mine</text>
+      </view>
+      <view class="header-capsule">
+        <view class="header-capsule-btn"><text>···</text></view>
+        <view class="header-capsule-divider"></view>
+        <view class="header-capsule-btn"><text>●</text></view>
+      </view>
+    </view>
+  </view>
+
   <!-- 未登录 -->
   <view class="empty-state" wx:if="{{!isLoggedIn}}">
     <view class="empty-tile mj-tile anim-float">我</view>
@@ -10,58 +25,211 @@
 
   <!-- 已登录 -->
   <block wx:if="{{isLoggedIn}}">
-    <!-- 深绿个人卡 -->
-    <view class="profile-hero card-green anim-fade-up">
-      <view class="profile-deco mj-tile profile-deco-tile anim-wiggle">發</view>
-      <view class="profile-avatar avatar-frame" style="{{avatarColor && !avatarURL ? 'background:' + avatarColor : ''}}">
-        <image class="profile-avatar-img" src="{{avatarURL}}" mode="aspectFill" wx:if="{{avatarURL}}" />
-        <text wx:else>{{nickname[0] || '?'}}</text>
+    <view class="main-content">
+      <!-- Toast -->
+      <view class="pf-toast {{showToast ? 'pf-toast-show' : ''}}">
+        <image class="pf-toast-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+        <text>{{toastMsg}}</text>
       </view>
-      <view class="profile-name" wx:if="{{!editing}}">{{nickname}}</view>
 
-      <!-- 编辑昵称头像 -->
-      <view class="edit-area" wx:if="{{editing}}">
-        <button class="profile-avatar-edit" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
-          <image class="profile-avatar-img" src="{{tempAvatar}}" mode="aspectFill" wx:if="{{tempAvatar}}" />
-          <text class="profile-avatar-add" wx:else>+</text>
-        </button>
-        <view class="avatar-edit-tip">点击授权微信头像</view>
-        <input
-          class="nickname-input"
-          type="nickname"
-          value="{{tempNickname}}"
-          bindinput="onNicknameInput"
-          maxlength="16"
-          placeholder="点此填入微信昵称"
-          placeholder-class="input-placeholder"
-        />
-        <view class="edit-actions">
-          <view class="mini-btn mini-save" bindtap="saveProfile">保存</view>
-          <view class="mini-btn mini-cancel" bindtap="cancelEdit">取消</view>
+      <!-- 个人资料卡 -->
+      <view class="pf-profile-card anim-fade-up" wx:if="{{!editing}}">
+        <view class="pf-profile-glow"></view>
+        <view class="pf-profile-row">
+          <view class="pf-avatar-wrap">
+            <image class="pf-avatar" src="{{avatarURL}}" mode="aspectFill" wx:if="{{avatarURL}}" />
+            <view class="pf-avatar pf-avatar-placeholder" style="background:{{avatarColor}};" wx:else><text>{{nickname[0]}}</text></view>
+          </view>
+          <view class="pf-profile-info">
+            <view class="pf-name-row">
+              <text class="pf-name">{{nickname}}</text>
+              <view class="pf-rank-tag"><image class="pf-rank-icon" src="/assets/icons/rank-1-god-crown.png" mode="aspectFit" /><text>排位等级</text></view>
+            </view>
+            <view class="pf-mahjong-id-row">
+              <text class="pf-mahjong-id" id="mahjong-id">雀友号: {{userId}}</text>
+              <view class="pf-copy-btn" bindtap="copyUserId"><image src="/assets/icons/action-copy.png" mode="aspectFit" /></view>
+            </view>
+            <text class="pf-motto" wx:if="{{motto}}">{{motto}}</text>
+          </view>
+        </view>
+        <view class="pf-edit-link" bindtap="goEditProfile"><text>修改资料 ›</text></view>
+      </view>
+
+      <!-- 编辑模式 -->
+      <view class="pf-profile-card anim-fade-up" wx:if="{{editing}}">
+        <view class="pf-profile-glow"></view>
+        <view class="pf-profile-row">
+          <button class="pf-avatar-edit" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+            <image class="pf-avatar" src="{{tempAvatar}}" mode="aspectFill" wx:if="{{tempAvatar}}" />
+            <view class="pf-avatar pf-avatar-placeholder" wx:else><text class="pf-avatar-add">+</text></view>
+          </button>
+          <view class="pf-profile-info">
+            <input class="pf-nickname-input" type="nickname" value="{{tempNickname}}" bindinput="onNicknameInput" maxlength="16" placeholder="点此填入微信昵称" placeholder-class="input-placeholder" />
+            <text class="pf-edit-tip">点击左侧授权微信头像</text>
+          </view>
+        </view>
+        <view class="pf-edit-actions">
+          <view class="pf-btn-save" bindtap="saveProfile"><text>保存</text></view>
+          <view class="pf-btn-cancel" bindtap="cancelEdit"><text>取消</text></view>
         </view>
       </view>
-      <view class="edit-link" wx:if="{{!editing}}" bindtap="goEditProfile">修改昵称 ›</view>
-    </view>
 
-    <!-- 设置分组 -->
-    <view class="card menu-card anim-fade-up delay-2">
-      <view class="menu-item" bindtap="doLogout">
-        <view class="menu-item-left">
-          <view class="menu-icon mj-tile mj-tile-green">出</view>
-          <text>退出登入</text>
+      <!-- 核心数据仪表板 -->
+      <view class="pf-stats-card anim-fade-up delay-1" wx:if="{{stats}}">
+        <view class="pf-stats-grid">
+          <view class="pf-stat-cell">
+            <text class="pf-stat-label">累计开台</text>
+            <view class="pf-stat-val-row">
+              <text class="pf-stat-val">{{stats.games}}</text>
+              <text class="pf-stat-unit">场</text>
+            </view>
+            <view class="pf-stat-badge"><text>铁杆雀客</text></view>
+          </view>
+          <view class="pf-stat-cell">
+            <text class="pf-stat-label">总净积分</text>
+            <view class="pf-stat-val-row">
+              <text class="pf-stat-val text-positive">{{stats.total_score >= 0 ? '+' : ''}}{{stats.total_score}}</text>
+              <text class="pf-stat-unit text-positive">分</text>
+            </view>
+            <text class="pf-stat-sub">均场 +{{stats.avg_score}}</text>
+          </view>
+          <view class="pf-stat-cell">
+            <text class="pf-stat-label">胜率</text>
+            <view class="pf-stat-val-row">
+              <text class="pf-stat-val">{{stats.win_rate}}</text>
+              <text class="pf-stat-unit">%</text>
+            </view>
+            <view class="pf-stat-badge pf-stat-badge-amber"><text>近7场 {{stats.recent_wins}}胜</text></view>
+          </view>
         </view>
-        <text class="menu-arrow">›</text>
       </view>
-    </view>
 
-    <!-- 关于 -->
-    <view class="card about-card anim-fade-up delay-3">
-      <view class="section-title">关于得闲开台</view>
-      <view class="about-text">
-        得闲开台系专为粤语朋友打造嘅麻将牌局积分记录工具。
-        唔使纸笔，唔使脑记，每位玩家自己提交本局分数，系统自动校验零和。
+      <!-- 徽章展架 -->
+      <view class="pf-badge-section">
+        <view class="pf-section-header">
+          <view class="pf-section-left">
+            <view class="pf-section-bar"></view>
+            <text class="pf-section-title">雀友成就徽章</text>
+          </view>
+          <view class="pf-badge-more">
+            <text>累计点亮 {{badges.length}}/7 个</text>
+            <text class="pf-more-arrow">›</text>
+          </view>
+        </view>
+        <scroll-view class="pf-badge-scroll" scroll-x="true">
+          <view class="pf-badge-track">
+            <view class="pf-badge-card {{badge.locked ? 'pf-badge-locked' : ''}}" wx:for="{{badges}}" wx:key="id">
+              <view class="pf-badge-icon-wrap pf-badge-icon-{{badge.style}}">
+                <text class="pf-badge-icon">{{badge.icon}}</text>
+              </view>
+              <text class="pf-badge-name">{{badge.name}}</text>
+              <text class="pf-badge-desc">{{badge.desc}}</text>
+              <view class="pf-badge-status" wx:if="{{!badge.locked}}">
+                <view class="pf-badge-dot"></view>
+                <text class="pf-badge-status-text">{{badge.status}}</text>
+              </view>
+              <view class="pf-badge-progress" wx:if="{{badge.locked}}">
+                <view class="pf-progress-bar">
+                  <view class="pf-progress-fill" style="width: {{badge.progress}}%;"></view>
+                </view>
+                <view class="pf-progress-row">
+                  <text class="pf-progress-label">进度</text>
+                  <text class="pf-progress-val">{{badge.current}}/{{badge.target}}</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
       </view>
-      <view class="about-slogan">得闲开台，得闲一齐打！</view>
+
+      <!-- 个性化与体验 -->
+      <view class="pf-menu-group">
+        <text class="pf-menu-group-title">个性化与体验</text>
+        <view class="pf-menu-card">
+          <view class="pf-menu-item" bindtap="toggleVibrate">
+            <view class="pf-menu-left">
+              <view class="pf-menu-icon pf-menu-icon-primary"><image src="/assets/icons/sys-preferences-slider.png" mode="aspectFit" /></view>
+              <view class="pf-menu-info">
+                <text class="pf-menu-label">牌局偏好设置</text>
+                <text class="pf-menu-sub">默认提醒、得分播放</text>
+              </view>
+            </view>
+            <view class="pf-switch {{vibrateEnabled ? 'pf-switch-on' : ''}}">
+              <view class="pf-switch-knob"></view>
+            </view>
+          </view>
+          <view class="pf-menu-divider"></view>
+          <view class="pf-menu-item" bindtap="showBlacklist">
+            <view class="pf-menu-left">
+              <view class="pf-menu-icon pf-menu-icon-secondary"><image src="/assets/icons/sys-blacklist-slash.png" mode="aspectFit" /></view>
+              <view class="pf-menu-info">
+                <text class="pf-menu-label">雀友黑名单与隐藏</text>
+                <text class="pf-menu-sub">管理不想同台或隐藏战绩的牌友</text>
+              </view>
+            </view>
+            <view class="pf-menu-right">
+              <text class="pf-menu-right-text">无限制</text>
+              <text class="pf-menu-arrow">›</text>
+            </view>
+          </view>
+          <view class="pf-menu-divider"></view>
+          <view class="pf-menu-item" bindtap="showSound">
+            <view class="pf-menu-left">
+              <view class="pf-menu-icon pf-menu-icon-primary"><image src="/assets/icons/sys-speaker-voice.png" mode="aspectFit" /></view>
+              <view class="pf-menu-info">
+                <text class="pf-menu-label">动画音效与特效</text>
+                <text class="pf-menu-sub">正宗粤语报牌、糊牌全屏欢庆</text>
+              </view>
+            </view>
+            <view class="pf-menu-right">
+              <view class="pf-menu-tag"><text>粤语配音</text></view>
+              <text class="pf-menu-arrow">›</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 平台守则与关于 -->
+      <view class="pf-menu-group">
+        <text class="pf-menu-group-title">平台守则与关于</text>
+        <view class="pf-menu-card">
+          <view class="pf-menu-item" bindtap="showSafety">
+            <view class="pf-menu-left">
+              <view class="pf-menu-icon pf-menu-icon-tertiary"><image src="/assets/icons/sys-shield-security.png" mode="aspectFit" /></view>
+              <view class="pf-menu-info">
+                <text class="pf-menu-label">微信安全隐私与守则</text>
+                <text class="pf-menu-sub">绿色健康娱乐、纯积分免责声明</text>
+              </view>
+            </view>
+            <text class="pf-menu-arrow">›</text>
+          </view>
+          <view class="pf-menu-divider"></view>
+          <view class="pf-menu-item" bindtap="showAbout">
+            <view class="pf-menu-left">
+              <view class="pf-menu-icon pf-menu-icon-neutral"><image src="/assets/icons/score-statement-history.png" mode="aspectFit" /></view>
+              <view class="pf-menu-info">
+                <text class="pf-menu-label">关于得闲开台</text>
+                <text class="pf-menu-sub">传承岭南茶台闲趣，无争无扰</text>
+              </view>
+            </view>
+            <view class="pf-menu-right">
+              <text class="pf-menu-right-text">v1.2 (正式版)</text>
+              <text class="pf-menu-arrow">›</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 底部操作 -->
+      <view class="pf-bottom-actions">
+        <view class="pf-logout-btn" bindtap="doLogout"><text>退出登入</text></view>
+      </view>
+
+      <!-- 底部签名 -->
+      <view class="pf-footer">
+        <image class="pf-footer-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+        <text class="pf-footer-text">佛山数匠科技·得闲饮茶·开台大吉</text>
+      </view>
     </view>
   </block>
 </view>

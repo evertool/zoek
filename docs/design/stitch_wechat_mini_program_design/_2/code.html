@@ -1,0 +1,351 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700&amp;family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100%;margin:0;padding:0;background-color:#f8f9ff;-webkit-tap-highlight-color:transparent;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: 'class', theme: { extend: { colors: { 'primary': '#005235', 'secondary': '#904d00', 'tertiary-container': '#b02d29', 'surface-variant': '#d3e4fe', 'on-primary-container': '#9ce9bf', 'secondary-fixed-dim': '#ffb77d', 'inverse-on-surface': '#eaf1ff', 'on-secondary-fixed': '#2f1500', 'tertiary': '#8e1215', 'on-secondary': '#ffffff', 'primary-fixed-dim': '#8ad6ae', 'surface-dim': '#cbdbf5', 'surface': '#f8f9ff', 'primary-container': '#1b6b4a', 'on-primary': '#ffffff', 'surface-container-high': '#dce9ff', 'surface-container-lowest': '#ffffff', 'on-tertiary': '#ffffff', 'surface-container-low': '#eff4ff', 'surface-tint': '#1b6b4a', 'secondary-container': '#fe932c', 'on-error-container': '#93000a', 'on-primary-fixed': '#002113', 'tertiary-fixed-dim': '#ffb4ac', 'on-tertiary-fixed-variant': '#8e1214', 'on-error': '#ffffff', 'tertiary-fixed': '#ffdad6', 'on-surface': '#0b1c30', 'inverse-surface': '#213145', 'on-surface-variant': '#3f4943', 'on-primary-fixed-variant': '#005235', 'on-secondary-fixed-variant': '#6e3900', 'error-container': '#ffdad6', 'background': '#f8f9ff', 'outline-variant': '#bfc9c0', 'secondary-fixed': '#ffdcc3', 'primary-fixed': '#a6f3c9', 'outline': '#6f7a72', 'surface-container': '#e5eeff', 'error': '#ba1a1a', 'on-tertiary-fixed': '#410002', 'surface-container-highest': '#d3e4fe', 'surface-bright': '#f8f9ff', 'on-tertiary-container': '#ffcdc7', 'on-background': '#0b1c30', 'inverse-primary': '#8ad6ae', 'on-secondary-container': '#663500' }, borderRadius: { 'DEFAULT': '0.25rem', 'lg': '0.5rem', 'xl': '0.75rem', 'full': '9999px' }, spacing: { 'space-2xl': '2rem', 'space-xl': '1.5rem', 'space-xs': '0.5rem', 'gutter-grid': '0.75rem', 'margin-screen': '1.25rem', 'space-lg': '1.25rem', 'space-md': '1rem', 'space-3xl': '2.5rem', 'space-sm': '0.75rem', 'space-2xs': '0.25rem' }, fontFamily: { 'label-sm': ['Plus Jakarta Sans'], 'body-sm': ['Be Vietnam Pro'], 'label-md': ['Plus Jakarta Sans'], 'label-lg': ['Plus Jakarta Sans'], 'headline-lg': ['Plus Jakarta Sans'], 'body-md': ['Be Vietnam Pro'], 'display-lg-mobile': ['Plus Jakarta Sans'], 'display-lg': ['Plus Jakarta Sans'], 'score-numeral': ['Plus Jakarta Sans'], 'body-lg': ['Be Vietnam Pro'], 'headline-md': ['Plus Jakarta Sans'], 'headline-sm': ['Plus Jakarta Sans'] }, fontSize: { 'label-sm': ['10px', { 'lineHeight': '14px', 'letterSpacing': '0.04em', 'fontWeight': '500' }], 'body-sm': ['12px', { 'lineHeight': '18px', 'fontWeight': '400' }], 'label-md': ['12px', { 'lineHeight': '16px', 'letterSpacing': '0.02em', 'fontWeight': '500' }], 'label-lg': ['14px', { 'lineHeight': '20px', 'letterSpacing': '0.01em', 'fontWeight': '600' }], 'headline-lg': ['24px', { 'lineHeight': '32px', 'letterSpacing': '-0.015em', 'fontWeight': '600' }], 'body-md': ['14px', { 'lineHeight': '20px', 'fontWeight': '400' }], 'display-lg-mobile': ['28px', { 'lineHeight': '36px', 'letterSpacing': '-0.02em', 'fontWeight': '700' }], 'display-lg': ['36px', { 'lineHeight': '44px', 'letterSpacing': '-0.02em', 'fontWeight': '700' }], 'score-numeral': ['22px', { 'lineHeight': '26px', 'letterSpacing': '-0.01em', 'fontWeight': '700' }], 'body-lg': ['16px', { 'lineHeight': '24px', 'fontWeight': '400' }], 'headline-md': ['20px', { 'lineHeight': '28px', 'letterSpacing': '-0.01em', 'fontWeight': '600' }], 'headline-sm': ['18px', { 'lineHeight': '24px', 'fontWeight': '600' }] } } } };</script></head><body class="bg-surface text-on-surface font-body-md text-body-md antialiased flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-14 px-margin-screen flex items-center justify-between"><div class="flex items-center gap-space-xs"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div><span class="font-headline-sm text-headline-sm text-primary tracking-tight">Modal Interactions</span></div><div class="flex items-center gap-space-xs bg-surface-container-highest/60 rounded-full px-space-xs py-1 shadow-[0_1px_4px_rgba(0,0,0,0.03)]"><button class="w-7 h-7 flex items-center justify-center text-on-surface hover:text-primary transition-colors"><span class="material-symbols-outlined text-[18px]">more_horiz</span></button><div class="w-px h-3.5 bg-outline-variant/50"></div><button class="w-7 h-7 flex items-center justify-center text-on-surface hover:text-primary transition-colors"><span class="material-symbols-outlined text-[18px]">radio_button_checked</span></button></div></div></header><main class="flex-1 flex flex-col w-full max-w-[480px] mx-auto pt-14 bg-surface pb-28"><div class="flex flex-col w-full px-margin-screen space-y-space-xl">
+<!-- 规范概览卡片 -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-4 bg-primary rounded-full"></span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">台间页交互规范与组件字典</h2>
+</div>
+<span class="font-label-sm text-label-sm px-space-xs py-0.5 rounded-full bg-surface-container-high text-primary font-semibold">rpx 像素对齐</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-space-xs">
+      专为微信小程序 750rpx 设计，覆盖牌桌长按唤醒、底部分数步进器以及 WebSocket 双向席位换位协商，适配顶部胶囊与全面屏底栏。
+    </p>
+<!-- 参数标签群 -->
+<div class="grid grid-cols-3 gap-space-xs mt-space-sm">
+<div class="bg-surface-container-low p-space-xs rounded-lg flex flex-col items-center justify-center text-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant">长按阈值</span>
+<span class="font-label-lg text-label-lg text-primary font-bold">300ms</span>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded-lg flex flex-col items-center justify-center text-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant">触觉反馈</span>
+<span class="font-label-lg text-label-lg text-primary font-bold">vibrateShort</span>
+</div>
+<div class="bg-surface-container-low p-space-xs rounded-lg flex flex-col items-center justify-center text-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant">弹层曲率</span>
+<span class="font-label-lg text-label-lg text-primary font-bold">32rpx</span>
+</div>
+</div>
+</section>
+<!-- 核心交互态一：席位长按菜单 -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-md">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-space-2xs">
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-primary text-on-primary">态 01</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">席位长按菜单 (Seat ActionSheet)</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">触发：长按目标座位卡片 300ms 呼出，带渐变阴影浮层与物理触感。</p>
+</div>
+<span class="material-symbols-outlined text-primary text-[20px]">touch_app</span>
+</div>
+<!-- 模拟台面席位卡片 -->
+<div class="bg-surface-container-low rounded-xl p-space-sm relative overflow-hidden">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="relative">
+<img class="w-12 h-12 rounded-full object-cover bg-surface-variant" data-alt="A clean minimalist vector portrait of a Cantonese mahjong player named Xi Hui with a gentle focused expression, tea parlor palette with warm jade highlights and rice paper soft tones" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCcE1_9pU6k9-jCgXQQ2a2YSYDRW4UcjY2ePTmRZis75qsDr8PRgD5jnV2OLEtdyy4YVnu-fJ0BMABC5hTqAEe4B4f_t31ifJx14NtNFZTVWe0KGwDDBQlsB71Hap3ok9BgPFk7ujrMWEs6wSnMhEHHbfkykP9use77vzeB47cfI-_CVBhRcPMDvwJK_odoP64QQz9FaMdb2VrNRLELc-R6r8ULauFIfemIFDqz9UW9QelOzdx6bt8DlQ">
+<span class="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-secondary text-on-secondary font-label-sm text-label-sm scale-90">南</span>
+</div>
+<div>
+<div class="flex items-center gap-space-2xs">
+<span class="font-headline-sm text-headline-sm text-on-surface">细辉</span>
+<span class="font-label-sm text-label-sm bg-surface-container-highest text-on-surface-variant px-1.5 py-0.5 rounded">离线重连中</span>
+</div>
+<div class="font-score-numeral text-score-numeral text-primary mt-0.5">+48 <span class="font-body-sm text-body-sm text-on-surface-variant font-normal">分</span></div>
+</div>
+</div>
+<div class="text-right">
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-2 py-1 rounded-full">长按激活中 300ms</span>
+</div>
+</div>
+<!-- 弹出菜单 ActionSheet 模拟层 -->
+<div class="mt-space-sm bg-surface rounded-xl p-space-sm shadow-md space-y-space-xs">
+<div class="flex items-center justify-between pb-space-xs text-on-surface-variant">
+<span class="font-label-sm text-label-sm">针对雀友【细辉 (南席)】的操作</span>
+<span class="font-label-sm text-label-sm text-primary">房间: #0824</span>
+</div>
+<!-- 操作项 1 -->
+<button class="w-full flex items-center justify-between p-space-sm bg-surface-container-lowest rounded-lg hover:bg-surface-container transition-colors text-left" type="button">
+<div class="flex items-center gap-space-xs">
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed">
+<span class="material-symbols-outlined text-[18px]">swap_horiz</span>
+</div>
+<div>
+<div class="font-label-lg text-label-lg text-on-surface">申请互换位置</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">发起后需细辉微信端弹窗确认</div>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline text-[18px]">arrow_forward_ios</span>
+</button>
+<!-- 操作项 2 (台主专属) -->
+<button class="w-full flex items-center justify-between p-space-sm bg-surface-container-lowest rounded-lg hover:bg-error-container transition-colors text-left" type="button">
+<div class="flex items-center gap-space-xs">
+<div class="w-8 h-8 rounded-full bg-error-container flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-[18px]">person_remove</span>
+</div>
+<div>
+<div class="flex items-center gap-space-2xs">
+<span class="font-label-lg text-label-lg text-error">移出本台 (踢走)</span>
+<span class="font-label-sm text-label-sm px-1.5 py-0.2 rounded bg-tertiary-fixed text-on-tertiary-fixed">台主权限</span>
+</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">席位将立刻置空，需二次确认</div>
+</div>
+</div>
+<span class="material-symbols-outlined text-error text-[18px]">chevron_right</span>
+</button>
+<!-- 取消 -->
+<button class="w-full py-space-xs text-center font-label-md text-label-md text-on-surface-variant bg-surface-container-low rounded-lg" type="button">
+          取消
+        </button>
+</div>
+</div>
+<!-- 开发参数与实现规范标注 -->
+<div class="bg-surface-container-low rounded-lg p-space-sm text-on-surface-variant font-body-sm text-body-sm space-y-1">
+<div class="font-label-md text-label-md text-on-surface font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">terminal</span>
+<span>前端实现参数指引</span>
+</div>
+<p class="font-label-sm text-label-sm">· 触发绑定：<code class="text-primary font-mono">bindtouchstart / bindtouchend (timer &gt;= 300ms)</code></p>
+<p class="font-label-sm text-label-sm">· 触感触发：<code class="text-primary font-mono">wx.vibrateShort({ type: 'medium' })</code></p>
+<p class="font-label-sm text-label-sm">· WS 派发事件：<code class="text-secondary font-mono">socket.emit('seat:swap:request', { targetUid: 'u_8902', fromSeat: 0, toSeat: 1 })</code></p>
+<p class="font-label-sm text-label-sm">· 踢人权限守卫：<code class="text-tertiary font-mono">v-if="room.creatorId === currentUserId" -&gt; emit('seat:kick')</code></p>
+</div>
+</section>
+<!-- 核心交互态二：比分快捷输入底部弹窗 -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-md">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-space-2xs">
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-primary text-on-primary">态 02</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">比分快捷输入半屏弹层 (Score Sheet)</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">单手 thumb-zone 优化的计分输入器，支持档位速选与零和守恒平衡。</p>
+</div>
+<span class="material-symbols-outlined text-primary text-[20px]">pin</span>
+</div>
+<!-- 半屏弹层样式模拟容器 -->
+<div class="bg-surface-container-low rounded-2xl p-space-md shadow-lg space-y-space-md">
+<!-- 弹层把手与头部 -->
+<div class="flex flex-col items-center">
+<div class="w-10 h-1 bg-outline-variant rounded-full mb-space-xs"></div>
+<div class="flex items-center justify-between w-full">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[22px]">payments</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">向 细辉 结算比分</span>
+</div>
+<button class="w-7 h-7 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant" type="button">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+</div>
+<!-- 当前数值大字号加减步进器 -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md flex items-center justify-between shadow-sm">
+<button class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-highest active:scale-95 transition-all" id="score-minus-btn" type="button">
+<span class="material-symbols-outlined text-[24px]">remove</span>
+</button>
+<div class="text-center">
+<div class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">当前转移分值</div>
+<div class="flex items-baseline justify-center gap-1">
+<span class="font-display-lg-mobile text-display-lg-mobile text-primary font-bold" id="score-display">+10</span>
+<span class="font-label-lg text-label-lg text-primary">分</span>
+</div>
+</div>
+<button class="w-12 h-12 rounded-lg bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-highest active:scale-95 transition-all" id="score-plus-btn" type="button">
+<span class="material-symbols-outlined text-[24px]">add</span>
+</button>
+</div>
+<!-- 快捷三档点选药丸按钮 -->
+<div class="space-y-space-2xs">
+<span class="font-label-sm text-label-sm text-on-surface-variant">常用台面档位速选 (点按即切)</span>
+<div class="grid grid-cols-3 gap-space-xs" id="pill-group">
+<button class="py-space-xs rounded-full font-label-md text-label-md bg-surface-container-lowest text-on-surface hover:bg-surface-container transition-all text-center" data-val="5" type="button">
+            5 分
+          </button>
+<button class="py-space-xs rounded-full font-label-md text-label-md bg-primary text-on-primary shadow-sm transition-all text-center font-semibold" data-val="10" type="button">
+            10 分 (推荐)
+          </button>
+<button class="py-space-xs rounded-full font-label-md text-label-md bg-surface-container-lowest text-on-surface hover:bg-surface-container transition-all text-center" data-val="20" type="button">
+            20 分
+          </button>
+</div>
+</div>
+<!-- 结算换算即时预览条 (零和守恒) -->
+<div class="bg-surface-container-high/60 rounded-lg p-space-sm flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[20px]">balance</span>
+<span class="font-label-sm text-label-sm text-on-surface">整台账目零和守恒校验</span>
+</div>
+<div class="font-body-sm text-body-sm text-right text-on-surface">
+<span class="text-primary font-bold" id="preview-target">细辉 (+10)</span>
+<span class="text-outline mx-1">←</span>
+<span class="text-tertiary font-bold" id="preview-self">阿豪 (-10)</span>
+</div>
+</div>
+<!-- 主确认动作按钮 -->
+<button class="w-full h-12 bg-primary hover:bg-primary-container text-on-primary rounded-lg font-label-lg text-label-lg font-bold flex items-center justify-center gap-space-xs active:scale-[0.99] transition-all shadow-md" id="confirm-score-btn" type="button">
+<span class="material-symbols-outlined text-[20px]">done_all</span>
+<span id="btn-label">确认比分：转出 10 分给细辉</span>
+</button>
+</div>
+<!-- 开发参数与实现规范标注 -->
+<div class="bg-surface-container-low rounded-lg p-space-sm text-on-surface-variant font-body-sm text-body-sm space-y-1">
+<div class="font-label-md text-label-md text-on-surface font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">data_object</span>
+<span>前端入参及状态更新规范</span>
+</div>
+<p class="font-label-sm text-label-sm">· 弹层唤出动效：<code class="text-primary font-mono">transition: transform 240ms cubic-bezier(0, 0, 0.2, 1)</code></p>
+<p class="font-label-sm text-label-sm">· 乐观更新：点击确认后即刻更新本地视图分值，若服务端应答错误则回退并提示 Toast。</p>
+<p class="font-label-sm text-label-sm">· 接口 Payload：<code class="text-secondary font-mono">{ fromUid: "u_self", toUid: "u_xihui", delta: 10, roundNo: 4 }</code></p>
+</div>
+</section>
+<!-- 核心交互态三：被申请方实时确认弹窗 -->
+<section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm space-y-space-md">
+<div class="flex items-start justify-between">
+<div>
+<div class="flex items-center gap-space-2xs">
+<span class="font-label-sm text-label-sm px-1.5 py-0.5 rounded bg-primary text-on-primary">态 03</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">换位协商确认弹窗 (Swap Confirm Modal)</h3>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">模拟对方（细辉端）接收到 WebSocket 推送后弹出的强阻断确认对话框。</p>
+</div>
+<span class="material-symbols-outlined text-primary text-[20px]">sync_alt</span>
+</div>
+<!-- 模拟移动端弹层视界 -->
+<div class="bg-surface-container-high/40 rounded-xl p-space-md relative overflow-hidden">
+<!-- 模态框卡片 -->
+<div class="bg-surface-container-lowest rounded-2xl p-space-md shadow-xl space-y-space-md max-w-sm mx-auto">
+<!-- 弹窗图标与倒计时 -->
+<div class="flex items-center justify-between">
+<div class="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[24px]">published_with_changes</span>
+</div>
+<div class="flex items-center gap-1 text-secondary font-label-sm text-label-sm bg-secondary-fixed px-2 py-0.5 rounded-full">
+<span class="material-symbols-outlined text-[14px]">timer</span>
+<span id="countdown-timer">已超时</span>
+</div>
+</div>
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface">换位申请确认</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">
+            雀友 <span class="font-semibold text-primary">阿豪 (台主)</span> 申请与你互换席位。
+          </p>
+</div>
+<!-- 席位变换示意图 -->
+<div class="bg-surface-container-low rounded-xl p-space-sm flex items-center justify-around text-center">
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">你的当前席位</div>
+<div class="font-label-lg text-label-lg text-on-surface font-bold mt-0.5">南席 (细辉)</div>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">multiple_stop</span>
+</div>
+<div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">目标变更席位</div>
+<div class="font-label-lg text-label-lg text-primary font-bold mt-0.5">东席 (阿豪)</div>
+</div>
+</div>
+<!-- 按钮行动组 -->
+<div class="grid grid-cols-2 gap-space-xs pt-space-xs">
+<button class="py-2.5 px-space-sm bg-surface-container-high hover:bg-surface-variant text-on-surface rounded-lg font-label-lg text-label-lg text-center active:scale-95 transition-all" type="button">
+            婉拒
+          </button>
+<button class="py-2.5 px-space-sm bg-primary hover:bg-primary-container text-on-primary rounded-lg font-label-lg text-label-lg font-bold text-center shadow-sm active:scale-95 transition-all" type="button">
+            同意换位
+          </button>
+</div>
+</div>
+</div>
+<!-- 前端工程规范小贴士 -->
+<div class="bg-surface-container-low rounded-lg p-space-sm text-on-surface-variant font-body-sm text-body-sm space-y-1">
+<div class="font-label-md text-label-md text-on-surface font-semibold flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">notifications_active</span>
+<span>WebSocket 生命周期处理</span>
+</div>
+<p class="font-label-sm text-label-sm">· 监听通道：<code class="text-primary font-mono">socket.on('seat:swap:incoming', (payload) =&gt; showModal(payload))</code></p>
+<p class="font-label-sm text-label-sm">· 超时保护：倒计时 15 秒无响应自动触发拒绝并通知发起方，避免阻塞台间流转。</p>
+<p class="font-label-sm text-label-sm">· 阻断性配置：在微信小程序内建议置为 <code class="text-secondary font-mono">maskClosable: false</code> 防止误触空白关闭。</p>
+</div>
+</section>
+<!-- 底部设计交付汇总与规范附注 -->
+<footer class="bg-surface-container-low rounded-xl p-space-md text-on-surface-variant space-y-space-xs">
+<div class="flex items-center gap-space-xs text-primary font-label-lg text-label-lg">
+<span class="material-symbols-outlined text-[20px]">verified</span>
+<span>前端交互落地校验清单 (Checklist)</span>
+</div>
+<ul class="space-y-1 font-body-sm text-body-sm">
+<li>✓ <strong>触觉体验</strong>：所有长按操作均绑定中度震动，按钮轻微缩放响应 95%。</li>
+<li>✓ <strong>色彩一致性</strong>：主色固定采用岭南雀绿 (`#005235` / `#1B6B4A`)，危险操作警示色采用赤红 (`#8E1215`)。</li>
+<li>✓ <strong>零和算力</strong>：比分变更后需即时本地校验总积分是否持平，并在日志队列记录流水。</li>
+</ul>
+</footer>
+</div>
+<script>
+  (function () {
+    let currentScore = 10;
+    const scoreDisplay = document.getElementById('score-display');
+    const previewTarget = document.getElementById('preview-target');
+    const previewSelf = document.getElementById('preview-self');
+    const btnLabel = document.getElementById('btn-label');
+    const minusBtn = document.getElementById('score-minus-btn');
+    const plusBtn = document.getElementById('score-plus-btn');
+    const pillGroup = document.getElementById('pill-group');
+
+    function updateView(val) {
+      currentScore = Math.max(1, Math.min(200, val));
+      if (scoreDisplay) scoreDisplay.textContent = '+' + currentScore;
+      if (previewTarget) previewTarget.textContent = '细辉 (+' + currentScore + ')';
+      if (previewSelf) previewSelf.textContent = '阿豪 (-' + currentScore + ')';
+      if (btnLabel) btnLabel.textContent = '确认比分：转出 ' + currentScore + ' 分给细辉';
+
+      if (pillGroup) {
+        const pills = pillGroup.querySelectorAll('button');
+        pills.forEach((p) => {
+          const pVal = parseInt(p.getAttribute('data-val'), 10);
+          if (pVal === currentScore) {
+            p.className = 'py-space-xs rounded-full font-label-md text-label-md bg-primary text-on-primary shadow-sm transition-all text-center font-semibold';
+          } else {
+            p.className = 'py-space-xs rounded-full font-label-md text-label-md bg-surface-container-lowest text-on-surface hover:bg-surface-container transition-all text-center';
+          }
+        });
+      }
+    }
+
+    if (minusBtn) {
+      minusBtn.addEventListener('click', function () {
+        updateView(currentScore - 1);
+      });
+    }
+
+    if (plusBtn) {
+      plusBtn.addEventListener('click', function () {
+        updateView(currentScore + 1);
+      });
+    }
+
+    if (pillGroup) {
+      pillGroup.addEventListener('click', function (e) {
+        const target = e.target.closest('button');
+        if (target && target.hasAttribute('data-val')) {
+          const val = parseInt(target.getAttribute('data-val'), 10);
+          updateView(val);
+        }
+      });
+    }
+
+    // 模拟倒计时小动效
+    let timerVal = 15;
+    const countdownEl = document.getElementById('countdown-timer');
+    if (countdownEl) {
+      setInterval(function () {
+        if (timerVal > 1) {
+          timerVal--;
+          countdownEl.textContent = timerVal + 's 自动婉拒';
+        } else {
+          countdownEl.textContent = '已超时';
+        }
+      }, 1000);
+    }
+  })();
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.04)]" data-active-classes="text-primary font-semibold"><div class="flex justify-around items-center h-16 max-w-[480px] mx-auto px-space-sm"><a class="flex flex-col items-center justify-center w-14 h-14 text-on-surface-variant hover:text-primary transition-colors" data-path="overview-and-table" href="#"><span class="material-symbols-outlined text-[24px]">grid_view</span><span class="font-label-sm text-label-sm mt-0.5">开台桌</span></a><a aria-current="page" class="flex flex-col items-center justify-center w-14 h-14 transition-colors text-primary font-semibold" data-path="modal-interactions" href="#"><span class="material-symbols-outlined text-[24px]">layers</span><span class="font-label-sm text-label-sm mt-0.5">交互模态</span></a><a class="flex flex-col items-center justify-center w-14 h-14 text-on-surface-variant hover:text-primary transition-colors" data-path="lottie-motion-guidelines" href="#"><span class="material-symbols-outlined text-[24px]">auto_awesome</span><span class="font-label-sm text-label-sm mt-0.5">动效规范</span></a></div></nav></body></html>

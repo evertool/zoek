@@ -32,7 +32,7 @@
       >
         <view class="player-avatar" style="{{item.avatarColor ? 'background:' + item.avatarColor : ''}}">{{item.nickname[0]}}</view>
         <view class="player-name">{{item.nickname}}</view>
-        <view class="pick-check" wx:if="{{selectedPlayerID === item.player_id}}">✓</view>
+        <view class="pick-check" wx:if="{{selectedPlayerID === item.player_id}}"><image src="/assets/icons/status-check-success.png" mode="aspectFit" /></view>
       </view>
     </view>
     <view class="empty-state" wx:if="{{players.length === 0}}" style="padding: 40rpx;">

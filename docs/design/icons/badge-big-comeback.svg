@@ -1,0 +1,5 @@
+<svg height="42" id="svg-badge-comeback" viewBox="0 0 48 48" width="42" xmlns="http://www.w3.org/2000/svg">
+<circle cx="24" cy="24" fill="#f0fdf4" r="21" stroke="#005235" stroke-width="2"/>
+<path d="M12 30c3-10 10-16 20-16M24 10l8 4-5 7" fill="none" stroke="#16a34a" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5"/>
+<text fill="#005235" font-size="10" font-weight="900" text-anchor="middle" x="24" y="38">+30</text>
+</svg>

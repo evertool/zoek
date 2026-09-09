@@ -1,0 +1,6 @@
+<svg height="40" id="svg-tab-history-active" viewBox="0 0 64 64" width="40" xmlns="http://www.w3.org/2000/svg">
+<circle cx="32" cy="32" fill="#005235" r="22"/>
+<circle cx="32" cy="32" fill="#1b6b4a" r="18"/>
+<polyline fill="none" points="32,18 32,32 42,32" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5"/>
+<circle cx="32" cy="32" fill="#ffdcc3" r="2"/>
+</svg>

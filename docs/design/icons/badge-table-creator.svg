@@ -1,0 +1,7 @@
+<svg height="28" id="svg-creator-crown" viewBox="0 0 32 32" width="28" xmlns="http://www.w3.org/2000/svg">
+<path d="M6 22h20l-2-12-5 6-3-9-3 9-5-6z" fill="#d97706"/>
+<circle cx="6" cy="9" fill="#f59e0b" r="2"/>
+<circle cx="16" cy="6" fill="#f59e0b" r="2"/>
+<circle cx="26" cy="9" fill="#f59e0b" r="2"/>
+<rect fill="#b45309" height="3" rx="1.5" width="20" x="6" y="22"/>
+</svg>

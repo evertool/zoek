@@ -365,6 +365,10 @@
 .done-tile {
   width: 52rpx;
   height: 52rpx;
-  font-size: 28rpx;
   margin-right: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.done-check-icon { width: 28rpx; height: 28rpx; }
+.submit-check-icon { width: 22rpx; height: 22rpx; vertical-align: middle; margin-right: 4rpx; }

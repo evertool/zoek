@@ -3,6 +3,9 @@ const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
 
+const WINDS = ['東', '南', '西', '北']
+const WIND_CLASSES = ['east', 'south', 'west', 'north']
+
 // 安全加载 lottie（npm 构建失败时不会阻断页面）
 let lottie = null
 try {
@@ -98,16 +101,24 @@ Page({
 
   loadGames() {
     return api.get('/games/active').then(res => {
-      const games = (res.games || []).map(g => {
-        return {
-          ...g,
-          statusText: util.statusText(g.status),
-          statusClass: util.statusClass(g.status),
-          roundInfo: g.current_round_number
-            ? `第${g.current_round_number}局 · 已完成${g.completed_rounds}局`
-            : `已完成${g.completed_rounds}局`
-        }
-      })
+    const games = (res.games || []).map(g => {
+      const players = (g.players || []).map((p, i) => ({
+        ...p,
+        wind: p.wind || WINDS[i] || '',
+        windClass: p.windClass || WIND_CLASSES[i] || 'east',
+        scoreClass: (p.total_score || p.score || 0) >= 0 ? 'positive' : 'negative',
+        scoreText: ((p.total_score || p.score || 0) >= 0 ? '+' : '') + (p.total_score || p.score || 0)
+      }))
+      return {
+        ...g,
+        players,
+        statusText: util.statusText(g.status),
+        statusClass: util.statusClass(g.status),
+        roundInfo: g.current_round_number
+          ? `第${g.current_round_number}局 · 已完成${g.completed_rounds}局`
+          : `已完成${g.completed_rounds}局`
+      }
+    })
       this.setData({ games, loading: false })
     }).catch(() => {
       this.setData({ loading: false })

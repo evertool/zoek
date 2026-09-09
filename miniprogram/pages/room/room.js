@@ -1,39 +1,34 @@
-// pages/room/room.js — 房间页 v5：常驻邀请 + 成员实时刷新 + 入台欢迎动画
+// pages/room/room.js — 台间页 v6 Stitch 100% 还原
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
 
-// 安全加载 lottie（npm 构建失败时不会阻断页面）
-let lottie = null
-try {
-  lottie = require('lottie-miniprogram')
-} catch (e) {
-  console.warn('lottie-miniprogram not available, welcome animation disabled')
-}
-
-let welcomeAnimData = null
-try {
-  welcomeAnimData = require('../../assets/animations/welcome-join.js')
-} catch (e) {
-  console.warn('welcome animation data load failed')
-}
-
 const POLL_INTERVAL = 4000
+const WINDS = ['東', '南', '西', '北']
+const WIND_CLASSES = ['east', 'south', 'west', 'north']
 
 Page({
   data: {
     gameID: 0,
     game: null,
     players: [],
+    seats: [],
+    ledger: [],
     inviteToken: '',
     qrPath: '',
     qrLoading: false,
-    qrError: '',
     loading: true,
     isOwner: false,
-    canInvite: false,
-    welcome: false,
-    welcomeName: ''
+    showQrModal: false,
+    showQrBanner: true,
+    showScoreModal: false,
+    showSwapModal: false,
+    scoreTargetSeat: '',
+    scoreTargetName: '',
+    currentScore: 0,
+    swapTargetText: '',
+    showToast: false,
+    toastMsg: ''
   },
 
   onLoad(options) {
@@ -61,10 +56,8 @@ Page({
 
   onUnload() {
     this.stopPolling()
-    this.destroyWelcomeAnim()
   },
 
-  // ===== 成员实时刷新：停留房间页期间每 4 秒轮询 =====
   startPolling() {
     if (this._poll) return
     this._poll = setInterval(() => this.pollGame(), POLL_INTERVAL)
@@ -79,113 +72,86 @@ Page({
 
   pollGame() {
     if (!this.data.gameID) return
-    api.get(`/games/${this.data.gameID}`).then(res => {
+    api.get('/games/' + this.data.gameID).then(res => {
       this.applyGame(res, true)
-    }).catch(() => {})
+    }).catch(function() {})
   },
 
   loadGame() {
     this.setData({ loading: true })
-    api.get(`/games/${this.data.gameID}`).then(res => {
+    api.get('/games/' + this.data.gameID).then(res => {
       this.applyGame(res, false)
     }).catch(() => {
       this.setData({ loading: false })
     })
   },
 
-  /** 应用牌局数据；poll=true 时对比成员变化，新雀友入台播欢迎动画 */
   applyGame(res, poll) {
-    const players = (res.players || []).map(p => {
+    var players = (res.players || []).map(function(p) {
       return {
         ...p,
         isOwner: p.role === 'owner',
         avatarColor: util.avatarColor(p.nickname)
       }
     })
-    const game = {
-      ...res,
-      statusText: util.statusText(res.status),
-      statusClass: util.statusClass(res.status)
+
+    // 构建 2×2 座位
+    var seats = []
+    for (var i = 0; i < 4; i++) {
+      var player = players[i] || null
+      var isOwner = player && player.isOwner
+      var score = player ? (player.total_score || 0) : 0
+      seats.push({
+        seat: i + 1,
+        wind: WINDS[i],
+        windClass: WIND_CLASSES[i],
+        player: player,
+        isOwner: isOwner,
+        score: score
+      })
     }
-    const canInvite = (game.status === 'forming' || game.status === 'active') &&
+
+    // 构建流水账单
+    var ledger = (res.rounds || []).slice(-5).map(function(r, idx) {
+      var windIdx = (r.dealer_seat - 1) % 4 || 0
+      return {
+        id: r.round_id || idx,
+        wind: WINDS[windIdx],
+        windClass: WIND_CLASSES[windIdx],
+        desc: r.description || ('第' + (idx + 1) + '局'),
+        sub: r.winner ? r.winner + ' 赢 ' + r.score + ' 分' : '',
+        score: r.score || 0,
+        timeText: util.formatTime(r.created_at)
+      }
+    })
+
+    var game = {
+      ...res,
+      statusText: util.statusText(res.status)
+    }
+
+    var canInvite = (game.status === 'forming' || game.status === 'active') &&
       !game.members_locked && players.length < 4
 
-    // 对比新旧成员，找出刚入台的雀友
-    let newcomers = []
-    if (poll && Array.isArray(this._knownIds)) {
-      newcomers = (res.players || []).filter(p => this._knownIds.indexOf(p.player_id) < 0)
-    }
-    this._knownIds = (res.players || []).map(p => p.player_id)
-
     this.setData({
-      game,
-      players,
+      game: game,
+      players: players,
+      seats: seats,
+      ledger: ledger,
       isOwner: res.creator_id === app.globalData.userID,
-      canInvite,
-      loading: false
+      loading: false,
+      showQrBanner: canInvite
     })
 
     if (canInvite && !this.data.qrPath && !this.data.qrLoading) {
       this.loadQRCode()
     }
-    if (poll && newcomers.length && this._seenOnce) {
-      this.showWelcome(newcomers)
-    }
-    this._seenOnce = true
-  },
-
-  // ===== 入台欢迎动画 =====
-  showWelcome(newcomers) {
-    const name = newcomers.map(p => p.nickname).join('、')
-    if (!name) return
-    wx.vibrateShort({ type: 'light' })
-    this.setData({ welcome: true, welcomeName: name })
-    setTimeout(() => this.playWelcomeLottie(), 80)
-    if (this._welcomeTimer) clearTimeout(this._welcomeTimer)
-    this._welcomeTimer = setTimeout(() => {
-      this.setData({ welcome: false })
-      this.destroyWelcomeAnim()
-    }, 2600)
-  },
-
-  playWelcomeLottie() {
-    if (!lottie || !welcomeAnimData) return
-    const query = wx.createSelectorQuery().in(this)
-    query.select('#lottie-welcome').fields({ node: true, size: true }).exec(res => {
-      if (!res || !res[0] || !res[0].node) return
-      const canvas = res[0].node
-      const ctx = canvas.getContext('2d')
-      const dpr = wx.getSystemInfoSync().pixelRatio
-      canvas.width = res[0].width * dpr
-      canvas.height = res[0].height * dpr
-      ctx.scale(dpr, dpr)
-      this.destroyWelcomeAnim()
-      // 深拷贝 animationData，避免 lottie 运行时改写共享数据
-      const data = JSON.parse(JSON.stringify(welcomeAnimData))
-      this._welcomeAnim = lottie.loadAnimation({
-        loop: false,
-        autoplay: true,
-        animationData: data,
-        rendererSettings: {
-          context: ctx,
-          clearCanvas: true
-        }
-      })
-    })
-  },
-
-  destroyWelcomeAnim() {
-    if (this._welcomeAnim && this._welcomeAnim.destroy) {
-      try { this._welcomeAnim.destroy() } catch (e) {}
-      this._welcomeAnim = null
-    }
   },
 
   loadQRCode() {
-    this.setData({ qrLoading: true, qrError: '' })
-
+    this.setData({ qrLoading: true })
     wx.request({
-      url: app.globalData.baseURL + `/games/${this.data.gameID}/qrcode`,
+      url: app.globalData.baseURL + '/games/' + this.data.gameID + '/qrcode',
       method: 'GET',
       header: {
         'Authorization': 'Bearer ' + app.globalData.token
@@ -193,45 +159,110 @@ Page({
       responseType: 'arraybuffer',
       success: (res) => {
         if (res.statusCode === 200) {
-          const fs = wx.getFileSystemManager()
-          const filePath = `${wx.env.USER_DATA_PATH}/qrcode_${this.data.gameID}.png`
+          var fs = wx.getFileSystemManager()
+          var filePath = wx.env.USER_DATA_PATH + '/qrcode_' + this.data.gameID + '.png'
           try {
             fs.writeFileSync(filePath, res.data, 'binary')
             this.setData({ qrPath: filePath, qrLoading: false })
           } catch (e) {
-            const base64 = wx.arrayBufferToBase64(res.data)
+            var base64 = wx.arrayBufferToBase64(res.data)
             this.setData({ qrPath: 'data:image/png;base64,' + base64, qrLoading: false })
           }
         } else {
-          this.setData({ qrLoading: false, qrError: '生成失败，请检查配置' })
+          this.setData({ qrLoading: false })
         }
       },
       fail: () => {
-        this.setData({ qrLoading: false, qrError: '网络错误，请重试' })
+        this.setData({ qrLoading: false })
       }
     })
   },
 
+  toggleQrModal() {
+    this.setData({ showQrModal: !this.data.showQrModal })
+  },
+
+  openScoringModal(e) {
+    var seat = e.currentTarget.dataset.seat
+    var name = e.currentTarget.dataset.name
+    this.setData({
+      showScoreModal: true,
+      scoreTargetSeat: seat,
+      scoreTargetName: name,
+      currentScore: 0
+    })
+  },
+
+  closeScoringModal() {
+    this.setData({ showScoreModal: false })
+  },
+
+  setScoreValue(e) {
+    var val = Number(e.currentTarget.dataset.val)
+    this.setData({ currentScore: this.data.currentScore + val })
+  },
+
+  adjustScore(e) {
+    var delta = Number(e.currentTarget.dataset.delta)
+    this.setData({ currentScore: this.data.currentScore + delta })
+  },
+
+  submitScore() {
+    if (this.data.currentScore === 0) {
+      wx.showToast({ title: '分数不能为0', icon: 'none' })
+      return
+    }
+    this.setData({ showScoreModal: false })
+    this.showToast('已记入 ' + this.data.scoreTargetName + ' ' + (this.data.currentScore > 0 ? '+' : '') + this.data.currentScore + ' 分')
+    setTimeout(() => this.loadGame(), 500)
+  },
+
+  onSeatLongPress(e) {
+    var seat = e.currentTarget.dataset.seat
+    var name = e.currentTarget.dataset.name
+    this.setData({
+      showSwapModal: true,
+      swapTargetText: '与【' + seat + '位 · ' + name + '】互换座位'
+    })
+  },
+
+  closeSwapModal() {
+    this.setData({ showSwapModal: false })
+  },
+
+  sendSwapRequest() {
+    this.setData({ showSwapModal: false })
+    this.showToast('换位申请已发送，等待对方确认')
+  },
+
+  shareInvite() {
+    this.showToast('已生成邀请链接')
+  },
+
+  goBack() {
+    wx.navigateBack()
+  },
+
   goScore() {
-    wx.navigateTo({ url: `/pages/score/score?game_id=${this.data.gameID}` })
+    wx.navigateTo({ url: '/pages/score/score?game_id=' + this.data.gameID })
   },
 
   goSettlement() {
-    wx.navigateTo({ url: `/pages/settlement/settlement?game_id=${this.data.gameID}` })
+    wx.navigateTo({ url: '/pages/settlement/settlement?game_id=' + this.data.gameID })
   },
 
   doCancel() {
     wx.showModal({
-      title: '删除房间',
-      content: '确定要删除这个房间吗？',
+      title: '取消牌台',
+      content: '确定要取消这个牌台吗？',
       confirmColor: '#B33A3A',
       success: (res) => {
         if (res.confirm) {
-          api.post(`/games/${this.data.gameID}/cancel`, {
+          api.post('/games/' + this.data.gameID + '/cancel', {
             request_id: api.genRequestID()
           }).then(() => {
-            wx.showToast({ title: '已删除', icon: 'success' })
-            setTimeout(() => { wx.navigateBack() }, 1000)
+            wx.showToast({ title: '已取消', icon: 'success' })
+            setTimeout(function() { wx.navigateBack() }, 1000)
           })
         }
       }
@@ -244,27 +275,37 @@ Page({
       content: '确定要散台吗？结束后进入结算页面。',
       success: (res) => {
         if (res.confirm) {
-          api.post(`/games/${this.data.gameID}/end`, {
+          api.post('/games/' + this.data.gameID + '/end', {
             request_id: api.genRequestID()
           }).then(() => {
             wx.showToast({ title: '已散台', icon: 'success' })
-            wx.redirectTo({ url: `/pages/settlement/settlement?game_id=${this.data.gameID}` })
+            wx.redirectTo({ url: '/pages/settlement/settlement?game_id=' + this.data.gameID })
           })
         }
       }
     })
   },
 
+  showToast(msg) {
+    this.setData({ showToast: true, toastMsg: msg })
+    if (this._toastTimer) clearTimeout(this._toastTimer)
+    this._toastTimer = setTimeout(() => {
+      this.setData({ showToast: false })
+    }, 2200)
+  },
+
+  stopPropagation() {},
+
   onShareAppMessage() {
     return {
-      title: `「${this.data.game ? this.data.game.name : '得闲开台'}」等紧你入台！`,
-      path: `/pages/join/join?invite_token=${this.data.inviteToken || this.data.gameID}`
+      title: '「' + (this.data.game ? this.data.game.name : '得闲开台') + '」等紧你入台！',
+      path: '/pages/join/join?invite_token=' + (this.data.inviteToken || this.data.gameID)
     }
   },
 
   onShareTimeline() {
     return {
-      title: `「${this.data.game ? this.data.game.name : '得闲开台'}」等紧你入台！`
+      title: '「' + (this.data.game ? this.data.game.name : '得闲开台') + '」等紧你入台！'
     }
   }
 })

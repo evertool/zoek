@@ -1,0 +1,380 @@
+<!DOCTYPE html><html lang="zh-CN" style=""><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700&amp;family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><style>@layer base{html,body{width:100%;margin:0;padding:0;background-color:#f8f9ff;-webkit-tap-highlight-color:transparent;}body{overscroll-behavior-y:none;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: 'class', theme: { extend: { colors: { 'primary': '#005235', 'secondary': '#904d00', 'tertiary-container': '#b02d29', 'surface-variant': '#d3e4fe', 'on-primary-container': '#9ce9bf', 'secondary-fixed-dim': '#ffb77d', 'inverse-on-surface': '#eaf1ff', 'on-secondary-fixed': '#2f1500', 'tertiary': '#8e1215', 'on-secondary': '#ffffff', 'primary-fixed-dim': '#8ad6ae', 'surface-dim': '#cbdbf5', 'surface': '#f8f9ff', 'primary-container': '#1b6b4a', 'on-primary': '#ffffff', 'surface-container-high': '#dce9ff', 'surface-container-lowest': '#ffffff', 'on-tertiary': '#ffffff', 'surface-container-low': '#eff4ff', 'surface-tint': '#1b6b4a', 'secondary-container': '#fe932c', 'on-error-container': '#93000a', 'on-primary-fixed': '#002113', 'tertiary-fixed-dim': '#ffb4ac', 'on-tertiary-fixed-variant': '#8e1214', 'on-error': '#ffffff', 'tertiary-fixed': '#ffdad6', 'on-surface': '#0b1c30', 'inverse-surface': '#213145', 'on-surface-variant': '#3f4943', 'on-primary-fixed-variant': '#005235', 'on-secondary-fixed-variant': '#6e3900', 'error-container': '#ffdad6', 'background': '#f8f9ff', 'outline-variant': '#bfc9c0', 'secondary-fixed': '#ffdcc3', 'primary-fixed': '#a6f3c9', 'outline': '#6f7a72', 'surface-container': '#e5eeff', 'error': '#ba1a1a', 'on-tertiary-fixed': '#410002', 'surface-container-highest': '#d3e4fe', 'surface-bright': '#f8f9ff', 'on-tertiary-container': '#ffcdc7', 'on-background': '#0b1c30', 'inverse-primary': '#8ad6ae', 'on-secondary-container': '#663500' }, borderRadius: { 'DEFAULT': '0.25rem', 'lg': '0.5rem', 'xl': '0.75rem', 'full': '9999px' }, spacing: { 'space-2xl': '2rem', 'space-xl': '1.5rem', 'space-xs': '0.5rem', 'gutter-grid': '0.75rem', 'margin-screen': '1.25rem', 'space-lg': '1.25rem', 'space-md': '1rem', 'space-3xl': '2.5rem', 'space-sm': '0.75rem', 'space-2xs': '0.25rem' }, fontFamily: { 'label-sm': ['Plus Jakarta Sans'], 'body-sm': ['Be Vietnam Pro'], 'label-md': ['Plus Jakarta Sans'], 'label-lg': ['Plus Jakarta Sans'], 'headline-lg': ['Plus Jakarta Sans'], 'body-md': ['Be Vietnam Pro'], 'display-lg-mobile': ['Plus Jakarta Sans'], 'display-lg': ['Plus Jakarta Sans'], 'score-numeral': ['Plus Jakarta Sans'], 'body-lg': ['Be Vietnam Pro'], 'headline-md': ['Plus Jakarta Sans'], 'headline-sm': ['Plus Jakarta Sans'] }, fontSize: { 'label-sm': ['10px', { 'lineHeight': '14px', 'letterSpacing': '0.04em', 'fontWeight': '500' }], 'body-sm': ['12px', { 'lineHeight': '18px', 'fontWeight': '400' }], 'label-md': ['12px', { 'lineHeight': '16px', 'letterSpacing': '0.02em', 'fontWeight': '500' }], 'label-lg': ['14px', { 'lineHeight': '20px', 'letterSpacing': '0.01em', 'fontWeight': '600' }], 'headline-lg': ['24px', { 'lineHeight': '32px', 'letterSpacing': '-0.015em', 'fontWeight': '600' }], 'body-md': ['14px', { 'lineHeight': '20px', 'fontWeight': '400' }], 'display-lg-mobile': ['28px', { 'lineHeight': '36px', 'letterSpacing': '-0.02em', 'fontWeight': '700' }], 'display-lg': ['36px', { 'lineHeight': '44px', 'letterSpacing': '-0.02em', 'fontWeight': '700' }], 'score-numeral': ['22px', { 'lineHeight': '26px', 'letterSpacing': '-0.01em', 'fontWeight': '700' }], 'body-lg': ['16px', { 'lineHeight': '24px', 'fontWeight': '400' }], 'headline-md': ['20px', { 'lineHeight': '28px', 'letterSpacing': '-0.01em', 'fontWeight': '600' }], 'headline-sm': ['18px', { 'lineHeight': '24px', 'fontWeight': '600' }] } } } };</script></head><body class="bg-surface text-on-surface font-body-md text-body-md antialiased flex flex-col min-h-screen"><header class="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] pt-safe"><div class="h-14 px-margin-screen flex items-center justify-between"><div class="flex items-center gap-space-xs"><div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">playing_cards</span></div><span class="font-headline-sm text-headline-sm text-primary-container tracking-tight">Profile Mine</span></div><div class="flex items-center gap-space-xs bg-surface-container-highest/70 rounded-full px-space-xs py-1 shadow-[0_1px_4px_rgba(0,0,0,0.04)] pr-2"><button aria-label="Mini Program Capsule Options" class="w-7 h-7 flex items-center justify-center text-on-surface hover:text-primary-container transition-colors"><span class="material-symbols-outlined text-[18px]">more_horiz</span></button><div class="w-px h-3.5 bg-outline-variant/60"></div><button aria-label="Mini Program Capsule Close" class="w-7 h-7 flex items-center justify-center text-on-surface hover:text-primary-container transition-colors"><span class="material-symbols-outlined text-[18px]">radio_button_checked</span></button></div></div></header><main class="flex-1 flex flex-col w-full max-w-[480px] mx-auto pt-14 bg-surface pb-24"><div class="flex flex-col w-full pb-8">
+<!-- Interactive Toast Notification -->
+<div class="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-inverse-surface/90 text-inverse-on-surface text-label-md font-label-md shadow-md transition-all duration-300 flex items-center gap-2 opacity-0 pointer-events-none translate-y-[-8px]" id="toast-notify">
+<span class="material-symbols-outlined text-[16px] text-primary-fixed">check_circle</span>
+<span id="toast-text" class="">本地缓存清理成功，数据已同云端拉齐</span>
+</div>
+<!-- User Profile Section -->
+<div class="px-margin-screen pt-4 pb-2">
+<div class="relative overflow-hidden rounded-xl bg-surface-container-lowest p-space-lg shadow-[0_2px_12px_-2px_rgba(0,0,0,0.03)]">
+<!-- Ambient Gentle Green Halo -->
+<div class="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-primary-fixed/20 blur-2xl pointer-events-none"></div>
+<div class="relative flex items-start gap-space-md">
+<!-- Avatar with active online ring -->
+<div class="relative flex-shrink-0">
+<div class="w-16 h-16 rounded-full overflow-hidden shadow-[0_2px_8px_rgba(27,107,74,0.12)]">
+<img alt="阿豪的头像" class="w-full h-full object-cover" data-alt="A joyful and stylish East Asian young man wearing a modern casual linen shirt smiling warmly against a soft studio backdrop with gentle morning sunlight, cinematic portrait photography style, rich natural tones and jade green accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqqr7Zx5SFAUSPAA137Z6whmP-LyARwp_4UMirQOw19cd5v-nrYg10B8uqVf_Qv7j-UpqA2f431uP1YOhpLa04Sz0JeFCiNdcjsNhseaVwq4qfU5Kob6nhuB2wvIv-4kMPHTRqKelDhRJu7Cdan0xibqX9ujABeLzSrauGv8EjX5Cn-_tpiybJHnCEGYPhUXP6PjFiWeQkbgQYBq1JFz6FgaiFKRbcL3IMDJgAWs2ra_8FY5q4OuDPFw">
+</div>
+
+</div>
+<!-- Meta info -->
+<div class="flex-1 min-w-0">
+<div class="flex items-center gap-2 flex-wrap">
+<h1 class="font-headline-md text-headline-md text-on-surface tracking-tight truncate">阿豪</h1>
+<span class="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[12px]" style="font-variation-settings: &quot;FILL&quot; 1;">verified</span>排位等级</span>
+</div>
+<!-- User Mahjong ID -->
+<div class="mt-1 flex items-center gap-1.5">
+
+
+<button aria-label="复制雀友号" class="w-5 h-5 rounded flex items-center justify-center text-outline hover:text-primary-container active:bg-surface-container transition-colors" id="copy-id-btn" onclick="copyUserId()">
+
+</button>
+</div>
+<!-- Motto -->
+
+</div>
+</div>
+</div>
+</div>
+<!-- Core Stats Dashboard Card (Lingnan Tea-table Balance) -->
+<div class="px-margin-screen mt-3">
+<div class="rounded-xl bg-surface-container-lowest p-space-md shadow-[0_2px_10px_-2px_rgba(0,0,0,0.03)]">
+<div class="grid grid-cols-3 divide-none text-center">
+<!-- Stat 1 -->
+<div class="flex flex-col items-center">
+<span class="text-label-sm font-label-sm text-outline tracking-wider uppercase mb-0.5">累计开台</span>
+<div class="flex items-baseline gap-0.5">
+<span class="text-headline-lg font-headline-lg text-on-surface tracking-tight">28</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">场</span>
+</div>
+<span class="text-label-sm font-label-sm text-primary-container mt-1 bg-primary-fixed/40 px-1.5 py-0.2 rounded">铁杆雀客</span>
+</div>
+<!-- Stat 2 -->
+<div class="flex flex-col items-center">
+<span class="text-label-sm font-label-sm text-outline tracking-wider uppercase mb-0.5">总净积分</span>
+<div class="flex items-baseline gap-0.5">
+<span class="text-headline-lg font-headline-lg text-primary-container tracking-tight">+248</span>
+<span class="text-label-sm font-label-sm text-primary-container">分</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant mt-1">均场 +8.8</span>
+</div>
+<!-- Stat 3 -->
+<div class="flex flex-col items-center">
+<span class="text-label-sm font-label-sm text-outline tracking-wider uppercase mb-0.5">胜率</span>
+<div class="flex items-baseline gap-0.5">
+<span class="text-headline-lg font-headline-lg text-on-surface tracking-tight">57.1</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">%</span>
+</div>
+<span class="text-label-sm font-label-sm text-secondary mt-1 bg-secondary-fixed/50 px-1.5 py-0.2 rounded font-medium">近7场 5胜</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Badges Wall (本台成就与荣誉徽章展架 - PRD 3.6.6) -->
+<div class="mt-6">
+<div class="px-margin-screen flex items-center justify-between mb-2.5">
+<div class="flex items-center gap-1.5">
+<div class="w-1.5 h-3.5 rounded-full bg-primary-container"></div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">雀友成就徽章</h2>
+</div>
+<button class="flex items-center text-label-md font-label-md text-primary-container hover:opacity-80 transition-opacity">
+<span class="">累计点亮 5/7 个</span>
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</button>
+</div>
+<!-- Badges Horizontal Scroller / Carousel -->
+<div class="flex gap-2.5 overflow-x-auto px-margin-screen pb-2 pt-1 no-scrollbar scroll-smooth">
+<!-- Badge 1: 雀神 (Active) -->
+<div class="flex-shrink-0 w-36 p-3 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between relative overflow-hidden group">
+<div class="absolute top-1.5 right-1.5 text-primary-container/20">
+<span class="material-symbols-outlined text-[32px]">workspace_premium</span>
+</div>
+<div>
+<div class="w-9 h-9 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed shadow-sm">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: &quot;FILL&quot; 1;">military_tech</span>
+</div>
+<h3 class="font-label-lg text-label-lg text-on-surface mt-2.5">雀神</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 line-clamp-2 leading-tight text-[11px]">累计胜场 ≥ 50场 (达成52场)</p>
+</div>
+<div class="mt-3 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="text-label-sm font-label-sm text-primary-container font-semibold">已点亮</span>
+</div>
+</div>
+<!-- Badge 2: 连胜王 (Active) -->
+<div class="flex-shrink-0 w-36 p-3 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div>
+<div class="w-9 h-9 rounded-full bg-tertiary-fixed flex items-center justify-center text-tertiary shadow-sm">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: &quot;FILL&quot; 1;">local_fire_department</span>
+</div>
+<h3 class="font-label-lg text-label-lg text-on-surface mt-2.5">连胜王</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 line-clamp-2 leading-tight text-[11px]">连续 3 场排名第 1</p>
+</div>
+<div class="mt-3 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="text-label-sm font-label-sm text-primary-container font-semibold">最高4连胜</span>
+</div>
+</div>
+<!-- Badge 3: 大翻盘赢家 (Active) -->
+<div class="flex-shrink-0 w-36 p-3 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div>
+<div class="w-9 h-9 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed shadow-sm">
+<span class="material-symbols-outlined text-[20px]">published_with_changes</span>
+</div>
+<h3 class="font-label-lg text-label-lg text-on-surface mt-2.5">大翻盘</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 line-clamp-2 leading-tight text-[11px]">单场从负转正 ≥ 30分</p>
+</div>
+<div class="mt-3 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="text-label-sm font-label-sm text-primary-container font-semibold">已达成</span>
+</div>
+</div>
+<!-- Badge 4: 稳如泰山 (Active) -->
+<div class="flex-shrink-0 w-36 p-3 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div>
+<div class="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface shadow-sm">
+<span class="material-symbols-outlined text-[20px]">landscape</span>
+</div>
+<h3 class="font-label-lg text-label-lg text-on-surface mt-2.5">稳如泰山</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 line-clamp-2 leading-tight text-[11px]">局间积分波动极小</p>
+</div>
+<div class="mt-3 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="text-label-sm font-label-sm text-primary-container font-semibold">防守高手</span>
+</div>
+</div>
+<!-- Badge 5: 常客 (Active) -->
+<div class="flex-shrink-0 w-36 p-3 rounded-xl bg-surface-container-lowest shadow-sm flex flex-col justify-between relative overflow-hidden">
+<div>
+<div class="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-primary-container shadow-sm">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: &quot;FILL&quot; 1;">table_restaurant</span>
+</div>
+<h3 class="font-label-lg text-label-lg text-on-surface mt-2.5">常客</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 line-clamp-2 leading-tight text-[11px]">累计参与 28 场牌局</p>
+</div>
+<div class="mt-3 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary-container"></span>
+<span class="text-label-sm font-label-sm text-primary-container font-semibold">活跃牌友</span>
+</div>
+</div>
+<!-- Badge 6: 铁脚 (Locked) -->
+<div class="flex-shrink-0 w-36 p-3 rounded-xl bg-surface-container-low shadow-sm flex flex-col justify-between relative opacity-60">
+<div>
+<div class="w-9 h-9 rounded-full bg-surface-container-high flex items-center justify-center text-outline shadow-sm">
+<span class="material-symbols-outlined text-[20px]">lock</span>
+</div>
+<h3 class="font-label-lg text-label-lg text-on-surface-variant mt-2.5">铁脚</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1 line-clamp-2 leading-tight text-[11px]">累计参与 ≥ 100场</p>
+</div>
+<div class="mt-3">
+<div class="w-full bg-surface-dim rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary-container h-1.5 rounded-full" style="width: 28%"></div>
+</div>
+<div class="flex justify-between items-center mt-1 text-label-sm font-label-sm text-outline">
+<span class="">进度</span>
+<span class="">28/100</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Function Menu Group 1: 偏好与互动 (WeChat Cell Group Style) -->
+<div class="px-margin-screen mt-5">
+<div class="text-label-sm font-label-sm text-outline px-1 mb-2 tracking-wide uppercase">个性化与体验</div>
+<div class="rounded-xl bg-surface-container-lowest overflow-hidden shadow-[0_2px_10px_-2px_rgba(0,0,0,0.03)]">
+<!-- Menu 1: 偏好设置 -->
+<div class="flex items-center justify-between p-4 hover:bg-surface-container-low active:bg-surface-container transition-colors cursor-pointer" onclick="toggleOption('vibrate-toggle')">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</div>
+<div>
+<div class="font-label-lg text-label-lg text-on-surface">牌局偏好设置</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant text-[11px]">默认提醒、得分播放</div>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<!-- WeChat Mini Switch Toggle -->
+<button class="w-11 h-6 rounded-full transition-colors p-0.5 relative flex items-center bg-outline-variant justify-start" id="vibrate-toggle" onclick="event.stopPropagation(); toggleSwitch(this)">
+<span class="w-5 h-5 rounded-full bg-white shadow-sm block transition-transform"></span>
+</button>
+</div>
+</div>
+<div class="h-px bg-surface-container mx-4"></div>
+<!-- Menu 2: 雀友黑名单与隐藏 -->
+<div class="flex items-center justify-between p-4 hover:bg-surface-container-low active:bg-surface-container transition-colors cursor-pointer" onclick="showToast('已载入 0 位屏蔽雀友')">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[18px]">person_off</span>
+</div>
+<div>
+<div class="font-label-lg text-label-lg text-on-surface">雀友黑名单与隐藏</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant text-[11px]">管理不想同台或隐藏战绩的牌友</div>
+</div>
+</div>
+<div class="flex items-center text-outline">
+<span class="text-label-sm font-label-sm text-on-surface-variant mr-1">无限制</span>
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</div>
+</div>
+<div class="h-px bg-surface-container mx-4"></div>
+<!-- Menu 3: 音效与特效 -->
+<div class="flex items-center justify-between p-4 hover:bg-surface-container-low active:bg-surface-container transition-colors cursor-pointer" onclick="showToast('粤语原声语音包已启用')">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined text-[18px]">volume_up</span>
+</div>
+<div>
+<div class="font-label-lg text-label-lg text-on-surface">动画音效与特效</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant text-[11px]">正宗粤语报牌、糊牌全屏欢庆</div>
+</div>
+</div>
+<div class="flex items-center text-outline">
+<span class="text-label-sm font-label-sm text-primary-container bg-primary-fixed/50 px-1.5 py-0.5 rounded mr-1">粤语配音</span>
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Function Menu Group 2: 安全守则与关于 -->
+<div class="px-margin-screen mt-4">
+<div class="text-label-sm font-label-sm text-outline px-1 mb-2 tracking-wide uppercase">平台守则与关于</div>
+<div class="rounded-xl bg-surface-container-lowest overflow-hidden shadow-[0_2px_10px_-2px_rgba(0,0,0,0.03)]">
+<!-- Menu 4: 微信安全隐私与守则 -->
+<div class="flex items-center justify-between p-4 hover:bg-surface-container-low active:bg-surface-container transition-colors cursor-pointer" onclick="showToast('纯休闲记账工具，绝不涉及真钱对付')">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[18px]">verified_user</span>
+</div>
+<div>
+<div class="font-label-lg text-label-lg text-on-surface">微信安全隐私与守则</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant text-[11px]">绿色健康娱乐、纯积分免责声明</div>
+</div>
+</div>
+<div class="flex items-center text-outline">
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</div>
+</div>
+<div class="h-px bg-surface-container mx-4"></div>
+<!-- Menu 5: 关于得闲开台 -->
+<div class="flex items-center justify-between p-4 hover:bg-surface-container-low active:bg-surface-container transition-colors cursor-pointer" onclick="showToast('得闲开台 v1.2.4 (Build 2024)')">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface">
+<span class="material-symbols-outlined text-[18px]">info</span>
+</div>
+<div>
+<div class="font-label-lg text-label-lg text-on-surface">关于得闲开台</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant text-[11px]">传承岭南茶台闲趣，无争无扰</div>
+</div>
+</div>
+<div class="flex items-center text-outline">
+<span class="text-label-sm font-label-sm text-on-surface-variant mr-1">v1.2 (正式版)</span>
+<span class="material-symbols-outlined text-[18px]">chevron_right</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Interactive Actions: 切换身份 & 清理缓存 -->
+<div class="px-margin-screen mt-6 flex flex-col gap-2.5">
+
+<button class="w-full h-11 rounded-lg bg-transparent text-outline font-label-md text-label-md flex items-center justify-center gap-1.5 hover:text-on-surface transition-colors" onclick="showToast('正在调起微信用户授权管理...')">
+
+
+</button>
+</div>
+<!-- Footer Micro Branding -->
+<div class="mt-8 text-center">
+<div class="inline-flex items-center gap-1 text-label-sm font-label-sm text-outline">
+<span class="material-symbols-outlined text-[13px] text-primary-container">spa</span>
+<span class="">佛山数匠科技·得闲饮茶·开台大吉</span>
+</div>
+</div>
+</div>
+<script>
+  // Quick Copy ID interaction
+  function copyUserId() {
+    const userIdText = document.getElementById('mahjong-id').innerText;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(userIdText);
+    }
+    showToast('雀友号已复制: ' + userIdText);
+  }
+
+  // Toast notifier
+  function showToast(msg) {
+    const toast = document.getElementById('toast-notify');
+    const toastText = document.getElementById('toast-text');
+    if (!toast || !toastText) return;
+    
+    toastText.innerText = msg;
+    toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-8px]');
+    toast.classList.add('opacity-100', 'translate-y-0');
+
+    clearTimeout(window._toastTimeout);
+    window._toastTimeout = setTimeout(() => {
+      toast.classList.remove('opacity-100', 'translate-y-0');
+      toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-8px]');
+    }, 2200);
+  }
+
+  // WeChat Switch Toggle interaction
+  function toggleSwitch(btn) {
+    const isChecked = btn.classList.contains('bg-primary-container');
+    const knob = btn.querySelector('span');
+    
+    if (isChecked) {
+      btn.classList.remove('bg-primary-container', 'justify-end');
+      btn.classList.add('bg-outline-variant', 'justify-start');
+      showToast('触感振动提醒已关闭');
+    } else {
+      btn.classList.remove('bg-outline-variant', 'justify-start');
+      btn.classList.add('bg-primary-container', 'justify-end');
+      showToast('触感振动提醒已开启');
+    }
+  }
+
+  function toggleOption(id) {
+    const btn = document.getElementById(id);
+    if (btn) toggleSwitch(btn);
+  }
+
+  // Sync cache simulation
+  function simulateSync(btn) {
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `
+      <span class="material-symbols-outlined text-[18px] text-primary-container animate-spin">progress_activity</span>
+      <span>正在同步云端记录...</span>
+    `;
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+      showToast('本地缓存清理成功，数据已同云端拉齐');
+    }, 1100);
+  }
+
+  // Update Shell active tab highlight on 4th tab (Profile/Mine)
+  (function setActiveTab() {
+    const navLinks = document.querySelectorAll('nav a');
+    navLinks.forEach((link, idx) => {
+      if (idx === 3 || link.getAttribute('data-path') === 'profile-mine') {
+        link.classList.remove('text-on-surface-variant');
+        link.classList.add('text-primary-container', 'font-semibold');
+        const icon = link.querySelector('.material-symbols-outlined');
+        if (icon) {
+          icon.style.fontVariationSettings = "'FILL' 1";
+        }
+      } else {
+        link.classList.remove('text-primary-container', 'font-semibold');
+        link.classList.add('text-on-surface-variant');
+        const icon = link.querySelector('.material-symbols-outlined');
+        if (icon) {
+          icon.style.fontVariationSettings = "'FILL' 0";
+        }
+      }
+    });
+  })();
+</script></main><nav class="fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/95 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.04)]" data-active-classes="text-primary-container font-semibold"><div class="grid grid-cols-4 items-center h-16 max-w-[480px] mx-auto px-space-xs"><a class="flex flex-col items-center justify-center py-1 text-on-surface-variant hover:text-primary-container transition-colors" data-path="match-room" href="#"><span class="material-symbols-outlined text-[24px]">grid_view</span><span class="font-label-sm text-label-sm mt-0.5">牌局</span></a><a class="flex flex-col items-center justify-center py-1 text-on-surface-variant hover:text-primary-container transition-colors" data-path="leaderboard" href="#"><span class="material-symbols-outlined text-[24px]">military_tech</span><span class="font-label-sm text-label-sm mt-0.5">雀友榜</span></a><a class="flex flex-col items-center justify-center py-1 text-on-surface-variant hover:text-primary-container transition-colors" data-path="game-history" href="#"><span class="material-symbols-outlined text-[24px]">history</span><span class="font-label-sm text-label-sm mt-0.5">翻记录</span></a><a aria-current="page" class="flex flex-col items-center justify-center py-1 transition-colors text-primary-container font-semibold" data-path="profile-mine" href="#"><span class="material-symbols-outlined text-[24px]">person</span><span class="font-label-sm text-label-sm mt-0.5">我</span></a></div></nav></body></html>

@@ -1,36 +1,159 @@
-<!--pages/history/history.wxml — 对局记录列表 v4 白底卡通版-->
+<!--pages/history/history.wxml — 开台手账 v6 Stitch 100% 还原-->
 <view class="page">
-  <!-- 空状态 -->
-  <view class="empty-state" wx:if="{{games.length === 0 && !loading}}">
+  <!-- 固定 Header -->
+  <view class="stitch-header pt-safe">
+    <view class="stitch-header-inner">
+      <view class="stitch-header-brand">
+        <view class="stitch-header-logo"><image class="stitch-header-logo-icon" src="/assets/icons/app-icon-hongzhong.png" mode="aspectFit" /></view>
+        <text class="stitch-header-title">Game History</text>
+      </view>
+      <view class="header-capsule">
+        <view class="header-capsule-btn"><text>···</text></view>
+        <view class="header-capsule-divider"></view>
+        <view class="header-capsule-btn"><text>●</text></view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 未登录 -->
+  <view class="empty-state" wx:if="{{!isLoggedIn}}">
     <view class="empty-tile mj-tile mj-tile-green anim-float">記</view>
-    <view class="empty-text">未有对局记录</view>
-    <view class="text-secondary" style="margin-top: 8rpx;">打完牌散台后就會出现</view>
+    <view class="empty-text">未登入</view>
+    <view class="text-secondary" style="margin-top: 8rpx;">登入后查看对局记录</view>
+    <button class="btn-primary login-btn anim-fade-up delay-2" bindtap="doLogin">微信登入</button>
   </view>
 
-  <!-- 记录列表 -->
-  <view class="game-card anim-fade-up" wx:for="{{games}}" wx:key="game_id" bindtap="goSettlement" data-id="{{item.game_id}}">
-    <view class="card-tile mj-tile mj-tile-green">局</view>
-    <view class="card-body">
-      <view class="card-top">
-        <view class="card-name">{{item.name}}</view>
-        <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
+  <block wx:if="{{isLoggedIn}}">
+    <view class="main-content">
+      <!-- 标题区 -->
+      <view class="hs-title-section anim-fade-up">
+        <view class="hs-title-row">
+          <view class="hs-title-left">
+            <view class="hs-title-row-inner">
+              <text class="hs-title">开台手账</text>
+              <view class="hs-title-badge">雀局档案</view>
+            </view>
+            <text class="hs-subtitle">清清楚楚 · 雀叙手账 · 一目了然</text>
+          </view>
+          <view class="hs-month-filter" bindtap="toggleMonthFilter">
+            <image class="hs-month-icon" src="/assets/icons/score-statement-history.png" mode="aspectFit" />
+            <text class="hs-month-text">{{currentMonthText}}</text>
+            <text class="hs-month-arrow">▾</text>
+          </view>
+        </view>
       </view>
-      <view class="card-bottom">
-        <text class="text-secondary">{{item.completed_rounds}}局</text>
-        <text class="card-time">{{item.timeText}}</text>
+
+      <!-- 本月概览 -->
+      <view class="hs-overview anim-fade-up delay-1">
+        <view class="hs-overview-glow"></view>
+        <view class="hs-overview-header">
+          <view class="hs-overview-left">
+            <view class="hs-overview-icon-wrap"><image class="hs-overview-icon" src="/assets/icons/table-balance-zero-sum.png" mode="aspectFit" /></view>
+            <text class="hs-overview-title">本月概览</text>
+          </view>
+          <view class="hs-overview-sync">
+            <image class="hs-sync-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+            <text class="hs-sync-text">已同步{{overview.games}}场实录</text>
+          </view>
+        </view>
+        <view class="hs-overview-grid">
+          <view class="hs-overview-cell">
+            <text class="hs-cell-label">开台场次</text>
+            <view class="hs-cell-val-row">
+              <text class="hs-cell-val">{{overview.games}}</text>
+              <text class="hs-cell-unit">场</text>
+            </view>
+          </view>
+          <view class="hs-overview-cell hs-overview-cell-highlight">
+            <text class="hs-cell-label text-primary">总净积分</text>
+            <view class="hs-cell-val-row">
+              <text class="hs-cell-val text-positive">{{overview.score >= 0 ? '+' : ''}}{{overview.score}}</text>
+              <text class="hs-cell-unit text-primary">分</text>
+            </view>
+          </view>
+          <view class="hs-overview-cell">
+            <text class="hs-cell-label">胜率表现</text>
+            <view class="hs-cell-val-row">
+              <text class="hs-cell-val" style="color: var(--secondary);">{{overview.win_rate}}%</text>
+            </view>
+          </view>
+        </view>
       </view>
-    </view>
-    <view class="card-ops">
-      <view class="card-delete" catchtap="doHide" data-id="{{item.game_id}}">删除</view>
-      <view class="card-arrow">›</view>
-    </view>
-  </view>
 
-  <view class="load-tip" wx:if="{{!hasMore && games.length > 0}}">
-    已经见底啦
-  </view>
+      <!-- 筛选栏 -->
+      <view class="hs-filter-bar anim-fade-up delay-2">
+        <view class="hs-filter-tabs">
+          <view class="hs-filter-tab active"><text>全部对局</text></view>
+          <view class="hs-filter-tab"><text>只看赢局</text></view>
+          <view class="hs-filter-tab"><text>只看输局</text></view>
+        </view>
+        <text class="hs-filter-count">共 {{total}} 组记录</text>
+      </view>
 
-  <view class="load-tip" wx:if="{{loading}}">
-    加载中...
-  </view>
+      <!-- 空状态 -->
+      <view class="empty-state hs-empty" wx:if="{{games.length === 0 && !loading}}">
+        <view class="empty-tile mj-tile mj-tile-green anim-float">記</view>
+        <view class="empty-text">未有对局记录</view>
+        <view class="text-secondary" style="margin-top: 8rpx;">打完牌散台后就會出现</view>
+      </view>
+
+      <!-- 记录列表（按时间分组） -->
+      <view class="hs-records">
+        <view class="hs-record-group" wx:for="{{groups}}" wx:for-item="group" wx:key="date">
+          <view class="hs-group-header">
+            <view class="hs-group-left">
+              <view class="hs-group-dot hs-group-dot-{{group.dotClass}}"></view>
+              <text class="hs-group-date">{{group.date}}</text>
+              <view class="hs-group-tag" wx:if="{{group.tagText}}">{{group.tagText}}</view>
+            </view>
+            <text class="hs-group-sub">{{group.subText}}</text>
+          </view>
+
+          <view class="hs-record-card" wx:for="{{group.items}}" wx:for-item="item" wx:key="game_id" bindtap="goSettlement" data-id="{{item.game_id}}">
+            <view class="hs-card-top">
+              <view class="hs-card-info">
+                <view class="hs-card-time-row">
+                  <text class="hs-card-time">{{item.timeText}}</text>
+                  <view class="hs-card-status"><image class="hs-status-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" /><text>{{item.statusText}}</text></view>
+                </view>
+                <view class="hs-card-meta">
+                  <text class="hs-meta-item"><text class="hs-meta-icon">⏱</text>{{item.duration}}</text>
+                  <text class="hs-meta-dot">·</text>
+                  <text class="hs-meta-players">雀友: {{item.playersText}}</text>
+                </view>
+              </view>
+              <view class="hs-card-score">
+                <text class="hs-score-val {{item.my_score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.my_score >= 0 ? '+' : ''}}{{item.my_score}}</text>
+                <view class="hs-score-tag hs-score-tag-win" wx:if="{{item.my_rank === 1}}"><image class="hs-score-tag-icon" src="/assets/icons/rank-1-god-crown.png" mode="aspectFit" /><text>本台冠军</text></view>
+                <view class="hs-score-tag hs-score-tag-normal" wx:else><text>第 {{item.my_rank}} 名</text></view>
+              </view>
+            </view>
+            <view class="hs-card-footer">
+              <view class="hs-card-status-text {{item.has_adjustment ? 'hs-status-adjustment' : ''}}">
+                <text class="hs-status-text-icon" wx:if="{{item.has_adjustment}}"><image src="/assets/icons/score-compensate-out.png" mode="aspectFit" /></text>
+                <text class="hs-status-text-icon" wx:else><image src="/assets/icons/sys-shield-security.png" mode="aspectFit" /></text>
+                <text>{{item.footerText}}</text>
+              </view>
+              <view class="hs-card-detail">
+                <text>{{item.detailText}}</text>
+                <text class="hs-card-arrow">›</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 底部签名 -->
+      <view class="hs-footer">
+        <view class="hs-footer-line"></view>
+        <image class="hs-footer-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+        <view class="hs-footer-line"></view>
+      </view>
+      <text class="hs-footer-text">只记录现场积分 · 不设金钱交易</text>
+      <text class="hs-footer-sub">悠悠茶香 雀叙情长</text>
+    </view>
+  </block>
+
+  <view class="load-tip" wx:if="{{loading}}">加载中...</view>
+  <view class="load-tip" wx:if="{{!hasMore && games.length > 0}}">已经见底啦</view>
 </view>

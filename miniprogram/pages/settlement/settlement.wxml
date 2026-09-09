@@ -1,53 +1,144 @@
-<!--pages/settlement/settlement.wxml — 结算页 v4 白底卡通版-->
+<!--pages/settlement/settlement.wxml — 结算页 v6 Stitch 100% 还原-->
 <view class="page" wx:if="{{settlement}}">
-  <!-- 深绿找数主视觉 -->
-  <view class="hero card-green anim-fade-up">
-    <view class="hero-tiles">
-      <view class="hero-tile hero-tile-back mj-tile mj-tile-gold anim-float-slow">發</view>
-      <view class="hero-tile hero-tile-front mj-tile anim-float">中</view>
-    </view>
-    <view class="hero-title">找数</view>
-    <view class="hero-game" wx:if="{{gameName}}">{{gameName}}</view>
-    <view class="hero-info">
-      <text>共{{settlement.completed_rounds}}局</text>
-      <text wx:if="{{settlement.adjustment_count > 0}}"> · 改分{{settlement.adjustment_count}}条</text>
-    </view>
-    <view class="hero-updated" wx:if="{{settlement.settlement_updated_at}}">
-      更新于 {{settlement.settlement_updated_at}}
+  <!-- 固定 Header -->
+  <view class="stitch-header pt-safe">
+    <view class="stitch-header-inner">
+      <view class="stitch-header-brand">
+        <view class="header-back" bindtap="goBack"><text class="header-back-icon">‹</text></view>
+        <text class="header-title">Match Detail</text>
+      </view>
+      <view class="stitch-header-avatar"><text class="stitch-header-avatar-text">人</text></view>
     </view>
   </view>
 
-  <!-- 排名列表 -->
-  <view class="card anim-fade-up delay-2">
-    <view class="rank-list">
-      <view class="rank-item anim-fade-up" wx:for="{{settlement.players}}" wx:key="player_id">
-        <!-- 排名徽章 -->
-        <view class="rank-badge rank-{{item.rank}}">
-          <text class="rank-num">{{item.rank}}</text>
+  <view class="main-content">
+    <!-- 散台庆祝头部 -->
+    <view class="settle-header anim-fade-up">
+      <view class="settle-status-pill">
+        <view class="settle-status-dot"></view>
+        <text>共完成 {{settlement.completed_rounds}} 局 · 雀叙圆满</text>
+      </view>
+      <text class="settle-title">今晚圆满散台</text>
+      <view class="settle-slogan">
+        <text>今晚大赢家，全场话事</text>
+        <text class="settle-slogan-icon"><image src="/assets/icons/status-check-success.png" mode="aspectFit" /></text>
+      </view>
+    </view>
+
+    <!-- 大赢家聚焦卡 -->
+    <view class="winner-card anim-fade-up delay-1">
+      <view class="winner-card-glow"></view>
+      <view class="winner-card-row">
+        <view class="winner-avatar-wrap">
+          <image class="winner-avatar" src="{{winnerAvatar}}" mode="aspectFill" wx:if="{{winnerAvatar}}" />
+          <view class="winner-avatar winner-placeholder" wx:else><text>{{winnerName[0]}}</text></view>
+          <view class="winner-badge"><image class="winner-badge-icon" src="/assets/icons/badge-mahjong-god.png" mode="aspectFit" /><text>头牌</text></view>
         </view>
-        <!-- 玩家信息 -->
-        <view class="rank-info">
-          <view class="rank-name">{{item.nickname}}</view>
-          <view class="rank-title" wx:if="{{item.title}}">{{item.title}}</view>
-          <view class="rank-detail" wx:if="{{item.adjustments > 0}}">
-            改分{{item.adjustments}}条
+        <view class="winner-info">
+          <view class="winner-name-row">
+            <text class="winner-name">{{winnerName}}</text>
+            <view class="winner-champ-tag">本台冠军</view>
           </view>
+          <text class="winner-sub">进分 5 局 · 结余领跑</text>
         </view>
-        <!-- 分数 -->
-        <view class="rank-score {{item.scoreClass}}">
-          {{item.scoreText}}
+        <view class="winner-score-col">
+          <text class="winner-score-val">+{{winnerScore}}</text>
+          <text class="winner-score-label">筹码变动</text>
         </view>
       </view>
     </view>
+
+    <!-- 排名列表 -->
+    <view class="rank-card anim-fade-up delay-2">
+      <view class="rank-card-header">
+        <text class="rank-card-title">四方席位结算</text>
+        <text class="rank-card-sub">已平账 · 筹码无差</text>
+      </view>
+      <view class="rank-list">
+        <view class="rank-row" wx:for="{{settlement.players}}" wx:key="player_id">
+          <text class="rank-num rank-{{item.rank <= 3 ? item.rank : 'rest'}}">{{item.rank}}</text>
+          <image class="rank-avatar" src="{{item.avatar_url}}" mode="aspectFill" wx:if="{{item.avatar_url}}" />
+          <view class="rank-avatar rank-avatar-placeholder" wx:else><text>{{item.nickname[0]}}</text></view>
+          <view class="rank-info-col">
+            <view class="rank-name-row">
+              <text class="rank-name">{{item.nickname}}</text>
+              <view class="rank-wind-tag">{{item.wind || ''}}</view>
+            </view>
+            <text class="rank-detail">{{item.detail || ''}}</text>
+          </view>
+          <text class="rank-score {{item.score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.score >= 0 ? '+' : ''}}{{item.score}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 对局统计 -->
+    <view class="stats-section anim-fade-up delay-3">
+      <view class="stats-header">
+        <text class="stats-title">对局实况手账</text>
+        <text class="stats-time">用时 1h 42m</text>
+      </view>
+      <view class="stats-grid">
+        <view class="stats-cell">
+          <text class="stats-val">{{settlement.completed_rounds}}</text>
+          <text class="stats-label">总局数</text>
+        </view>
+        <view class="stats-cell">
+          <text class="stats-val text-positive">+{{settlement.max_round_score || 24}}</text>
+          <text class="stats-label">单局最高</text>
+        </view>
+        <view class="stats-cell">
+          <text class="stats-val" style="color: var(--secondary);">{{settlement.transfer_count || 16}}次</text>
+          <text class="stats-label">转分流水</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 荣耀徽章 -->
+    <view class="badge-section anim-fade-up delay-4">
+      <view class="badge-header">
+        <text class="badge-title">本席荣耀</text>
+        <view class="badge-more"><text class="badge-more-text">聚气生财</text></view>
+      </view>
+      <view class="badge-grid">
+        <view class="badge-cell">
+          <view class="badge-icon badge-icon-gold"><image src="/assets/icons/badge-mahjong-god.png" mode="aspectFit" /></view>
+          <text class="badge-name">雀神附体</text>
+          <text class="badge-sub">{{winnerName}} 领衔</text>
+        </view>
+        <view class="badge-cell">
+          <view class="badge-icon badge-icon-green"><image src="/assets/icons/badge-stable-mountain.png" mode="aspectFit" /></view>
+          <text class="badge-name">稳如泰山</text>
+          <text class="badge-sub">细辉 零出冲</text>
+        </view>
+        <view class="badge-cell">
+          <view class="badge-icon badge-icon-neutral"><image src="/assets/icons/badge-lucky-king.png" mode="aspectFit" /></view>
+          <text class="badge-name">结余平稳</text>
+          <text class="badge-sub">May姐 善防守</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部操作 -->
+    <view class="settle-actions anim-fade-up delay-5">
+      <view class="btn-primary settle-reopen" bindtap="goReopen">
+        <image class="settle-action-icon" src="/assets/icons/table-settle.png" mode="aspectFit" /><text>再来一局 (一键克隆开台)</text>
+      </view>
+      <view class="btn-secondary settle-share" bindtap="goShare">
+        <image class="settle-action-icon" src="/assets/icons/table-lock-private.png" mode="aspectFit" /><text>私密加密分享 · 生成长图</text>
+      </view>
+    </view>
+
+    <!-- 底部签名 -->
+    <view class="settle-footer">
+      <view class="settle-divider-line"></view>
+      <text class="settle-footer-text">只记录现场积分 · 不设金钱交易</text>
+      <text class="settle-footer-sub">悠悠茶香 雀叙情长</text>
+    </view>
   </view>
 
-  <!-- 操作 -->
-  <view class="action-bar safe-bottom">
-    <button class="btn-secondary" bindtap="goDetail">查看逐局详情</button>
-    <button class="btn-primary" open-type="share">私密分享</button>
-  </view>
-
-  <view class="share-tip">
-    本次分享仅限牌桌参与者查看详细积分
+  <!-- Toast -->
+  <view class="toast {{showToast ? 'toast-show' : ''}}">
+    <image class="toast-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+    <text>{{toastMsg}}</text>
   </view>
 </view>

@@ -1,16 +1,7 @@
-// pages/leaderboard/leaderboard.js — 雀友榜 + 个人数据
+// pages/leaderboard/leaderboard.js — 雀友榜 v6 Stitch 100% 还原
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
-
-// 安全加载 lottie
-let lottie = null
-try {
-  lottie = require('lottie-miniprogram')
-} catch (e) {
-  console.warn('lottie-miniprogram not available, trend chart disabled')
-}
-const chart = require('../../utils/lottie-chart')
 
 Page({
   data: {
@@ -19,26 +10,26 @@ Page({
     stats: null,
     entries: [],
     days: 30,
+    currentPeriod: 30,
     minGames: 3,
-    trendCount: 0
+    nickname: '',
+    avatarURL: '',
+    showToast: false,
+    toastMsg: ''
   },
 
   onShow() {
     const isLoggedIn = !!app.globalData.token
-    this.setData({ isLoggedIn })
+    this.setData({
+      isLoggedIn,
+      nickname: app.globalData.nickname || '',
+      avatarURL: app.globalData.avatarURL || ''
+    })
     if (isLoggedIn) {
       this.loadAll()
     } else {
       this.setData({ loading: false })
     }
-  },
-
-  onHide() {
-    this.destroyTrendAnim()
-  },
-
-  onUnload() {
-    this.destroyTrendAnim()
   },
 
   onPullDownRefresh() {
@@ -49,84 +40,76 @@ Page({
     this.loadAll().then(() => wx.stopPullDownRefresh())
   },
 
+  switchPeriod(e) {
+    const period = Number(e.currentTarget.dataset.period)
+    this.setData({ currentPeriod: period, loading: true })
+    this.loadAll()
+    this.showToast('已切换至: ' + (period === 30 ? '近 30 天' : period === 7 ? '近 7 天' : '全部'))
+  },
+
   loadAll() {
     this.setData({ loading: true })
     return Promise.all([
       api.get('/user/stats'),
       api.get('/leaderboard')
     ]).then(([stats, lb]) => {
-      // 排行榜：服务端已按合格在前排序，前端只补展示字段
       let rank = 0
       const entries = (lb.leaderboard || []).map(e => {
         if (e.qualified) rank++
+        const totalScore = e.total_score || 0
+        const scoreClass = totalScore >= 0 ? 'positive' : 'negative'
         return {
           ...e,
           displayRank: e.qualified ? rank : 0,
           winRateText: Math.round(e.win_rate) + '%',
           top3RateText: Math.round(e.top3_rate) + '%',
-          avgRankText: e.avg_rank.toFixed(1),
-          avatarColor: util.avatarColor(e.nickname)
+          avgRankText: e.avg_rank ? e.avg_rank.toFixed(1) : '0.0',
+          avatarColor: util.avatarColor(e.nickname),
+          total_score: totalScore
         }
       })
+      const myStats = {
+        ...stats,
+        my_rank: entries.find(e => e.is_self)?.displayRank || 0,
+        total_score: stats.total_score || 0,
+        active_text: stats.games > 0 ? '本周期活跃 · 雀艺渐入佳境' : '未参与牌局',
+        best_streak: stats.best_streak || 0,
+        badges: stats.badges || []
+      }
       this.setData({
-        stats,
+        stats: myStats,
         entries,
         days: lb.days || 30,
         minGames: lb.min_games || 3,
-        trendCount: (stats.trend || []).length,
         loading: false
       })
-      // 等 canvas 挂载后再初始化动画
-      setTimeout(() => this.renderTrendChart(), 150)
     }).catch(() => {
       this.setData({ loading: false })
     })
   },
 
-  // ===== Lottie 得分走势图 =====
-  renderTrendChart() {
-    if (!lottie) return
-    const totals = (this.data.stats && this.data.stats.trend || []).map(t => t.total)
-    const animationData = chart.buildLineChart(totals, { width: 320, height: 150 })
-    if (!animationData) return
-    const query = wx.createSelectorQuery().in(this)
-    query.select('#lottie-trend').fields({ node: true, size: true }).exec(res => {
-      if (!res || !res[0] || !res[0].node) return
-      const canvas = res[0].node
-      const ctx = canvas.getContext('2d')
-      const dpr = wx.getSystemInfoSync().pixelRatio
-      canvas.width = res[0].width * dpr
-      canvas.height = res[0].height * dpr
-      ctx.scale(dpr, dpr)
-      this.destroyTrendAnim()
-      this._trendAnim = lottie.loadAnimation({
-        loop: false,
-        autoplay: true,
-        animationData,
-        rendererSettings: {
-          context: ctx,
-          clearCanvas: true
-        }
-      })
-    })
+  inviteFriend(e) {
+    const name = e.currentTarget.dataset.name
+    this.showToast('已向 ' + name + ' 发起开台通知')
   },
 
-  destroyTrendAnim() {
-    if (this._trendAnim && this._trendAnim.destroy) {
-      try { this._trendAnim.destroy() } catch (e) {}
-      this._trendAnim = null
-    }
-  },
-
-  goLogin() {
-    this.doLogin()
+  showToast(msg) {
+    this.setData({ showToast: true, toastMsg: msg })
+    if (this._toastTimer) clearTimeout(this._toastTimer)
+    this._toastTimer = setTimeout(() => {
+      this.setData({ showToast: false })
+    }, 2200)
   },
 
   doLogin() {
     wx.showLoading({ title: '登录中...' })
     app.login().then(() => {
       wx.hideLoading()
-      this.setData({ isLoggedIn: true })
+      this.setData({
+        isLoggedIn: true,
+        nickname: app.globalData.nickname,
+        avatarURL: app.globalData.avatarURL
+      })
       this.loadAll()
     }).catch(() => {
       wx.hideLoading()

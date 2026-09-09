@@ -1,50 +1,27 @@
-<!--pages/index/index.wxml — 首页 v4 白底卡通版-->
-
+<!--pages/index/index.wxml — 首页 v6 Stitch 100% 还原-->
 <view class="page">
-
   <!-- ===== 未登录：品牌开屏页 ===== -->
   <view class="login-hero" wx:if="{{!isLoggedIn}}">
-
-    <!-- 麻将牌从天而降动画区 -->
     <view class="tile-rain-area">
-      <!-- Lottie 背景装饰动画（可选） -->
       <view class="lottie-wrap" wx:if="{{!lottieError}}">
         <canvas id="lottie-login" type="2d" class="lottie-canvas"></canvas>
       </view>
-
-      <!-- CSS 麻将牌从各方向飞入 + 弹跳 -->
       <view class="tile-rain-stage">
         <view class="hero-aura"></view>
-        <!-- 牌1: 發 — 从正上方掉落 -->
         <view class="mj-tile rain-tile rain-tile-1 mj-tile-green anim-drop-1">發</view>
-        <!-- 牌2: 中 — 从左上方弧形飞入 -->
         <view class="mj-tile rain-tile rain-tile-2 mj-tile-red anim-drop-2">中</view>
-        <!-- 牌3: 白板 — 从右上方弧形飞入（空白牌面+内框） -->
-        <view class="mj-tile rain-tile rain-tile-3 mj-tile-blank anim-drop-3">
-          <view class="blank-inner"></view>
-        </view>
-        <!-- 牌4: 南 — 从左下方飞入 -->
+        <view class="mj-tile rain-tile rain-tile-3 mj-tile-blank anim-drop-3"><view class="blank-inner"></view></view>
         <view class="mj-tile rain-tile rain-tile-4 mj-tile-gold anim-drop-4">南</view>
-        <!-- 牌5: 北 — 从右下方飞入 -->
         <view class="mj-tile rain-tile rain-tile-5 mj-tile-red anim-drop-5">北</view>
-        <!-- 牌6: 東 — 从正上方延迟掉落 -->
         <view class="mj-tile rain-tile rain-tile-6 mj-tile-green anim-drop-6">東</view>
       </view>
     </view>
-
-    <!-- 品牌名 -->
     <view class="hero-brand anim-fade-up delay-5">得闲开台</view>
-
-    <!-- 标语 -->
-    <view class="hero-slogan anim-fade-up delay-6">粤语麻将记分神器</view>
+    <view class="hero-slogan anim-fade-up delay-6">粤语麻雀记分神器</view>
     <view class="hero-sub anim-fade-up delay-7">自己记自己嘅分，零和校验唔使争拗</view>
-
-    <!-- 登录按钮 -->
     <view class="login-btn-wrap anim-fade-up delay-8">
       <button class="btn-primary login-btn" bindtap="doLogin">微信登入</button>
     </view>
-
-    <!-- 底部品牌印记 -->
     <view class="hero-footer anim-fade-up delay-8">
       <view class="footer-line"></view>
       <text class="footer-text">雀友一齐打，分数唔用争</text>
@@ -54,87 +31,143 @@
 
   <!-- ===== 已登录 ===== -->
   <block wx:if="{{isLoggedIn}}">
-
-    <!-- 品牌头部 -->
-    <view class="brand-bar anim-fade-up">
-      <view class="brand-bar-tile mj-tile mj-tile-red anim-float">中</view>
-      <view class="brand-bar-text">
-        <view class="brand-bar-name">得闲开台</view>
-        <view class="brand-bar-sub">雀友，开台啦</view>
-      </view>
-    </view>
-
-    <!-- 完善资料 -->
-    <view class="card profile-card" wx:if="{{needProfile}}">
-      <view class="section-title">完善资料</view>
-      <view class="text-secondary profile-tip">开台之前，先俾雀友认得你</view>
-      <button class="avatar-chooser" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
-        <image class="avatar-img" src="{{tempAvatar}}" mode="aspectFill" wx:if="{{tempAvatar}}" />
-        <view class="avatar-placeholder" wx:else>
-          <text class="avatar-placeholder-icon">+</text>
-          <text class="avatar-placeholder-text">选头像</text>
-        </view>
-      </button>
-      <input
-        class="text-input"
-        type="nickname"
-        placeholder="输入昵称"
-        placeholder-class="input-placeholder"
-        value="{{tempNickname}}"
-        bindinput="onNicknameInput"
-        maxlength="20"
-      />
-      <button class="btn-green save-profile-btn" bindtap="doSaveProfile">保存资料</button>
-    </view>
-
-    <!-- 开台入口 -->
-    <view class="create-card anim-fade-up delay-2" bindtap="goCreate" wx:if="{{!needProfile}}">
-      <view class="create-card-bg"></view>
-      <view class="create-left">
-        <view class="create-title">开台</view>
-        <view class="create-desc">开新牌桌，邀请雀友入台</view>
-      </view>
-      <view class="create-tiles">
-        <view class="mj-tile mj-tile-green create-tile create-tile-1 anim-float">東</view>
-        <view class="mj-tile mj-tile-gold create-tile create-tile-2 anim-float-slow">南</view>
-        <view class="mj-tile mj-tile-red create-tile create-tile-3 anim-float">中</view>
-      </view>
-      <view class="create-arrow">›</view>
-    </view>
-
-    <!-- 进行中牌局 -->
-    <block wx:if="{{!needProfile}}">
-      <view class="section-header anim-fade-up delay-3" wx:if="{{games.length > 0}}">
-        <text class="section-title">进行中</text>
-        <view class="section-count">
-          <text class="count-num">{{games.length}}</text>
-          <text class="count-text">局</text>
-        </view>
-      </view>
-
-      <view class="game-card anim-fade-up" wx:for="{{games}}" wx:key="game_id" bindtap="goRoom" data-id="{{item.game_id}}">
-        <view class="game-card-top">
-          <view class="game-name">{{item.name}}</view>
-          <view class="tag {{item.statusClass}}">{{item.statusText}}</view>
-        </view>
-        <view class="game-card-bottom">
-          <view class="game-round-info">
-            <view class="mj-tile mj-tile-green game-round-tile">{{item.current_round_number || item.completed_rounds}}</view>
-            <text class="game-round-text">{{item.roundInfo}}</text>
+    <!-- 固定毛玻璃 Header -->
+    <view class="stitch-header pt-safe">
+      <view class="stitch-header-inner">
+        <view class="stitch-header-brand">
+          <view class="stitch-header-logo">
+            <image class="stitch-header-logo-icon" src="/assets/icons/app-icon-hongzhong.png" mode="aspectFit" />
           </view>
-          <view class="game-card-ops">
-            <text class="text-secondary game-players">{{item.player_count}}位雀友</text>
-            <view class="game-delete" catchtap="doDelete" data-id="{{item.game_id}}">删除</view>
+          <view class="stitch-header-text-group">
+            <view class="stitch-header-title">得闲开台</view>
+            <view class="stitch-header-subtitle">今铺我赢晒！</view>
+          </view>
+        </view>
+        <view class="stitch-header-avatar">
+          <text class="stitch-header-avatar-text">人</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 主内容区 -->
+    <view class="main-content">
+      <!-- 完善资料卡 -->
+      <view class="card profile-card anim-fade-up" wx:if="{{needProfile}}">
+        <view class="profile-card-title">完善资料</view>
+        <view class="text-secondary profile-tip">开台之前，先俾雀友认得你</view>
+        <button class="avatar-chooser" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+          <image class="avatar-img" src="{{tempAvatar}}" mode="aspectFill" wx:if="{{tempAvatar}}" />
+          <view class="avatar-placeholder" wx:else>
+            <text class="avatar-placeholder-icon">+</text>
+            <text class="avatar-placeholder-text">选头像</text>
+          </view>
+        </button>
+        <input class="text-input" type="nickname" placeholder="输入昵称" placeholder-class="input-placeholder" value="{{tempNickname}}" bindinput="onNicknameInput" maxlength="20" />
+        <button class="btn-primary save-profile-btn" bindtap="doSaveProfile">保存资料</button>
+      </view>
+
+      <!-- 开台入口卡 -->
+      <view class="create-card anim-fade-up delay-2" bindtap="goCreate" wx:if="{{!needProfile}}">
+        <view class="create-card-top">
+          <view class="create-info">
+            <view class="create-title">一键快速开台</view>
+            <view class="create-desc">无需复杂设置 · 扫码秒速入座</view>
+          </view>
+          <view class="create-icon">
+            <image class="create-icon-img" src="/assets/icons/table-settle.png" mode="aspectFit" />
+          </view>
+        </view>
+        <view class="create-btn-wrap">
+          <view class="create-btn">
+            <image class="create-btn-icon" src="/assets/icons/stepper-plus.png" mode="aspectFit" />
+            <text class="create-btn-text">即刻开台</text>
           </view>
         </view>
       </view>
 
-      <!-- 空状态 -->
-      <view class="empty-state anim-fade-up delay-4" wx:if="{{games.length === 0 && !loading}}">
-        <view class="mj-tile mj-tile-green empty-tile anim-float">白</view>
-        <view class="empty-text">未有进行中嘅牌局</view>
-        <view class="text-secondary" style="margin-top: 8rpx;">点击开台开始新一局</view>
+      <!-- 进行中牌局 -->
+      <block wx:if="{{!needProfile}}">
+        <view class="section-header anim-fade-up delay-3" wx:if="{{games.length > 0}}">
+          <view class="section-left">
+            <text class="section-title">当前牌局</text>
+            <view class="tag tag-active"><view class="tag-dot"></view><text>进行中</text></view>
+          </view>
+          <text class="section-sub">东风局</text>
+        </view>
+
+        <view class="game-card anim-fade-up" wx:for="{{games}}" wx:key="game_id" bindtap="goRoom" data-id="{{item.game_id}}">
+          <view class="game-card-inner">
+            <view class="game-card-header">
+              <view class="game-card-title-row">
+                <view class="game-card-dot"></view>
+                <text class="game-card-name">{{item.name || '未命名牌局'}} (第{{item.current_round_number || item.completed_rounds}}局)</text>
+              </view>
+              <text class="game-card-time">已玩 {{item.completed_rounds}} 分钟</text>
+            </view>
+            <view class="seat-grid">
+              <view class="seat-cell" wx:for="{{item.players}}" wx:for-item="player" wx:key="player_id" wx:if="{{item.players}}">
+                <view class="seat-avatar-wrap">
+                  <image class="seat-avatar" src="{{player.avatar_url}}" mode="aspectFill" wx:if="{{player.avatar_url}}" />
+                  <view class="seat-avatar seat-avatar-placeholder" wx:else>{{player.nickname[0]}}</view>
+                  <image class="seat-wind-svg seat-wind-{{player.windClass}}" src="/assets/icons/seat-wind-{{player.windClass}}.png" mode="aspectFit" />
+                </view>
+                <text class="seat-name">{{player.nickname}}</text>
+                <view class="seat-score seat-score-{{player.scoreClass}}">{{player.scoreText}}</view>
+              </view>
+              <view class="seat-cell seat-empty" wx:if="{{!item.players || item.players.length < 4}}">
+                <view class="seat-avatar-wrap">
+                  <view class="seat-avatar seat-avatar-empty"><image class="seat-empty-icon" src="/assets/icons/table-seat-empty-add.png" mode="aspectFit" /></view>
+                </view>
+                <text class="seat-name text-secondary">三缺一</text>
+                <view class="seat-score seat-score-pending">待加入</view>
+              </view>
+            </view>
+            <view class="game-card-actions">
+              <view class="game-action-btn game-action-secondary"><image class="game-action-icon" src="/assets/icons/share-wechat.png" mode="aspectFit" /><text>邀请雀友</text></view>
+              <view class="game-action-btn game-action-primary"><image class="game-action-icon" src="/assets/icons/score-statement-history.png" mode="aspectFit" /><text>录入计分</text></view>
+            </view>
+          </view>
+        </view>
+
+        <view class="empty-card anim-fade-up delay-4" wx:if="{{games.length === 0 && !loading}}">
+          <view class="empty-icon-wrap"><text class="empty-icon-symbol">闲</text></view>
+          <view class="empty-text">未有进行中嘅牌局</view>
+          <view class="text-secondary" style="margin-top: 8rpx;">点击上方开台开始新一局</view>
+        </view>
+      </block>
+
+      <!-- 最近战绩 -->
+      <view class="recent-section" wx:if="{{!needProfile && games.length > 0}}">
+        <view class="section-header">
+          <text class="section-title">最近战绩</text>
+          <view class="recent-more"><text class="recent-more-text">全部记录</text><text class="recent-more-arrow">›</text></view>
+        </view>
+        <view class="recent-card">
+          <view class="recent-item">
+            <view class="recent-item-icon recent-item-icon-win"><image src="/assets/icons/rank-1-god-crown.png" mode="aspectFit" /></view>
+            <view class="recent-item-info">
+              <text class="recent-item-name">荔湾茶楼周六局 · 4圈完</text>
+              <text class="recent-item-sub">昨天 21:40 · 赢家: 小芬</text>
+            </view>
+            <view class="recent-item-score">
+              <text class="recent-score-val text-positive">+164</text>
+              <text class="recent-score-rank">第 1 名</text>
+            </view>
+          </view>
+          <view class="recent-divider"></view>
+          <view class="recent-item">
+            <view class="recent-item-icon recent-item-icon-loss"><image src="/assets/icons/rank-4-facai.png" mode="aspectFit" /></view>
+            <view class="recent-item-info">
+              <text class="recent-item-name">下班自摸快局 · 2圈完</text>
+              <text class="recent-item-sub">周四 20:15 · 赢家: 阿健</text>
+            </view>
+            <view class="recent-item-score">
+              <text class="recent-score-val text-negative">-36</text>
+              <text class="recent-score-rank">第 3 名</text>
+            </view>
+          </view>
+        </view>
       </view>
-    </block>
+    </view>
   </block>
 </view>

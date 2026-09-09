@@ -1,0 +1,7 @@
+<svg fill="none" height="40" id="svg-tab-rank-default" stroke="#8c9a92" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8" viewBox="0 0 64 64" width="40" xmlns="http://www.w3.org/2000/svg">
+<path d="M19 16 h26 v17 c0 8 -5 15 -13 15 s-13 -7 -13 -15 z"/>
+<path d="M19 22 h-6 c-3 0 -5 2 -5 5 v1 c0 4 3 6 7 6 h4"/>
+<path d="M45 22 h6 c3 0 5 2 5 5 v1 c0 4 -3 6 -7 6 h-4"/>
+<path d="M26 48 h12 v6 h-12 z"/>
+<rect height="3" rx="1.5" width="24" x="20" y="54"/>
+</svg>

@@ -108,11 +108,11 @@
   border-radius: 50%;
   background: var(--color-green);
   color: #fff;
-  font-size: 22rpx;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+.pick-check image { width: 22rpx; height: 22rpx; }
 
 /* ===== 分数和原因 ===== */
 .score-input {
