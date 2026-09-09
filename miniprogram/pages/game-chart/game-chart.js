@@ -196,16 +196,22 @@ Page({
     this.drawCharts()
   },
 
-  // Canvas 2D 折线图 + 柱状图
-  drawCharts() {
+  // Canvas 2D 折线图 + 柱状图（节点可能晚于首查渲染，重试兜底）
+  drawCharts(retry) {
+    retry = retry || 0
     const query = wx.createSelectorQuery().in(this)
     query.select('#line-chart').fields({ node: true, size: true }).exec(res => {
-      if (!res || !res[0] || !res[0].node) return
-      this.drawLineChart(res[0].node, res[0].width, res[0].height)
-    })
-    query.select('#bar-chart').fields({ node: true, size: true }).exec(res2 => {
-      if (!res2 || !res2[0] || !res2[0].node) return
-      this.drawBarChart(res2[0].node, res2[0].width, res2[0].height)
+      if (res && res[0] && res[0].node) {
+        this.drawLineChart(res[0].node, res[0].width, res[0].height)
+      } else if (retry < 5) {
+        setTimeout(() => this.drawCharts(retry + 1), 200)
+        return
+      }
+      query.select('#bar-chart').fields({ node: true, size: true }).exec(res2 => {
+        if (res2 && res2[0] && res2[0].node) {
+          this.drawBarChart(res2[0].node, res2[0].width, res2[0].height)
+        }
+      })
     })
   },
 
@@ -291,8 +297,13 @@ Page({
   drawBarChart(node, width, height) {
     const ctx = this.chartContext(node, width, height)
     var players = this.data.players
-    var rounds = this.data.players[0] ? players[0].cum.length - 1 : 0
-    if (rounds <= 0) return
+    var rounds = players[0] ? players[0].cum.length - 1 : 0
+    if (rounds <= 0 || players.length === 0) {
+      // 无已锁定局：明确画空态，而不是留白
+      ctx.fillStyle = '#6f7a72'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center'
+      ctx.fillText('暂无已入账的局，完成记分后展示', width / 2, height / 2)
+      return
+    }
     var padL = 6, padR = 6, padT = 10, padB = 26
     var w = width - padL - padR, h = height - padT - padB
     var allScores = []
@@ -306,7 +317,7 @@ Page({
     var maxAbs = Math.max.apply(null, allScores.map(function(s) { return Math.abs(s) })) || 1
     var zeroY = padT + h / 2
     var groupW = w / rounds
-    var barW = Math.min(6, groupW / (players.length + 1))
+    var barW = Math.max(4, Math.min(9, groupW / (players.length + 2)))
 
     // 0 轴
     ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1

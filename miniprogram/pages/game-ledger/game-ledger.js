@@ -13,6 +13,9 @@ Page({
     gameID: 0,
     detail: null,
     rounds: [],
+    visibleRounds: [],
+    visibleCount: 10,
+    totalRounds: 0,
     awards: [],
     photoPath: '',
     loading: true,
@@ -74,6 +77,8 @@ Page({
       this.setData({
         detail: this.buildMeta(res, players),
         rounds: rounds,
+        visibleRounds: rounds.slice(0, this.data.visibleCount),
+        totalRounds: rounds.length,
         awards: this.buildAwards(players, rounds),
         loading: false
       })
@@ -140,6 +145,15 @@ Page({
       awards.push({ icon: '🛡', name: '稳如泰山', winner: stable.nickname, detail: '连续' + stable.best + '局不败' })
     }
     return awards
+  },
+
+  /** 逐局流水分页加载 */
+  loadMoreRounds() {
+    var visibleCount = this.data.visibleCount + 10
+    this.setData({
+      visibleCount: visibleCount,
+      visibleRounds: this.data.rounds.slice(0, visibleCount)
+    })
   },
 
   goRound(e) {

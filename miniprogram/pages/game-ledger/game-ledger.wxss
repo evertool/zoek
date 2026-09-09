@@ -37,7 +37,7 @@
 .gl-award-detail { font-size: 20rpx; color: var(--outline); }
 
 /* 逐局流水 */
-.gl-rounds { display: flex; flex-direction: column; gap: 16rpx; }
+.gl-rounds { display: flex; flex-direction: column; gap: 20rpx; }
 .gl-round { padding: var(--space-sm) var(--space-md); display: flex; flex-direction: column; gap: 16rpx; }
 .gl-round-top { display: flex; align-items: center; gap: 16rpx; }
 .gl-tile-tag { padding: 8rpx 12rpx; border-radius: var(--radius-default); background: var(--surface-container-high); color: var(--on-surface-variant); font-size: 20rpx; font-weight: 700; flex-shrink: 0; }
@@ -62,3 +62,7 @@
 .gl-actions { display: flex; gap: 16rpx; margin-top: 8rpx; }
 .gl-actions-back { flex: 2; display: flex; align-items: center; justify-content: center; }
 .gl-actions-rematch { flex: 3; display: flex; align-items: center; justify-content: center; }
+
+/* 逐局流水分页 */
+.gl-load-more { display: flex; align-items: center; justify-content: center; padding: 20rpx; color: var(--primary); font-size: 24rpx; }
+.gl-load-more-end { color: var(--outline); font-size: 22rpx; }

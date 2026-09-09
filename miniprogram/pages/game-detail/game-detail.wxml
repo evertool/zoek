@@ -68,7 +68,7 @@
           <text class="gd-section-title">逐局分值流向流水</text>
           <text class="gd-section-sub">共 {{detail.completedRounds}} 局流水</text>
         </view>
-        <view class="gd-flow-card">
+        <view class="gd-flow-list">
           <view class="gd-flow-item {{item.type === 'adjust' ? 'gd-flow-adjust' : ''}}" wx:for="{{flow}}" wx:key="index">
             <view class="gd-flow-num {{item.type === 'adjust' ? 'gd-flow-num-adjust' : ''}}">
               <text wx:if="{{item.type === 'adjust'}}">✎</text>

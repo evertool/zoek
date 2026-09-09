@@ -48,11 +48,10 @@
 .gd-total-score { font-size: 44rpx; font-weight: 700; }
 .gd-total-unit { font-size: 22rpx; color: var(--on-surface-variant); }
 
-/* 逐局流水 */
-.gd-flow-card { background: var(--surface-container-lowest); border-radius: var(--radius-lg); padding: 8rpx var(--space-md); box-shadow: var(--shadow-card); }
-.gd-flow-item { display: flex; align-items: flex-start; gap: 16rpx; padding: 20rpx 0; border-bottom: 1rpx solid var(--outline-variant); }
-.gd-flow-item:last-child { border-bottom: none; }
-.gd-flow-item.gd-flow-adjust { background: var(--surface-container); margin: 0 -16rpx; padding: 20rpx 16rpx; border-radius: var(--radius-default); border-bottom: none; margin-bottom: 4rpx; }
+/* 逐局流水（独立卡片 + 间距） */
+.gd-flow-list { display: flex; flex-direction: column; gap: 16rpx; }
+.gd-flow-item { background: var(--surface-container-lowest); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); display: flex; align-items: flex-start; gap: 16rpx; padding: 20rpx; }
+.gd-flow-item.gd-flow-adjust { background: var(--surface-container); }
 .gd-flow-num { width: 52rpx; height: 52rpx; border-radius: 50%; background: var(--surface-container-high); color: var(--on-surface-variant); font-size: 22rpx; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .gd-flow-num-adjust { background: var(--primary-fixed); color: var(--on-primary-fixed); }
 .gd-flow-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6rpx; }

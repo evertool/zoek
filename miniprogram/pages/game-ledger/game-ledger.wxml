@@ -51,7 +51,7 @@
           <text class="gl-section-sub">點擊單局查看明細</text>
         </view>
         <view class="gl-rounds">
-          <view class="gl-round card" wx:for="{{rounds}}" wx:for-item="r" wx:key="roundId" bindtap="goRound">
+          <view class="gl-round card" wx:for="{{visibleRounds}}" wx:for-item="r" wx:key="roundId" bindtap="goRound">
             <view class="gl-round-top">
               <view class="gl-tile-tag">{{r.tileTag}}</view>
               <view class="gl-round-info">
@@ -67,6 +67,12 @@
               </view>
             </view>
           </view>
+        </view>
+        <view class="gl-load-more" wx:if="{{totalRounds > visibleRounds.length}}" bindtap="loadMoreRounds">
+          <text>加载更多（还有 {{totalRounds - visibleRounds.length}} 局）</text>
+        </view>
+        <view class="gl-load-more gl-load-more-end" wx:else>
+          <text>已显示全部 {{totalRounds}} 局</text>
         </view>
       </view>
 
