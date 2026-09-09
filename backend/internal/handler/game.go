@@ -293,6 +293,26 @@ func (h *GameHandler) GetHistoryGames(c *gin.Context) {
 	}
 
 	total := len(items)
+
+	// 概览统计基于整个筛选结果集（而非当前分页）
+	var sumNet, winCount int
+	for _, it := range items {
+		sumNet += it.myScore
+		if it.myRank == 1 {
+			winCount++
+		}
+	}
+	winRate := 0.0
+	if total > 0 {
+		winRate = float64(int(float64(winCount)/float64(total)*1000+0.5)) / 10
+	}
+	summary := gin.H{
+		"games":    total,
+		"net":      sumNet,
+		"wins":     winCount,
+		"win_rate": winRate,
+	}
+
 	start := (page - 1) * pageSize
 	if start > total {
 		start = total
@@ -333,6 +353,7 @@ func (h *GameHandler) GetHistoryGames(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"games":     result2,
 		"total":     total,
+		"summary":   summary,
 		"page":      page,
 		"page_size": pageSize,
 		"has_more":  end < total,

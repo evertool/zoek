@@ -102,7 +102,15 @@ Page({
         loading: false
       })
       this.buildGroups(allGames)
-      this.buildOverview(allGames)
+      // 概览用整个筛选结果集的汇总（分页不影响数字）
+      const sum = res.summary || {}
+      this.setData({
+        overview: {
+          games: sum.games || 0,
+          score: sum.net || 0,
+          win_rate: sum.win_rate || 0
+        }
+      })
     }).catch(() => {
       this.setData({ loading: false })
     })
