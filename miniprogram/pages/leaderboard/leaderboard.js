@@ -10,7 +10,7 @@ Page({
     isLoggedIn: false,
     stats: null,
     entries: [],
-    boardTab: 'score', // score=积分榜 / rank=排位榜（按段位星级排序）
+    boardTab: 'score', // score=积分榜 / rank=段位榜（按段位星级排序）
     days: 30,
     currentPeriod: 30,
     minGames: 3,
@@ -58,7 +58,7 @@ Page({
     this.loadAll()
   },
 
-  // 积分榜 / 排位榜切换（排位榜按累计星级排序，本地排序）
+  // 积分榜 / 段位榜切换：始终从原始榜单重建（切回积分榜恢复服务端排序）
   switchBoard(e) {
     const tab = e.currentTarget.dataset.tab
     if (tab === this.data.boardTab) return
@@ -67,9 +67,12 @@ Page({
   },
 
   applyBoard(tab) {
-    var entries = this.data.entries.slice()
+    var entries = (this._rawEntries || []).slice()
     if (tab === 'rank') {
-      entries.sort(function(a, b) { return (b.rank_stars || 0) - (a.rank_stars || 0) })
+      // 段位榜：按排位累计星级降序，星级相同按胜场
+      entries.sort(function(a, b) {
+        return (b.rank_stars || 0) - (a.rank_stars || 0) || (b.wins || 0) - (a.wins || 0)
+      })
     }
     entries = entries.map(function(e, idx) {
       return { ...e, displayRank: idx + 1 }
@@ -99,9 +102,9 @@ Page({
           total_score: totalScore
         }
       })
+      this._rawEntries = entries // 保存服务端原始排序，切换榜单时从这里重建
       this.setData({
         stats: { ...stats, active_text: stats.games > 0 ? '本周期活跃 · 雀艺渐入佳境' : '未参与牌局' },
-        entries: entries,
         days: lb.days || 0,
         minGames: lb.min_games || 3,
         loading: false

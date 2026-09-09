@@ -1107,14 +1107,15 @@ type TrendPoint struct {
 
 // UserStats is the personal performance summary with per-game trend.
 type UserStats struct {
-	Games     int          `json:"games"`
-	Wins      int          `json:"wins"`
-	Top3      int          `json:"top3"`
-	WinRate   float64      `json:"win_rate"`
-	Top3Rate  float64      `json:"top3_rate"`
-	AvgRank   float64      `json:"avg_rank"`
-	BestScore int64        `json:"best_score"`
-	Trend     []TrendPoint `json:"trend"`
+	Games      int          `json:"games"`
+	Wins       int          `json:"wins"`
+	Top3       int          `json:"top3"`
+	WinRate    float64      `json:"win_rate"`
+	Top3Rate   float64      `json:"top3_rate"`
+	AvgRank    float64      `json:"avg_rank"`
+	BestScore  int64        `json:"best_score"`
+	TotalScore int64        `json:"total_score"` // 净胜分（正负均返回）
+	Trend      []TrendPoint `json:"trend"`
 }
 
 // GetLeaderboard aggregates ended games in the last `days` days across the
@@ -1349,6 +1350,7 @@ func (s *Store) GetUserStats(userID int64, maxTrend int) (*UserStats, error) {
 			continue
 		}
 		st.Games++
+		st.TotalScore += mine.TotalScore
 		rankSum += mine.Rank
 		if mine.Rank == 1 {
 			st.Wins++

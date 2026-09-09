@@ -48,7 +48,7 @@
           <text>积分榜</text>
         </view>
         <view class="lb-board-tab {{boardTab === 'rank' ? 'active' : ''}}" bindtap="switchBoard" data-tab="rank">
-          <text>排位榜</text>
+          <text>段位榜</text>
         </view>
       </view>
 
