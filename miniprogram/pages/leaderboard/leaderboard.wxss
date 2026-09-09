@@ -80,7 +80,7 @@
 .rank-detail-dot { width: 8rpx; height: 8rpx; border-radius: 50%; background: var(--outline-variant); }
 .rank-item-right { width: 170rpx; box-sizing: border-box; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; padding-left: 12rpx; }
 .rank-item-score { font-size: 44rpx; font-weight: 700; text-align: right; }
-.rank-item-action { margin-top: 8rpx; display: flex; align-items: center; gap: 8rpx; background: var(--primary); color: var(--on-primary); padding: 8rpx 20rpx; border-radius: var(--radius-full); font-size: 20rpx; box-shadow: var(--shadow-card); }
+.rank-item-action { position: relative; margin-top: 8rpx; display: flex; align-items: center; gap: 8rpx; background: var(--primary); color: var(--on-primary); padding: 10rpx 24rpx; border-radius: var(--radius-full); font-size: 20rpx; box-shadow: var(--shadow-card); overflow: hidden; }
 .rank-action-icon { width: 26rpx; height: 26rpx; }
 .rank-item-action-self { background: var(--surface-container-lowest); color: var(--primary); box-shadow: var(--shadow-card); }
 .rank-action-text-self { font-size: 22rpx; padding: 8rpx 20rpx; }
@@ -107,8 +107,9 @@
 
 /* 约开台分享按钮（重置 button 默认样式） */
 /* 约开台分享按钮：重置微信 button 默认样式（默认宽度会撑爆右栏导致左栏竖排） */
-.rank-item-action-btn { box-sizing: border-box; width: 100%; display: flex; justify-content: center; align-items: center; gap: 8rpx; margin: 8rpx 0 0; padding: 10rpx 0; background: var(--primary); color: var(--on-primary); border-radius: var(--radius-full); font-size: 20rpx; line-height: 1.4; }
-.rank-item-action-btn::after { border: none; }
+/* 微信 button 只做透明命中层（open-type=share），绝对定位不影响布局 */
+.rank-action-hit { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; padding: 0; margin: 0; border: none; background: transparent; }
+.rank-action-hit::after { border: none; }
 
 /* 行内文本单行，防挤压竖排 */
 .rank-item-detail { flex-wrap: nowrap; overflow: hidden; }

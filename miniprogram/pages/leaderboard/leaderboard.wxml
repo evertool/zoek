@@ -135,10 +135,11 @@
             </view>
             <view class="rank-item-right">
               <text class="rank-item-score {{item.total_score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.total_score >= 0 ? '+' : ''}}{{item.total_score}}</text>
-              <button class="rank-item-action rank-item-action-btn" wx:if="{{!item.is_self}}" open-type="share" bindtap="onInviteTap">
+              <view class="rank-item-action" wx:if="{{!item.is_self}}">
                 <image class="rank-action-icon" src="/assets/icons/share-wechat.png" mode="aspectFit" />
                 <text class="rank-action-text">约开台</text>
-              </button>
+                <button class="rank-action-hit" open-type="share" bindtap="onInviteTap"></button>
+              </view>
               <view class="rank-item-action rank-item-action-self" wx:if="{{item.is_self}}">
                 <text class="rank-action-text-self">已在位</text>
               </view>
