@@ -1,0 +1,96 @@
+<!--pages/game-ledger/game-ledger.wxml — 手帐明细页 v6 Stitch 还原-->
+<view class="page">
+  <view class="main-content" style="padding-top: {{navPadding}}px;">
+    <view class="gd-top-bar">
+      <view class="nav-back-btn" bindtap="goBack">
+        <image class="nav-back-icon" src="/assets/icons/nav-back.svg" mode="aspectFit" />
+      </view>
+    </view>
+
+    <block wx:if="{{detail}}">
+      <!-- 头部：日期 + 四人风位总览 -->
+      <view class="gl-hero card anim-fade-up">
+        <view class="gl-hero-head">
+          <view class="gl-hero-date">
+            <text class="gl-cal">📅</text>
+            <text>{{detail.dateText}} {{detail.timeText}} · 畅打{{detail.roundsText}}</text>
+          </view>
+          <view class="gl-zero-chip" wx:if="{{detail.zeroSum}}"><text>Σ = 0 零和守恒</text></view>
+        </view>
+        <view class="gl-seats">
+          <view class="gl-seat" wx:for="{{detail.players}}" wx:for-item="p" wx:key="player_id">
+            <text class="gl-seat-wind">{{p.wind}}</text>
+            <view class="gl-avatar" style="background: {{p.avatarColor}};">{{p.nickname[0]}}</view>
+            <text class="gl-seat-name">{{p.nickname}}</text>
+            <text class="gl-seat-score {{p.scoreClass}}">{{p.scoreText}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 雀王功名录 -->
+      <view class="gl-section anim-fade-up delay-1">
+        <view class="gl-section-head">
+          <text class="gl-section-title">🏅 雀王功名錄</text>
+          <text class="gl-section-sub">4人合議後採完單</text>
+        </view>
+        <view class="gl-awards">
+          <view class="gl-award {{a.hero ? 'gl-award-hero' : ''}}" wx:for="{{awards}}" wx:for-item="a" wx:key="name">
+            <text class="gl-award-icon">{{a.icon}}</text>
+            <text class="gl-award-name">{{a.name}}</text>
+            <text class="gl-award-winner">{{a.winner}}</text>
+            <text class="gl-award-detail">{{a.detail}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 逐局流水手帐 -->
+      <view class="gl-section anim-fade-up delay-2">
+        <view class="gl-section-head">
+          <text class="gl-section-title">☰ 逐局流水手帐</text>
+          <text class="gl-section-sub">點擊單局查看明細</text>
+        </view>
+        <view class="gl-rounds">
+          <view class="gl-round card" wx:for="{{rounds}}" wx:for-item="r" wx:key="roundId" bindtap="goRound">
+            <view class="gl-round-top">
+              <view class="gl-tile-tag">{{r.tileTag}}</view>
+              <view class="gl-round-info">
+                <text class="gl-round-desc">{{r.desc}}</text>
+                <text class="gl-round-meta">{{r.metaText}}</text>
+              </view>
+              <view class="gl-round-balance"><text>平賬</text><text class="gl-round-zero">0</text></view>
+            </view>
+            <view class="gl-round-subs">
+              <view class="gl-sub" wx:for="{{r.subs}}" wx:for-item="s" wx:key="player_id">
+                <text class="gl-sub-name">{{s.nickname}}</text>
+                <text class="gl-sub-score {{s.scoreClass}}">{{s.scoreText}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 雀局合影留念 -->
+      <view class="gl-section anim-fade-up delay-2">
+        <view class="gl-section-head">
+          <text class="gl-section-title">📷 雀局合影留念</text>
+          <text class="gl-section-sub">广州天河 · 茶居包厢</text>
+        </view>
+        <view class="gl-photo card" bindtap="pickPhoto">
+          <image class="gl-photo-img" src="{{photoPath}}" mode="aspectFill" wx:if="{{photoPath}}" />
+          <view class="gl-photo-empty" wx:else>
+            <text class="gl-photo-plus">＋</text>
+            <text class="gl-photo-tip">留下今天嘅雀局合影</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 底部动作 -->
+      <view class="gl-actions">
+        <view class="btn-secondary gl-actions-back" bindtap="goBack"><text>← 返回手帐</text></view>
+        <view class="btn-primary gl-actions-rematch" bindtap="rematch"><text>⟳ 原班雀友再开一局</text></view>
+      </view>
+    </block>
+
+    <view class="load-tip" wx:if="{{loading}}">加载中...</view>
+  </view>
+</view>

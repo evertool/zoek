@@ -2,6 +2,7 @@
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
+const guard = require('../../utils/guard')
 
 Page({
   data: {
@@ -14,25 +15,44 @@ Page({
     page: 1,
     pageSize: 20,
     hasMore: true,
-    currentMonthText: ''
+    // 日期筛选（设计稿 30：近30 / 近7天 / 全部）
+    days: 0,
+    dayTabs: [
+      { label: '近30天', days: 30 },
+      { label: '近7天', days: 7 },
+      { label: '全部', days: 0 }
+    ],
+    // 标签筛选：按本场名次 胜/平/负
+    result: '',
+    resultTabs: [
+      { label: '全部对局', value: '' },
+      { label: '胜', value: 'win' },
+      { label: '平', value: 'draw' },
+      { label: '负', value: 'lose' }
+    ],
+    overviewLabel: '全部概览',
+    navPadding: 0
+  },
+
+  onLoad() {
+    // 顶部无导航条，内容需让出状态栏 + 胶囊按钮高度
+    this.setData({ navPadding: util.navPadding() })
   },
 
   onShow() {
+    // 未登录/资料不全时弹回首页登录或完善资料
+    if (!guard.ensure()) return
     this.setData({ isLoggedIn: !!app.globalData.token })
-    if (app.globalData.token) {
-      this.setData({ games: [], page: 1, hasMore: true })
-      this.updateMonthText()
-      this.loadHistory()
-    } else {
+    if (app.globalData.token && !this.data.games.length) {
+      this.reload()
+    } else if (!app.globalData.token) {
       this.setData({ loading: false })
     }
   },
 
   onPullDownRefresh() {
-    this.setData({ games: [], page: 1, hasMore: true })
-    this.loadHistory().then(() => {
-      wx.stopPullDownRefresh()
-    })
+    this.reload()
+    wx.stopPullDownRefresh()
   },
 
   onReachBottom() {
@@ -41,18 +61,25 @@ Page({
     }
   },
 
-  updateMonthText() {
-    const now = new Date()
-    this.setData({ currentMonthText: now.getFullYear() + '年' + (now.getMonth() + 1) + '月' })
+  // 重置分页并按当前筛选重新加载
+  reload() {
+    this.setData({ games: [], groups: [], page: 1, hasMore: true, loading: true })
+    this.loadHistory()
   },
 
-  toggleMonthFilter() {
-    const current = this.data.currentMonthText
-    if (current.indexOf('9月') >= 0) {
-      this.setData({ currentMonthText: current.replace('9月', '8月') })
-    } else {
-      this.setData({ currentMonthText: current.replace('8月', '9月') })
-    }
+  onDayFilter(e) {
+    var days = Number(e.currentTarget.dataset.days)
+    if (days === this.data.days) return
+    var label = this.data.dayTabs.filter(function(t) { return t.days === days })[0]
+    this.setData({ days: days, overviewLabel: label ? label.label + '概览' : '全部概览' })
+    this.reload()
+  },
+
+  onResultFilter(e) {
+    var result = e.currentTarget.dataset.result
+    if (result === this.data.result) return
+    this.setData({ result: result })
+    this.reload()
   },
 
   loadHistory() {
@@ -60,28 +87,16 @@ Page({
     this.setData({ loading: true })
     return api.get('/games/history', {
       page: this.data.page,
-      page_size: this.data.pageSize
+      page_size: this.data.pageSize,
+      days: this.data.days,
+      result: this.data.result
     }).then(res => {
-      const games = (res.games || []).map(g => {
-        return {
-          ...g,
-          statusText: this.statusText(g.status),
-          timeText: this.formatTime(g.ended_at || g.created_at),
-          dateText: this.formatDate(g.ended_at || g.created_at),
-          my_score: g.my_score || 0,
-          my_rank: g.my_rank || 0,
-          duration: g.duration || '—',
-          playersText: (g.players || []).map(function(p) { return p.nickname }).join('、') || '—',
-          has_adjustment: g.has_adjustment || false,
-          footerText: g.has_adjustment ? '含1笔调整已确认' : '已平账 · 无争议调整',
-          detailText: '查看详细手账'
-        }
-      })
+      const games = (res.games || []).map(g => this.decorate(g))
       const allGames = this.data.games.concat(games)
-      const hasMore = allGames.length < res.total
+      const hasMore = !!res.has_more && allGames.length < res.total
       this.setData({
         games: allGames,
-        total: res.total,
+        total: res.total || 0,
         hasMore: hasMore,
         page: this.data.page + 1,
         loading: false
@@ -91,6 +106,31 @@ Page({
     }).catch(() => {
       this.setData({ loading: false })
     })
+  },
+
+  // 把接口数据转成视图字段
+  decorate(g) {
+    var resultMap = { win: '胜', draw: '平', lose: '负' }
+    var duration = '—'
+    if (g.duration_minutes > 0) {
+      duration = g.duration_minutes >= 60
+        ? Math.floor(g.duration_minutes / 60) + '时' + (g.duration_minutes % 60) + '分'
+        : g.duration_minutes + '分钟'
+    }
+    return {
+      ...g,
+      statusText: this.statusText(g.status),
+      timeText: this.formatTime(g.ended_at || g.created_at),
+      dateText: this.formatDate(g.ended_at || g.created_at),
+      my_score: g.my_score || 0,
+      my_rank: g.my_rank || 0,
+      duration: duration,
+      playersText: (g.players || []).map(function(p) { return p.nickname }).join('、') || '—',
+      resultText: resultMap[g.result] || '平',
+      has_adjustment: g.has_adjustment || false,
+      footerText: g.has_adjustment ? '含改分记录已确认' : '已平账 · 无争议调整',
+      detailText: '查看详细手账'
+    }
   },
 
   buildGroups(games) {
@@ -150,14 +190,15 @@ Page({
     return (d.getMonth() + 1) + '月' + d.getDate() + '日'
   },
 
+  // 卡片 → 每局详情页；「查看详细手账」→ 手帐明细页
   goDetail(e) {
     var gameID = e.currentTarget.dataset.id
-    wx.navigateTo({ url: '/pages/detail/detail?game_id=' + gameID })
+    wx.navigateTo({ url: '/pages/game-detail/game-detail?game_id=' + gameID })
   },
 
-  goSettlement(e) {
+  goLedger(e) {
     var gameID = e.currentTarget.dataset.id
-    wx.navigateTo({ url: '/pages/settlement/settlement?game_id=' + gameID })
+    wx.navigateTo({ url: '/pages/game-ledger/game-ledger?game_id=' + gameID })
   },
 
   doHide(e) {
@@ -171,14 +212,7 @@ Page({
         api.post('/games/' + gameID + '/hide', {
           request_id: api.genRequestID()
         }).then(() => {
-          var games = this.data.games.filter(function(g) { return g.game_id !== gameID })
-          this.setData({
-            games: games,
-            total: Math.max(0, this.data.total - 1),
-            hasMore: games.length < this.data.total - 1
-          })
-          this.buildGroups(games)
-          this.buildOverview(games)
+          this.reload()
           wx.showToast({ title: '已删除', icon: 'success' })
         })
       }

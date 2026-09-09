@@ -2,6 +2,7 @@
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
+const guard = require('../../utils/guard')
 
 Page({
   data: {
@@ -16,13 +17,23 @@ Page({
     tempAvatar: '',
     avatarChanged: false,
     stats: null,
+    rankTier: '',
+    tierFull: '',
     badges: [],
     vibrateEnabled: false,
     showToast: false,
-    toastMsg: ''
+    toastMsg: '',
+    navPadding: 0
+  },
+
+  onLoad() {
+    // 顶部无导航条，内容需让出状态栏 + 胶囊按钮高度
+    this.setData({ navPadding: util.navPadding() })
   },
 
   onShow() {
+    // 未登录/资料不全时弹回首页登录或完善资料
+    if (!guard.ensure()) return
     var isLoggedIn = !!app.globalData.token
     this.setData({
       isLoggedIn: isLoggedIn,
@@ -34,7 +45,21 @@ Page({
     if (isLoggedIn) {
       this.loadStats()
       this.loadBadges()
+      this.loadRank()
     }
+  },
+
+  // 排位段位胶囊（点击进入排位页）
+  loadRank() {
+    api.get('/user/profile').then(res => {
+      if (res.rank) {
+        this.setData({ rankTier: res.rank.tier_short + ' · ' + res.rank.roman, tierFull: res.rank.tier_name })
+      }
+    }).catch(function() {})
+  },
+
+  goRank() {
+    wx.navigateTo({ url: '/pages/rank/rank' })
   },
 
   loadStats() {
@@ -91,7 +116,8 @@ Page({
       success: (res) => {
         if (res.confirm) {
           app.logout()
-          this.setData({ isLoggedIn: false, nickname: '', avatarURL: '', stats: null, badges: [] })
+          // 未登录统一回到首页登录页
+          wx.reLaunch({ url: '/pages/index/index' })
         }
       }
     })
@@ -120,14 +146,25 @@ Page({
       wx.showToast({ title: '请输入昵称', icon: 'none' })
       return
     }
+    if (this._saving) return
+    this._saving = true
 
-    wx.showLoading({ title: '保存中...' })
-    var save = (avatarURL) => app.saveProfile(nickname, avatarURL)
-    var op = this.data.avatarChanged
-      ? util.avatarToDataUrl(this.data.tempAvatar).then(save)
-      : save(this.data.tempAvatar)
-    op.then(() => {
+    var op
+    if (this.data.avatarChanged) {
+      // 头像有变更：上传到服务器获取相对路径，再保存
+      wx.showLoading({ title: '上传头像...' })
+      op = util.uploadAvatar(this.data.tempAvatar).then(function (relPath) {
+        wx.showLoading({ title: '保存中...' })
+        return app.saveProfile(nickname, relPath)
+      })
+    } else {
+      // 头像未变更：只保存昵称，不传 avatar_url（后端不覆盖）
+      wx.showLoading({ title: '保存中...' })
+      op = app.saveProfile(nickname, '')
+    }
+    op.then(function () {
       wx.hideLoading()
+      this._saving = false
       wx.showToast({ title: '已保存', icon: 'success' })
       this.setData({
         nickname: app.globalData.nickname,
@@ -135,9 +172,15 @@ Page({
         avatarColor: util.avatarColor(app.globalData.nickname),
         editing: false
       })
-    }).catch(() => {
+    }.bind(this)).catch(function (err) {
       wx.hideLoading()
-    })
+      this._saving = false
+      var msg = '保存失败'
+      if (err && err.message === 'FILE_TOO_LARGE') {
+        msg = '头像文件超过5MB'
+      }
+      wx.showToast({ title: msg, icon: 'none' })
+    }.bind(this))
   },
 
   cancelEdit() {

@@ -1,0 +1,62 @@
+/* pages/game-ledger/game-ledger.wxss — 手帐明细页 */
+.page { min-height: 100vh; background: var(--background); }
+.main-content { padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: 60rpx; display: flex; flex-direction: column; gap: var(--space-md); }
+.gd-top-bar { display: flex; align-items: center; }
+.nav-back-btn { width: 68rpx; height: 68rpx; border-radius: 50%; background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: center; }
+.nav-back-icon { width: 32rpx; height: 32rpx; }
+.card { background: var(--surface-container-lowest); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+
+/* 头部 */
+.gl-hero { padding: var(--space-md); display: flex; flex-direction: column; gap: 20rpx; }
+.gl-hero-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12rpx; }
+.gl-hero-date { display: flex; align-items: center; gap: 10rpx; font-size: 26rpx; font-weight: 600; color: var(--on-surface); }
+.gl-cal { font-size: 28rpx; }
+.gl-zero-chip { padding: 6rpx 16rpx; border-radius: var(--radius-full); background: var(--primary-fixed); color: var(--on-primary-fixed); font-size: 20rpx; font-weight: 600; }
+.gl-seats { display: flex; justify-content: space-between; gap: 8rpx; }
+.gl-seat { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8rpx; min-width: 0; }
+.gl-seat-wind { font-size: 22rpx; color: var(--on-surface-variant); font-weight: 600; }
+.gl-avatar { width: 84rpx; height: 84rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 32rpx; font-weight: 700; border: 4rpx solid var(--primary-fixed-dim); }
+.gl-seat-name { font-size: 24rpx; font-weight: 600; color: var(--on-surface); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gl-seat-score { font-size: 30rpx; font-weight: 700; }
+
+/* 区块 */
+.gl-section { display: flex; flex-direction: column; gap: 16rpx; }
+.gl-section-head { display: flex; align-items: baseline; justify-content: space-between; }
+.gl-section-title { font-size: 32rpx; font-weight: 700; color: var(--on-surface); }
+.gl-section-sub { font-size: 20rpx; color: var(--outline); }
+
+/* 功名录 */
+.gl-awards { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gutter-grid); }
+.gl-award { background: var(--surface-container-lowest); border-radius: var(--radius-lg); padding: 20rpx 12rpx; box-shadow: var(--shadow-card); display: flex; flex-direction: column; align-items: center; gap: 6rpx; text-align: center; }
+.gl-award-hero { border: 2rpx solid #f3d18b; background: #fffaf0; }
+.gl-award-icon { font-size: 40rpx; }
+.gl-award-name { font-size: 22rpx; color: var(--on-surface-variant); }
+.gl-award-winner { font-size: 28rpx; font-weight: 700; color: var(--on-surface); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gl-award-detail { font-size: 20rpx; color: var(--outline); }
+
+/* 逐局流水 */
+.gl-rounds { display: flex; flex-direction: column; gap: 16rpx; }
+.gl-round { padding: var(--space-sm) var(--space-md); display: flex; flex-direction: column; gap: 16rpx; }
+.gl-round-top { display: flex; align-items: center; gap: 16rpx; }
+.gl-tile-tag { padding: 8rpx 12rpx; border-radius: var(--radius-default); background: var(--surface-container-high); color: var(--on-surface-variant); font-size: 20rpx; font-weight: 700; flex-shrink: 0; }
+.gl-round-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4rpx; }
+.gl-round-desc { font-size: 28rpx; font-weight: 600; color: var(--on-surface); }
+.gl-round-meta { font-size: 20rpx; color: var(--outline); }
+.gl-round-balance { display: flex; flex-direction: column; align-items: center; padding: 6rpx 14rpx; border-radius: var(--radius-default); background: var(--surface-container); font-size: 18rpx; color: var(--on-surface-variant); }
+.gl-round-zero { font-size: 24rpx; font-weight: 700; color: var(--on-surface); }
+.gl-round-subs { display: flex; justify-content: space-between; background: var(--surface-container-low); border-radius: var(--radius-default); padding: 12rpx 16rpx; }
+.gl-sub { display: flex; flex-direction: column; align-items: center; gap: 4rpx; flex: 1; min-width: 0; }
+.gl-sub-name { font-size: 20rpx; color: var(--on-surface-variant); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gl-sub-score { font-size: 26rpx; font-weight: 700; }
+
+/* 合影 */
+.gl-photo { overflow: hidden; height: 320rpx; display: flex; align-items: center; justify-content: center; }
+.gl-photo-img { width: 100%; height: 100%; }
+.gl-photo-empty { display: flex; flex-direction: column; align-items: center; gap: 10rpx; color: var(--outline); }
+.gl-photo-plus { font-size: 56rpx; }
+.gl-photo-tip { font-size: 24rpx; }
+
+/* 底部动作 */
+.gl-actions { display: flex; gap: 16rpx; margin-top: 8rpx; }
+.gl-actions-back { flex: 2; display: flex; align-items: center; justify-content: center; }
+.gl-actions-rematch { flex: 3; display: flex; align-items: center; justify-content: center; }

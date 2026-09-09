@@ -1,6 +1,8 @@
 // cmd/seed/main.go — 生成雀友榜/个人数据用的模拟数据
 // 用法: cd backend && go run ./cmd/seed
 // 幂等: 以 openid=seed_* 识别模拟用户，重复执行会跳过已存在的用户和牌局。
+//       进行中牌台以 invite_token_hash 里的 seed-live-* 标记做幂等。
+//       已结束牌局不幂等，只想补进行中牌台时加 -games 0。
 package main
 
 import (
@@ -49,6 +51,12 @@ func main() {
 		os.Exit(1)
 	}
 	defer st.Close()
+
+	// 与服务端保持一致的表结构（幂等）
+	if err := st.AutoMigrate(); err != nil {
+		fmt.Fprintf(os.Stderr, "数据库迁移失败: %v\n", err)
+		os.Exit(1)
+	}
 
 	rng := rand.New(rand.NewSource(20260909))
 
@@ -197,12 +205,173 @@ func main() {
 
 	fmt.Printf("已生成牌局: %d 场（窗口 %d 天）\n", created, *daysFlag)
 
+	// ---- 3. 进行中的牌台 ----
+	liveCreated := seedLiveTables(st, rng, mockUsers, hasReal, *realUserID, now)
+	fmt.Printf("进行中牌台: 新生成 %d 桌（凑紧脚差一脚 / 齐人未记分 / 齐人已记分）\n", liveCreated)
+
+	// ---- 4. 排位段位回填：重放全部已结束 4 人局 ----
+	replayed := seedRanks(st)
+	fmt.Printf("排位回填: 重放 %d 场 4 人局，段位与现有数据对齐\n", replayed)
+
 	// 抽查零和：全部锁定提交总和应为 0
 	var sum int64
 	st.DB.Raw("SELECT COALESCE(SUM(score),0) FROM round_submissions rs " +
 		"JOIN rounds r ON rs.round_id = r.id " +
 		"JOIN games g ON r.game_id = g.id WHERE g.name LIKE '得闲开台 %'").Scan(&sum)
 	fmt.Printf("锁定提交总和（应为 0）: %d\n", sum)
+}
+
+// seedLiveTables 生成三桌进行中的牌台，真实用户坐 1 号位做台主，方便真机直接查看：
+//   - 凑紧脚差一脚：forming 3/4，4 号位空着（可试出示台码/长按空位换位/取消开台）
+//   - 齐人未记分：active 4/4，首局开着但没人入分（可试取消开台/入分）
+//   - 齐人已记分：active 4/4，已有若干入账局（可试结束散台→结算）
+func seedLiveTables(st *store.Store, rng *rand.Rand, mockUsers []model.User, hasReal bool, realUserID int64, now time.Time) int {
+	name := fmt.Sprintf("得闲开台 %d月%d日", now.Month(), now.Day())
+
+	// 真实用户坐 1 号位，其余从模拟用户里补
+	tablePlayers := func(size int) []model.User {
+		players := make([]model.User, 0, size)
+		if hasReal {
+			var real model.User
+			if err := st.DB.First(&real, realUserID).Error; err == nil {
+				players = append(players, real)
+			}
+		}
+		pool := append([]model.User(nil), mockUsers...)
+		rng.Shuffle(len(pool), func(i, j int) { pool[i], pool[j] = pool[j], pool[i] })
+		for _, u := range pool {
+			if len(players) == size {
+				break
+			}
+			players = append(players, u)
+		}
+		return players
+	}
+
+	createTable := func(marker string, size int, status string, startedAgo time.Duration) (*model.Game, []model.GamePlayer) {
+		var existing model.Game
+		if err := st.DB.Where("invite_token_hash = ?", marker).First(&existing).Error; err == nil {
+			return nil, nil // 已生成过，跳过
+		}
+		players := tablePlayers(size)
+		if len(players) < size {
+			return nil, nil
+		}
+		createdAt := now.Add(-startedAgo - 30*time.Minute)
+		game := model.Game{
+			CreatorID:       players[0].ID,
+			Name:            name,
+			Status:          status,
+			InviteTokenHash: marker,
+			CreatedAt:       createdAt,
+			UpdatedAt:       now,
+			Version:         1,
+		}
+		if status != "forming" {
+			startedAt := now.Add(-startedAgo)
+			game.StartedAt = &startedAt
+		}
+		if err := st.DB.Create(&game).Error; err != nil {
+			fmt.Printf("生成进行中牌台失败(%s): %v\n", marker, err)
+			return nil, nil
+		}
+		var gps []model.GamePlayer
+		for idx, pu := range players {
+			role := "player"
+			if idx == 0 {
+				role = "owner"
+			}
+			gp := model.GamePlayer{
+				GameID:           game.ID,
+				UserID:           pu.ID,
+				NicknameSnapshot: pu.Nickname,
+				Role:             role,
+				Seat:             idx + 1,
+				JoinedAt:         createdAt,
+			}
+			if err := st.DB.Create(&gp).Error; err != nil {
+				return nil, nil
+			}
+			gps = append(gps, gp)
+		}
+		return &game, gps
+	}
+
+	created := 0
+
+	// 1) 凑紧脚差一脚：forming 3/4
+	if _, gps := createTable("seed-live-forming-3", 3, "forming", 25*time.Minute); gps != nil {
+		created++
+	}
+
+	// 2) 齐人未记分：active 4/4，首局开着没人入分
+	if g, _ := createTable("seed-live-active-fresh", 4, "active", 40*time.Minute); g != nil {
+		round := model.Round{GameID: g.ID, RoundNumber: 1, Status: "open", CreatedAt: *g.StartedAt}
+		if err := st.DB.Create(&round).Error; err != nil {
+			fmt.Printf("生成首局失败(游戏 %d): %v\n", g.ID, err)
+		}
+		created++
+	}
+
+	// 3) 齐人已记分：active 4/4，若干入账局全部锁定（无进行中的局，可直接散台结算）
+	if g, gps := createTable("seed-live-active-scored", 4, "active", 2*time.Hour); gps != nil {
+		rounds := 3 + rng.Intn(3) // 3~5 局
+		lockedAt := *g.StartedAt
+		for rn := 1; rn <= rounds; rn++ {
+			lockedAt = lockedAt.Add(time.Duration(8+rng.Intn(8)) * time.Minute)
+			round := model.Round{GameID: g.ID, RoundNumber: rn, Status: "ready_for_next", LockedAt: &lockedAt, CreatedAt: lockedAt}
+			if err := st.DB.Create(&round).Error; err != nil {
+				break
+			}
+			scores := zeroSumScores(rng, len(gps))
+			for pi, gp := range gps {
+				sub := model.RoundSubmission{
+					RoundID:      round.ID,
+					GamePlayerID: gp.ID,
+					Score:        scores[pi],
+					RequestID:    fmt.Sprintf("seed-live-g%d-r%d-p%d", g.ID, rn, gp.ID),
+					SubmittedAt:  lockedAt,
+				}
+				st.DB.Create(&sub)
+			}
+		}
+		created++
+	}
+
+	return created
+}
+
+// seedRanks 清零全部用户排位数据后，按时间正序重放所有已结束 4 人局的排位结算，
+// 使段位/连胜/赛季分与现有牌局数据一致（每次执行全量重算，天然幂等）。
+func seedRanks(st *store.Store) int {
+	if err := st.DB.Model(&model.User{}).Where("1 = 1").Updates(map[string]interface{}{
+		"rank_stars": 0, "rank_wins": 0, "rank_draws": 0, "rank_losses": 0,
+		"rank_streak": 0, "rank_best_streak": 0, "rank_points": 0,
+	}).Error; err != nil {
+		fmt.Fprintf(os.Stderr, "重置排位数据失败: %v\n", err)
+		os.Exit(1)
+	}
+	if err := st.DB.Where("1 = 1").Delete(&model.RankSettlement{}).Error; err != nil {
+		fmt.Fprintf(os.Stderr, "清空排位结算记录失败: %v\n", err)
+		os.Exit(1)
+	}
+
+	var games []model.Game
+	if err := st.DB.Where("status = 'ended'").Order("ended_at ASC, id ASC").Find(&games).Error; err != nil {
+		fmt.Fprintf(os.Stderr, "读取已结束牌局失败: %v\n", err)
+		os.Exit(1)
+	}
+	replayed := 0
+	for _, g := range games {
+		if err := st.SettleGameRank(g.ID); err == nil {
+			var n int64
+			st.DB.Model(&model.RankSettlement{}).Where("game_id = ?", g.ID).Count(&n)
+			if n > 0 {
+				replayed++
+			}
+		}
+	}
+	return replayed
 }
 
 // pickPlayers 组一桌 2~4 人，真实用户高频上桌。

@@ -11,14 +11,41 @@ type User struct {
 	ID       int64  `gorm:"primaryKey;autoIncrement" json:"id"`
 	OpenID   string `gorm:"column:openid;type:varchar(64);uniqueIndex;not null" json:"openid"`
 	Nickname string `gorm:"type:varchar(32);not null" json:"nickname"`
-	// AvatarURL 保存 base64 数据 URL（MVP 无对象存储，头像经压缩后持久存库）
-	AvatarURL string         `gorm:"type:mediumtext" json:"avatar_url"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	// AvatarURL 保存头像的相对路径（如 /uploads/avatars/xxx.jpg）
+	AvatarURL string `gorm:"type:varchar(256)" json:"avatar_url"`
+	// ProfileCompleted 标记用户是否已完善资料（有昵称+持久化头像）。
+	// 登录时直接读此字段，避免每次重新推导；保存资料时置 true。
+	ProfileCompleted bool `gorm:"not null;default:false" json:"profile_completed"`
+	// 排位数据（4 人局散台时结算），段位由 RankStars 推导，见 internal/rank。
+	RankStars      int `gorm:"not null;default:0" json:"rank_stars"`
+	RankWins       int `gorm:"not null;default:0" json:"rank_wins"`
+	RankDraws      int `gorm:"not null;default:0" json:"rank_draws"`
+	RankLosses     int `gorm:"not null;default:0" json:"rank_losses"`
+	RankStreak     int `gorm:"not null;default:0" json:"rank_streak"`
+	RankBestStreak int `gorm:"not null;default:0" json:"rank_best_streak"`
+	RankPoints     int `gorm:"not null;default:0" json:"rank_points"` // 赛季净胜分
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
+	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 func (User) TableName() string { return "users" }
+
+// RankSettlement 记录一场排位局（4 人局）散台后每位玩家的星级变动，
+// 用于结算页展示「本场 +N 星」以及防止重复结算（uk_rank_game_user）。
+type RankSettlement struct {
+	ID          int64     `gorm:"primaryKey;autoIncrement" json:"id"`
+	GameID      int64     `gorm:"not null;uniqueIndex:uk_rank_game_user" json:"game_id"`
+	UserID      int64     `gorm:"not null;uniqueIndex:uk_rank_game_user" json:"user_id"`
+	Result      string    `gorm:"type:varchar(8);not null" json:"result"` // win/draw/lose
+	Score       int       `gorm:"not null" json:"score"`
+	StarsDelta  int       `gorm:"not null" json:"stars_delta"` // 含连胜奖励与保底钳制后的实际变动
+	BonusStars  int       `gorm:"not null;default:0" json:"bonus_stars"`
+	StreakAfter int       `gorm:"not null;default:0" json:"streak_after"`
+	CreatedAt   time.Time `gorm:"autoCreateTime" json:"created_at"`
+}
+
+func (RankSettlement) TableName() string { return "rank_settlements" }
 
 // Game maps to the games table (PRD §7.2).
 type Game struct {
@@ -47,6 +74,7 @@ type GamePlayer struct {
 	UserID           int64     `gorm:"not null;uniqueIndex:uk_game_user" json:"user_id"`
 	NicknameSnapshot string    `gorm:"type:varchar(32);not null" json:"nickname_snapshot"`
 	Role             string    `gorm:"type:varchar(16);not null;default:player" json:"role"`
+	Seat             int       `gorm:"not null;default:0" json:"seat"` // 座位号 1-4（東南西北），0=旧数据未分配
 	JoinedAt         time.Time `gorm:"autoCreateTime" json:"joined_at"`
 }
 

@@ -26,6 +26,7 @@ func NewSettlementHandler(s *store.Store) *SettlementHandler {
 type SettlementPlayer struct {
 	PlayerID    int64  `json:"player_id"`
 	Nickname    string `json:"nickname"`
+	AvatarURL   string `json:"avatar_url"`
 	TotalScore  int64  `json:"total_score"`
 	Rank        int    `json:"rank"`
 	Adjustments int    `json:"adjustments"`
@@ -48,14 +49,41 @@ type HistoryDetailResponse struct {
 	CompletedRounds int                  `json:"completed_rounds"`
 	CreatedAt       string               `json:"created_at"`
 	EndedAt         *string              `json:"ended_at,omitempty"`
+	Players         []HistoryPlayerInfo  `json:"players"`
 	Rounds          []HistoryRoundDetail `json:"rounds"`
 	Adjustments     []AdjustmentResponse `json:"adjustments"`
+	RankChanges     []RankChangeItem     `json:"rank_changes"`
+}
+
+// HistoryPlayerInfo 详情页玩家卡：风位座位 + 锁定局总得分。
+type HistoryPlayerInfo struct {
+	PlayerID   int64  `json:"player_id"`
+	UserID     int64  `json:"user_id"`
+	Nickname   string `json:"nickname"`
+	AvatarURL  string `json:"avatar_url"`
+	Seat       int    `json:"seat"`
+	Wind       string `json:"wind"` // 東/南/西/北
+	TotalScore int    `json:"total_score"`
+	Rank       int    `json:"rank"` // 总分名次（并列同名次）
+	IsMe       bool   `json:"is_me"`
+}
+
+// RankChangeItem 4 人局散台后的排位变动（未参与排位时为空数组）。
+type RankChangeItem struct {
+	UserID      int64  `json:"user_id"`
+	Result      string `json:"result"` // win/draw/lose
+	Score       int    `json:"score"`
+	StarsDelta  int    `json:"stars_delta"`
+	BonusStars  int    `json:"bonus_stars"`
+	StreakAfter int    `json:"streak_after"`
 }
 
 type HistoryRoundDetail struct {
 	RoundID     int64              `json:"round_id"`
 	RoundNumber int                `json:"round_number"`
 	Status      string             `json:"status"`
+	CreatedAt   *string            `json:"created_at,omitempty"`
+	LockedAt    *string            `json:"locked_at,omitempty"`
 	Submissions []SubmissionDetail `json:"submissions"`
 }
 
@@ -105,6 +133,7 @@ func (h *SettlementHandler) GetSettlement(c *gin.Context) {
 		players = append(players, SettlementPlayer{
 			PlayerID:    t.PlayerID,
 			Nickname:    t.Nickname,
+			AvatarURL:   t.AvatarURL,
 			TotalScore:  t.TotalScore,
 			Rank:        t.Rank,
 			Adjustments: t.Adjustments,
@@ -157,6 +186,7 @@ func (h *SettlementHandler) GetHistoryDetail(c *gin.Context) {
 	}
 
 	players, _ := h.Store.GetGamePlayers(gameID)
+	totals, _ := h.Store.GetGamePlayerTotals(gameID)
 	playerMap := make(map[int64]PlayerInfo)
 	for _, p := range players {
 		playerMap[p.ID] = PlayerInfo{
@@ -182,12 +212,66 @@ func (h *SettlementHandler) GetHistoryDetail(c *gin.Context) {
 				})
 			}
 		}
-		historyRounds = append(historyRounds, HistoryRoundDetail{
+		hr := HistoryRoundDetail{
 			RoundID:     r.ID,
 			RoundNumber: r.RoundNumber,
 			Status:      r.Status,
 			Submissions: subDetails,
+		}
+		created := r.CreatedAt.Format("2006-01-02T15:04:05Z07:00")
+		hr.CreatedAt = &created
+		if r.LockedAt != nil {
+			locked := r.LockedAt.Format("2006-01-02T15:04:05Z07:00")
+			hr.LockedAt = &locked
+		}
+		historyRounds = append(historyRounds, hr)
+	}
+
+	// 玩家总览卡：风位 + 锁定局总分 + 名次
+	var myGPID int64
+	playerInfos := make([]HistoryPlayerInfo, 0, len(players))
+	for _, p := range players {
+		wind := ""
+		if p.Seat >= 1 && p.Seat <= 4 {
+			wind = []string{"東", "南", "西", "北"}[p.Seat-1]
+		}
+		playerInfos = append(playerInfos, HistoryPlayerInfo{
+			PlayerID:   p.ID,
+			UserID:     p.UserID,
+			Nickname:   p.NicknameSnapshot,
+			Seat:       p.Seat,
+			Wind:       wind,
+			TotalScore: totals[p.ID],
+			IsMe:       p.UserID == userID,
 		})
+		if p.UserID == userID {
+			myGPID = p.ID
+		}
+	}
+	for i := range playerInfos {
+		rank := 1
+		for _, other := range playerInfos {
+			if other.PlayerID != playerInfos[i].PlayerID && other.TotalScore > playerInfos[i].TotalScore {
+				rank++
+			}
+		}
+		playerInfos[i].Rank = rank
+	}
+	_ = myGPID
+
+	// 4 人局散台后的排位变动
+	rankChanges := make([]RankChangeItem, 0, len(players))
+	if rows, err := h.Store.GetRankSettlements(gameID); err == nil {
+		for _, row := range rows {
+			rankChanges = append(rankChanges, RankChangeItem{
+				UserID:      row.UserID,
+				Result:      row.Result,
+				Score:       row.Score,
+				StarsDelta:  row.StarsDelta,
+				BonusStars:  row.BonusStars,
+				StreakAfter: row.StreakAfter,
+			})
+		}
 	}
 
 	// Get adjustments
@@ -226,7 +310,9 @@ func (h *SettlementHandler) GetHistoryDetail(c *gin.Context) {
 		CompletedRounds: len(historyRounds),
 		CreatedAt:       game.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		EndedAt:         endedAt,
+		Players:         playerInfos,
 		Rounds:          historyRounds,
 		Adjustments:     adjResponses,
+		RankChanges:     rankChanges,
 	})
 }

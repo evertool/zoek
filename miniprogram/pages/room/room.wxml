@@ -1,60 +1,31 @@
 <!--pages/room/room.wxml — 台间页 v6 Stitch 100% 还原-->
 <view class="page" wx:if="{{game}}">
-  <!-- 固定 Header -->
-  <view class="stitch-header pt-safe">
-    <view class="stitch-header-inner">
-      <view class="stitch-header-brand">
-        <view class="header-back" bindtap="goBack"><text class="header-back-icon">‹</text></view>
-        <view class="header-logo-small"><image class="header-logo-icon" src="/assets/icons/app-icon-hongzhong.png" mode="aspectFit" /></view>
-        <view class="header-title-group">
-          <view class="header-title">{{game.name || '牌台'}}</view>
-        </view>
-      </view>
-      <view class="stitch-header-avatar"><text class="stitch-header-avatar-text">人</text></view>
-    </view>
-  </view>
-
   <!-- 主内容 -->
-  <view class="main-content">
+  <view class="main-content" style="padding-top: {{navPadding}}px;">
     <!-- 顶部状态栏 -->
     <view class="room-status-bar">
-      <view class="status-pill">
-        <view class="status-dot {{game.status === 'forming' ? 'status-dot-active' : ''}}"></view>
-        <text>{{game.statusText}} ({{players.length}}/4人)</text>
+      <view class="room-status-left">
+        <view class="nav-back-btn" bindtap="goBack">
+          <image class="nav-back-icon" src="/assets/icons/nav-back.svg" mode="aspectFit" />
+        </view>
+        <view class="status-pill">
+          <view class="status-dot {{game.status === 'forming' ? 'status-dot-active' : ''}}"></view>
+          <text>{{game.statusText}} ({{players.length}}/4人)</text>
+        </view>
       </view>
       <view class="qr-show-btn" bindtap="toggleQrModal">
-        <image class="qr-show-icon" src="/assets/icons/table-lock-private.png" mode="aspectFit" />
+        <image class="qr-show-icon" src="/assets/icons/table-qrcode.svg" mode="aspectFit" />
         <text class="qr-show-text">出示台码</text>
-      </view>
-    </view>
-
-    <!-- QR 迎宾卡（未记分时可见） -->
-    <view class="qr-banner {{showQrBanner ? '' : 'hidden'}}">
-      <view class="qr-banner-left">
-        <view class="qr-banner-title-row">
-          <text class="qr-banner-title">四方落座即刻开局</text>
-          <view class="qr-banner-badge">扫码直达</view>
-        </view>
-        <text class="qr-banner-desc">还缺 {{4 - players.length}} 位雀友，微信扫一扫即可同桌计分</text>
-        <view class="qr-banner-meta">
-          <text class="qr-banner-num">台号 #{{game.game_id}}</text>
-        </view>
-      </view>
-      <view class="qr-banner-right" bindtap="toggleQrModal">
-        <image class="qr-banner-img" src="{{qrPath}}" mode="aspectFit" wx:if="{{qrPath}}" />
-        <view class="qr-banner-placeholder" wx:else><text>QR</text></view>
       </view>
     </view>
 
     <!-- 2×2 座位网格 -->
     <view class="seat-grid-2x2">
       <!-- 东位（台主） -->
-      <view class="seat-card-2x2" wx:for="{{seats}}" wx:key="seat" data-seat="{{item.seat}}" data-name="{{item.wind}}" bindlongpress="onSeatLongPress">
+      <view class="seat-card-2x2" wx:for="{{seats}}" wx:key="seat" data-seat="{{item.seat}}" bindlongpress="onSeatLongPress">
         <view class="seat-card-top">
-          <view class="seat-wind-row">
-            <image class="seat-wind-svg seat-wind-{{item.windClass}}" src="/assets/icons/seat-wind-{{item.windClass}}.png" mode="aspectFit" />
-            <view class="tag tag-forming" wx:if="{{item.isOwner}}">台主</view>
-          </view>
+          <image class="seat-wind-badge-img" src="/assets/icons/seat-wind-{{item.windClass}}.svg" mode="aspectFit" />
+          <view class="tag tag-forming" wx:if="{{item.isOwner}}">台主</view>
         </view>
         <view class="seat-player-row">
           <block wx:if="{{item.player}}">
@@ -187,17 +158,20 @@
   <!-- 底部操作栏 -->
   <view class="room-footer safe-bottom">
     <block wx:if="{{game.status === 'forming'}}">
-      <view class="room-waiting">
-        <text class="room-waiting-text">等紧雀友入台，人齐自动开局</text>
-      </view>
-      <view class="btn-danger" wx:if="{{isOwner}}" bindtap="doCancel"><text>取消牌台</text></view>
+      <view class="btn-plain-danger" wx:if="{{isOwner}}" bindtap="doCancel"><text>取消开台</text></view>
     </block>
     <block wx:if="{{game.status === 'active'}}">
       <view class="room-actions">
         <view class="btn-primary" bindtap="goScore"><text>入分 / 计分</text></view>
         <view class="btn-secondary" bindtap="goSettlement"><text>查看排名</text></view>
       </view>
-      <view class="btn-danger" wx:if="{{isOwner}}" bindtap="doEnd"><text>散台</text></view>
+      <block wx:if="{{isOwner}}">
+        <view class="btn-plain-danger" wx:if="{{!hasScores}}" bindtap="doCancel"><text>取消开台</text></view>
+        <view class="btn-plain-danger btn-plain-danger-row" wx:else bindtap="doEnd">
+          <image class="btn-plain-danger-icon" src="/assets/icons/action-exit.svg" mode="aspectFit" />
+          <text>结束散台</text>
+        </view>
+      </block>
     </block>
     <block wx:if="{{game.status === 'ended'}}">
       <view class="btn-primary" bindtap="goSettlement"><text>查看找数</text></view>

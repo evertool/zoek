@@ -2,6 +2,7 @@
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
+const guard = require('../../utils/guard')
 
 Page({
   data: {
@@ -15,10 +16,18 @@ Page({
     nickname: '',
     avatarURL: '',
     showToast: false,
-    toastMsg: ''
+    toastMsg: '',
+    navPadding: 0
+  },
+
+  onLoad() {
+    // 顶部无导航条，内容需让出状态栏 + 胶囊按钮高度
+    this.setData({ navPadding: util.navPadding() })
   },
 
   onShow() {
+    // 未登录/资料不全时弹回首页登录或完善资料
+    if (!guard.ensure()) return
     const isLoggedIn = !!app.globalData.token
     this.setData({
       isLoggedIn,
@@ -65,6 +74,7 @@ Page({
           top3RateText: Math.round(e.top3_rate) + '%',
           avgRankText: e.avg_rank ? e.avg_rank.toFixed(1) : '0.0',
           avatarColor: util.avatarColor(e.nickname),
+          avatar_url: util.resolveAvatarURL(e.avatar_url || ''),
           total_score: totalScore
         }
       })
@@ -91,6 +101,10 @@ Page({
   inviteFriend(e) {
     const name = e.currentTarget.dataset.name
     this.showToast('已向 ' + name + ' 发起开台通知')
+  },
+
+  goRankPage() {
+    wx.navigateTo({ url: '/pages/rank/rank' })
   },
 
   showToast(msg) {

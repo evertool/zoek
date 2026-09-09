@@ -2,6 +2,7 @@
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
+const guard = require('../../utils/guard')
 
 Page({
   data: {
@@ -16,6 +17,8 @@ Page({
   },
 
   onLoad(options) {
+    // 登录/资料完善守卫：未通过弹回首页，完成后回来继续
+    if (!guard.ensure(true)) return
     this.setData({
       gameID: Number(options.game_id) || 0,
       roundID: Number(options.round_id) || 0

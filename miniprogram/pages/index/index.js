@@ -22,7 +22,13 @@ Page({
     needProfile: false,
     tempAvatar: '',
     tempNickname: '',
-    lottieError: false
+    lottieError: false,
+    navPadding: 0
+  },
+
+  onLoad() {
+    // 顶部无导航条，内容需让出状态栏 + 胶囊按钮高度
+    this.setData({ navPadding: util.navPadding() })
   },
 
   onShow() {
@@ -107,7 +113,8 @@ Page({
         wind: p.wind || WINDS[i] || '',
         windClass: p.windClass || WIND_CLASSES[i] || 'east',
         scoreClass: (p.total_score || p.score || 0) >= 0 ? 'positive' : 'negative',
-        scoreText: ((p.total_score || p.score || 0) >= 0 ? '+' : '') + (p.total_score || p.score || 0)
+        scoreText: ((p.total_score || p.score || 0) >= 0 ? '+' : '') + (p.total_score || p.score || 0),
+        avatar_url: util.resolveAvatarURL(p.avatar_url || '')
       }))
       return {
         ...g,
@@ -135,12 +142,24 @@ Page({
         isLoggedIn: true,
         needProfile
       })
-      if (!needProfile) {
+      // 资料完整：有被守卫拦下的目标页（分享入台/牌台）就回去，否则留在牌局页
+      if (!needProfile && !this.goPendingRoute()) {
         this.loadGames()
       }
     }).catch(() => {
       wx.hideLoading()
     })
+  },
+
+  /** 登录/完善资料完成后回到进入前的页面；返回 false 表示没有待跳页 */
+  goPendingRoute() {
+    const target = app.globalData.pendingRoute
+    app.globalData.pendingRoute = ''
+    if (target) {
+      wx.reLaunch({ url: target })
+      return true
+    }
+    return false
   },
 
   // ===== 头像昵称授权 =====
@@ -153,30 +172,51 @@ Page({
   },
 
   doSaveProfile() {
-    const nickname = this.data.tempNickname.trim()
-    const avatarURL = this.data.tempAvatar
+    var nickname = this.data.tempNickname.trim()
+    var avatarPath = this.data.tempAvatar
 
+    // 必填校验（按钮已 disabled，此处为安全冗余）
     if (!nickname) {
       wx.showToast({ title: '请输入昵称', icon: 'none' })
       return
     }
-    if (!avatarURL) {
+    if (!avatarPath) {
       wx.showToast({ title: '请选择头像', icon: 'none' })
       return
     }
+    if (this._saving) return
+    this._saving = true
 
-    wx.showLoading({ title: '保存中...' })
-    // 头像转 base64 持久保存，避免微信临时路径重启后失效
-    util.avatarToDataUrl(avatarURL).then(dataUrl => {
-      return app.saveProfile(nickname, dataUrl)
-    }).then(() => {
+    wx.showLoading({ title: '上传头像...' })
+    // 上传头像到服务器（内部自动压缩）
+    util.uploadAvatar(avatarPath).then(function (relPath) {
+      // 拿到相对路径后再调 saveProfile 保存昵称+路径
+      return app.saveProfile(nickname, relPath)
+    }).then(function (res) {
       wx.hideLoading()
-      wx.showToast({ title: '已完善', icon: 'success' })
-      this.setData({ needProfile: false, tempAvatar: '', tempNickname: '' })
-      this.loadGames()
-    }).catch(() => {
+      this._saving = false
+      if (res && res.need_profile === false) {
+        wx.showToast({ title: '资料已保存', icon: 'success' })
+        this.setData({ needProfile: false, tempAvatar: '', tempNickname: '' })
+        if (!this.goPendingRoute()) {
+          this.loadGames()
+        }
+      } else {
+        wx.showModal({
+          title: '保存失败',
+          content: '头像或昵称未能通过校验，请重新选择',
+          showCancel: false
+        })
+      }
+    }.bind(this)).catch(function (err) {
       wx.hideLoading()
-    })
+      this._saving = false
+      var msg = '保存失败，请重试'
+      if (err && err.message === 'FILE_TOO_LARGE') {
+        msg = '头像文件超过5MB，请重新选择'
+      }
+      wx.showToast({ title: msg, icon: 'none' })
+    }.bind(this))
   },
 
   // ===== 列表操作 =====

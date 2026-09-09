@@ -6,12 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/lk/zoek/backend/internal/errs"
 	"github.com/lk/zoek/backend/internal/logger"
 	"github.com/lk/zoek/backend/internal/model"
+	"github.com/lk/zoek/backend/internal/rank"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -71,7 +71,7 @@ func NewFromConfig(driver, dsn, logLevel string, log *logger.Logger) (*Store, er
 
 // AutoMigrate runs GORM auto-migration for all models.
 func (s *Store) AutoMigrate() error {
-	return s.DB.AutoMigrate(
+	if err := s.DB.AutoMigrate(
 		&model.User{},
 		&model.Game{},
 		&model.GamePlayer{},
@@ -79,7 +79,48 @@ func (s *Store) AutoMigrate() error {
 		&model.RoundSubmission{},
 		&model.ScoreAdjustment{},
 		&model.GameHidden{},
-	)
+		&model.RankSettlement{},
+	); err != nil {
+		return err
+	}
+	// seat 字段后加，旧数据按加入顺序回填座位号
+	return s.backfillPlayerSeats()
+}
+
+// backfillPlayerSeats 为 seat=0 的旧数据按加入顺序分配 1..4 中未被占用的最小编号。
+func (s *Store) backfillPlayerSeats() error {
+	var gameIDs []int64
+	if err := s.DB.Model(&model.GamePlayer{}).Where("seat = 0").Distinct().Pluck("game_id", &gameIDs).Error; err != nil {
+		return err
+	}
+	for _, gameID := range gameIDs {
+		var players []model.GamePlayer
+		if err := s.DB.Where("game_id = ?", gameID).Order("joined_at ASC, id ASC").Find(&players).Error; err != nil {
+			return err
+		}
+		used := map[int]bool{}
+		for _, p := range players {
+			if p.Seat >= 1 && p.Seat <= 4 {
+				used[p.Seat] = true
+			}
+		}
+		for _, p := range players {
+			if p.Seat >= 1 && p.Seat <= 4 {
+				continue
+			}
+			for seat := 1; seat <= 4; seat++ {
+				if used[seat] {
+					continue
+				}
+				used[seat] = true
+				if err := s.DB.Model(&model.GamePlayer{}).Where("id = ?", p.ID).Update("seat", seat).Error; err != nil {
+					return err
+				}
+				break
+			}
+		}
+	}
+	return nil
 }
 
 // ===========================================================================
@@ -120,14 +161,19 @@ func (s *Store) GetUserByID(id int64) (*model.User, error) {
 }
 
 // UpdateUserProfile updates nickname and avatar.
-// 微信临时路径头像（http://tmp/、wxfile://）重启后失效，不接受写入。
+// avatarURL 应为服务器相对路径（如 /uploads/avatars/xxx.jpg）。
+// 昵称+头像都有效时，同时将 ProfileCompleted 置 true。
 func (s *Store) UpdateUserProfile(id int64, nickname, avatarURL string) (*model.User, error) {
 	updates := map[string]interface{}{}
 	if nickname != "" {
 		updates["nickname"] = nickname
 	}
-	if isPersistentAvatarURL(avatarURL) {
+	if avatarURL != "" {
 		updates["avatar_url"] = avatarURL
+	}
+	// 昵称+头像都有效 → 标记资料已完善
+	if nickname != "" && avatarURL != "" {
+		updates["profile_completed"] = true
 	}
 	if len(updates) == 0 {
 		return s.GetUserByID(id)
@@ -136,12 +182,6 @@ func (s *Store) UpdateUserProfile(id int64, nickname, avatarURL string) (*model.
 		return nil, err
 	}
 	return s.GetUserByID(id)
-}
-
-// isPersistentAvatarURL reports whether the avatar URL survives app restarts.
-// 仅接受 base64 数据 URL 和 https 地址；与 handler.profileIncomplete 的判定保持一致。
-func isPersistentAvatarURL(url string) bool {
-	return strings.HasPrefix(url, "data:image") || strings.HasPrefix(url, "https://")
 }
 
 // ===========================================================================
@@ -176,6 +216,7 @@ func (s *Store) CreateGame(creatorID int64, name, inviteToken string) (*model.Ga
 		UserID:           creatorID,
 		NicknameSnapshot: creator.Nickname,
 		Role:             "owner",
+		Seat:             1,
 		JoinedAt:         time.Now(),
 	}
 	if err := s.DB.Create(&player).Error; err != nil {
@@ -219,27 +260,32 @@ func (s *Store) GetActiveGames(userID int64) ([]model.Game, error) {
 
 // GetHistoryGames returns ended/expired/cancelled games for a user with
 // pagination, excluding games the user has hidden from their history.
-func (s *Store) GetHistoryGames(userID int64, page, pageSize int) ([]model.Game, int64, error) {
-	var games []model.Game
-	var total int64
+// HistoryGameFilters 记录页筛选条件。
+type HistoryGameFilters struct {
+	Days int // 最近 N 天，0 = 全部
+}
 
-	baseQuery := s.DB.Where(
+// GetHistoryGamesAll 返回用户全部历史牌局（按结束时间倒序）。
+// 标签（胜/平/负）筛选需逐局比较得分，由 handler 配合 GetGamePlayerTotals 完成后分页。
+func (s *Store) GetHistoryGamesAll(userID int64, f HistoryGameFilters) ([]model.Game, error) {
+	query := s.DB.Model(&model.Game{}).Where(
 		"id IN (SELECT game_id FROM game_players WHERE user_id = ?) AND status IN ('ended', 'expired', 'cancelled') "+
 			"AND id NOT IN (SELECT game_id FROM game_hiddens WHERE user_id = ?)", userID, userID)
-	if err := baseQuery.Model(&model.Game{}).Count(&total).Error; err != nil {
-		return nil, 0, err
+	if f.Days > 0 {
+		cutoff := time.Now().AddDate(0, 0, -f.Days)
+		query = query.Where("COALESCE(ended_at, created_at) >= ?", cutoff)
 	}
-	offset := (page - 1) * pageSize
-	if err := baseQuery.Order("updated_at DESC").Offset(offset).Limit(pageSize).Find(&games).Error; err != nil {
-		return nil, 0, err
+	var games []model.Game
+	if err := query.Order("COALESCE(ended_at, created_at) DESC").Find(&games).Error; err != nil {
+		return nil, err
 	}
-	return games, total, nil
+	return games, nil
 }
 
 // GetGamePlayers returns all players in a game.
 func (s *Store) GetGamePlayers(gameID int64) ([]model.GamePlayer, error) {
 	var players []model.GamePlayer
-	if err := s.DB.Where("game_id = ?", gameID).Order("joined_at ASC").Find(&players).Error; err != nil {
+	if err := s.DB.Where("game_id = ?", gameID).Order("seat ASC, joined_at ASC").Find(&players).Error; err != nil {
 		return nil, err
 	}
 	return players, nil
@@ -264,6 +310,227 @@ func (s *Store) CountGamePlayers(gameID int64) (int64, error) {
 	return count, err
 }
 
+// GamePlayerTotal 一位玩家在一场牌局里的总得分（仅统计已锁定局）。
+type GamePlayerTotal struct {
+	GamePlayerID int64
+	Total        int
+}
+
+// GetGamePlayerTotals 汇总一场牌局各玩家的锁定局总得分。
+func (s *Store) GetGamePlayerTotals(gameID int64) (map[int64]int, error) {
+	var rows []GamePlayerTotal
+	err := s.DB.Table("round_submissions rs").
+		Select("rs.game_player_id AS game_player_id, COALESCE(SUM(rs.score), 0) AS total").
+		Joins("JOIN rounds r ON r.id = rs.round_id").
+		Where("r.game_id = ? AND r.status IN ('ready_for_next', 'locked')", gameID).
+		Group("rs.game_player_id").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	totals := make(map[int64]int, len(rows))
+	for _, row := range rows {
+		totals[row.GamePlayerID] = row.Total
+	}
+	return totals, nil
+}
+
+// SettleGameRank 散台后结算排位星级，仅 4 人局参与；重复调用幂等跳过。
+// 在 EndGame 事务外调用（EndGame 先行落库），结算自身用事务保证原子性。
+func (s *Store) SettleGameRank(gameID int64) error {
+	return s.Transaction(func(tx *gorm.DB) error {
+		// 幂等：此局已结算过
+		var settled int64
+		if err := tx.Model(&model.RankSettlement{}).Where("game_id = ?", gameID).Count(&settled).Error; err != nil {
+			return err
+		}
+		if settled > 0 {
+			return nil
+		}
+
+		var players []model.GamePlayer
+		if err := tx.Where("game_id = ?", gameID).Order("seat ASC").Find(&players).Error; err != nil {
+			return err
+		}
+		if len(players) != 4 {
+			return nil // 排位规定：只有 4 人局参与排位
+		}
+
+		gpIDs := make([]int64, 0, len(players))
+		playerByGP := make(map[int64]*model.GamePlayer, len(players))
+		for i := range players {
+			gpIDs = append(gpIDs, players[i].ID)
+			playerByGP[players[i].ID] = &players[i]
+		}
+
+		var rows []GamePlayerTotal
+		if err := tx.Table("round_submissions rs").
+			Select("rs.game_player_id AS game_player_id, COALESCE(SUM(rs.score), 0) AS total").
+			Joins("JOIN rounds r ON r.id = rs.round_id").
+			Where("rs.game_player_id IN ? AND r.status IN ('ready_for_next', 'locked')", gpIDs).
+			Group("rs.game_player_id").
+			Scan(&rows).Error; err != nil {
+			return err
+		}
+		scores := make(map[int64]int, len(players))
+		for _, gp := range players {
+			scores[gp.ID] = 0
+		}
+		for _, row := range rows {
+			scores[row.GamePlayerID] = row.Total
+		}
+
+		// 取玩家当前排位数据
+		userIDs := make([]int64, 0, len(players))
+		for _, gp := range players {
+			userIDs = append(userIDs, gp.UserID)
+		}
+		var users []model.User
+		if err := tx.Where("id IN ?", userIDs).Find(&users).Error; err != nil {
+			return err
+		}
+		userByID := make(map[int64]*model.User, len(users))
+		for i := range users {
+			userByID[users[i].ID] = &users[i]
+		}
+
+		streaks := make(map[int64]int, len(players))
+		for _, gp := range players {
+			streaks[gp.ID] = userByID[gp.UserID].RankStreak
+		}
+
+		outcomes := rank.Settle(scores, streaks)
+		for gpID, o := range outcomes {
+			gp := playerByGP[gpID]
+			u := userByID[gp.UserID]
+
+			newStars := u.RankStars + o.StarsDelta
+			if newStars < 0 {
+				newStars = 0 // 九品保底：0 星不再扣
+			}
+			if err := tx.Model(&model.User{}).Where("id = ?", u.ID).Updates(map[string]interface{}{
+				"rank_stars":       newStars,
+				"rank_wins":        u.RankWins + boolInt(o.Result == "win"),
+				"rank_draws":       u.RankDraws + boolInt(o.Result == "draw"),
+				"rank_losses":      u.RankLosses + boolInt(o.Result == "lose"),
+				"rank_streak":      o.StreakAfter,
+				"rank_best_streak": maxInt(u.RankBestStreak, o.StreakAfter),
+				"rank_points":      u.RankPoints + scores[gpID],
+			}).Error; err != nil {
+				return err
+			}
+			if err := tx.Create(&model.RankSettlement{
+				GameID:      gameID,
+				UserID:      u.ID,
+				Result:      o.Result,
+				Score:       scores[gpID],
+				StarsDelta:  newStars - u.RankStars, // 钳制后的实际变动
+				BonusStars:  o.BonusStars,
+				StreakAfter: o.StreakAfter,
+			}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+// GetRankSettlements 一场牌局的排位结算记录。
+func (s *Store) GetRankSettlements(gameID int64) ([]model.RankSettlement, error) {
+	var rows []model.RankSettlement
+	err := s.DB.Where("game_id = ?", gameID).Find(&rows).Error
+	return rows, err
+}
+
+// CountLockedRoundsByGameIDs 批量统计各局已锁定局数。
+func (s *Store) CountLockedRoundsByGameIDs(gameIDs []int64) (map[int64]int64, error) {
+	var rows []struct {
+		GameID int64
+		Cnt    int64
+	}
+	err := s.DB.Model(&model.Round{}).
+		Select("game_id, COUNT(*) AS cnt").
+		Where("game_id IN ? AND status IN ('ready_for_next', 'locked')", gameIDs).
+		Group("game_id").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[int64]int64, len(rows))
+	for _, row := range rows {
+		out[row.GameID] = row.Cnt
+	}
+	return out, nil
+}
+
+// GetPlayersByGameIDs 批量取多局玩家。
+func (s *Store) GetPlayersByGameIDs(gameIDs []int64) ([]model.GamePlayer, error) {
+	var players []model.GamePlayer
+	err := s.DB.Where("game_id IN ?", gameIDs).Order("seat ASC, joined_at ASC").Find(&players).Error
+	return players, err
+}
+
+// GetTotalsByGameIDs 批量取多局的各玩家锁定局总得分：game_id -> game_player_id -> total。
+func (s *Store) GetTotalsByGameIDs(gameIDs []int64) (map[int64]map[int64]int, error) {
+	var rows []struct {
+		GameID       int64
+		GamePlayerID int64
+		Total        int
+	}
+	err := s.DB.Table("round_submissions rs").
+		Select("r.game_id AS game_id, rs.game_player_id AS game_player_id, COALESCE(SUM(rs.score), 0) AS total").
+		Joins("JOIN rounds r ON r.id = rs.round_id").
+		Where("r.game_id IN ? AND r.status IN ('ready_for_next', 'locked')", gameIDs).
+		Group("r.game_id, rs.game_player_id").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[int64]map[int64]int, len(gameIDs))
+	for _, row := range rows {
+		if out[row.GameID] == nil {
+			out[row.GameID] = make(map[int64]int)
+		}
+		out[row.GameID][row.GamePlayerID] = row.Total
+	}
+	return out, nil
+}
+
+// CountAdjustmentsByGameIDs 批量统计各局的改分记录数。
+func (s *Store) CountAdjustmentsByGameIDs(gameIDs []int64) (map[int64]int64, error) {
+	var rows []struct {
+		GameID int64
+		Cnt    int64
+	}
+	err := s.DB.Model(&model.ScoreAdjustment{}).
+		Select("game_id, COUNT(*) AS cnt").
+		Where("game_id IN ?", gameIDs).
+		Group("game_id").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[int64]int64, len(rows))
+	for _, row := range rows {
+		out[row.GameID] = row.Cnt
+	}
+	return out, nil
+}
+
+func boolInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 // JoinGame adds a user to a game as a player.
 func (s *Store) JoinGame(gameID, userID int64, nickname string) (*model.GamePlayer, error) {
 	// Check existing
@@ -284,11 +551,16 @@ func (s *Store) JoinGame(gameID, userID int64, nickname string) (*model.GamePlay
 		return nil, errs.ErrGameFull
 	}
 
+	seat, err := s.freeSeat(gameID)
+	if err != nil {
+		return nil, err
+	}
 	player := model.GamePlayer{
 		GameID:           gameID,
 		UserID:           userID,
 		NicknameSnapshot: nickname,
 		Role:             "player",
+		Seat:             seat,
 		JoinedAt:         time.Now(),
 	}
 	if err := s.DB.Create(&player).Error; err != nil {
@@ -296,6 +568,50 @@ func (s *Store) JoinGame(gameID, userID int64, nickname string) (*model.GamePlay
 		return nil, errs.ErrGameFull
 	}
 	return &player, nil
+}
+
+// freeSeat returns the lowest unoccupied seat number (1-4) in the game.
+func (s *Store) freeSeat(gameID int64) (int, error) {
+	var taken []int
+	if err := s.DB.Model(&model.GamePlayer{}).Where("game_id = ?", gameID).Pluck("seat", &taken).Error; err != nil {
+		return 0, err
+	}
+	used := make(map[int]bool, len(taken))
+	for _, seat := range taken {
+		used[seat] = true
+	}
+	for seat := 1; seat <= 4; seat++ {
+		if !used[seat] {
+			return seat, nil
+		}
+	}
+	return 0, errs.ErrGameFull
+}
+
+// SwapToEmptySeat moves a player to an unoccupied seat immediately.
+// Occupied seats need the other player's consent and are rejected here.
+func (s *Store) SwapToEmptySeat(gameID, userID int64, targetSeat int) (*model.GamePlayer, error) {
+	if targetSeat < 1 || targetSeat > 4 {
+		return nil, errs.ErrInvalidInput
+	}
+	player, err := s.GetGamePlayer(gameID, userID)
+	if err != nil {
+		return nil, err
+	}
+	if player.Seat == targetSeat {
+		return player, nil
+	}
+	var count int64
+	if err := s.DB.Model(&model.GamePlayer{}).Where("game_id = ? AND seat = ?", gameID, targetSeat).Count(&count).Error; err != nil {
+		return nil, err
+	}
+	if count > 0 {
+		return nil, errs.ErrSeatOccupied
+	}
+	if err := s.DB.Model(&model.GamePlayer{}).Where("id = ?", player.ID).Update("seat", targetSeat).Error; err != nil {
+		return nil, err
+	}
+	return s.GetGamePlayer(gameID, userID)
 }
 
 // UpdateGameStatus updates a game's status with optimistic locking.
@@ -630,6 +946,7 @@ type PlayerTotal struct {
 	PlayerID    int64  `json:"player_id"`
 	UserID      int64  `json:"user_id"`
 	Nickname    string `json:"nickname"`
+	AvatarURL   string `json:"avatar_url"`
 	TotalScore  int64  `json:"total_score"`
 	Rank        int    `json:"rank"`
 	Adjustments int    `json:"adjustments"`
@@ -694,10 +1011,15 @@ func (s *Store) AggregateSettlement(gameID int64) ([]PlayerTotal, int, error) {
 	// Build result
 	result := make([]PlayerTotal, 0, len(players))
 	for _, p := range players {
+		var avatarURL string
+		if u, err := s.GetUserByID(p.UserID); err == nil {
+			avatarURL = u.AvatarURL
+		}
 		result = append(result, PlayerTotal{
 			PlayerID:    p.ID,
 			UserID:      p.UserID,
 			Nickname:    p.NicknameSnapshot,
+			AvatarURL:   avatarURL,
 			TotalScore:  totals[p.ID],
 			Adjustments: adjCounts[p.ID],
 		})
@@ -737,6 +1059,7 @@ func sortPlayerTotals(result []PlayerTotal) {
 type LeaderboardEntry struct {
 	UserID    int64   `json:"user_id"`
 	Nickname  string  `json:"nickname"`
+	AvatarURL string  `json:"avatar_url"`
 	Games     int     `json:"games"`
 	Wins      int     `json:"wins"`
 	Top3      int     `json:"top3"`
@@ -745,6 +1068,10 @@ type LeaderboardEntry struct {
 	AvgRank   float64 `json:"avg_rank"`
 	IsSelf    bool    `json:"is_self"`
 	Qualified bool    `json:"qualified"` // 完成局数达到门槛，进入正式榜单
+	TierName  string  `json:"tier_name"` // 排位段位全名
+	TierShort string  `json:"tier_short"`
+	Grade     string  `json:"grade"`
+	Stars     int     `json:"stars"` // 段内星级
 }
 
 // TrendPoint is one ended game's final score for the personal trend chart.
@@ -815,9 +1142,14 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 				nick[uid] = u.Nickname
 			}
 		}
+		var avatarURL string
+		if u, err := s.GetUserByID(uid); err == nil {
+			avatarURL = u.AvatarURL
+		}
 		e := LeaderboardEntry{
 			UserID:    uid,
 			Nickname:  nick[uid],
+			AvatarURL: avatarURL,
 			Games:     a.games,
 			Wins:      a.wins,
 			Top3:      a.top3,
@@ -828,6 +1160,13 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 			e.WinRate = round2(float64(a.wins) / float64(a.games) * 100)
 			e.Top3Rate = round2(float64(a.top3) / float64(a.games) * 100)
 			e.AvgRank = round2(float64(a.rankSum) / float64(a.games))
+		}
+		if u, err := s.GetUserByID(uid); err == nil {
+			info := rank.InfoFromStars(u.RankStars)
+			e.TierName = info.TierName
+			e.TierShort = info.TierShort
+			e.Grade = info.Grade
+			e.Stars = info.StarsInTier
 		}
 		entries = append(entries, e)
 	}

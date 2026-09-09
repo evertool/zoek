@@ -1,22 +1,7 @@
 <!--pages/leaderboard/leaderboard.wxml — 雀友榜 v6 Stitch 100% 还原-->
 <view class="page">
-  <!-- 固定 Header -->
-  <view class="stitch-header pt-safe">
-    <view class="stitch-header-inner">
-      <view class="stitch-header-brand">
-        <view class="stitch-header-logo"><image class="stitch-header-logo-icon" src="/assets/icons/app-icon-hongzhong.png" mode="aspectFit" /></view>
-        <text class="stitch-header-title">Leaderboard</text>
-      </view>
-      <view class="header-capsule">
-        <view class="header-capsule-btn"><text>···</text></view>
-        <view class="header-capsule-divider"></view>
-        <view class="header-capsule-btn"><text>●</text></view>
-      </view>
-    </view>
-  </view>
-
   <!-- 未登录 -->
-  <view class="empty-state" wx:if="{{!isLoggedIn}}">
+  <view class="empty-state" style="padding-top: {{navPadding}}px;" wx:if="{{!isLoggedIn}}">
     <view class="empty-tile mj-tile mj-tile-gold anim-float">榜</view>
     <view class="empty-text">未登入</view>
     <view class="text-secondary" style="margin-top: 8rpx;">登入后睇雀友榜同自己嘅战绩</view>
@@ -24,7 +9,7 @@
   </view>
 
   <block wx:if="{{isLoggedIn}}">
-    <view class="main-content">
+    <view class="main-content" style="padding-top: {{navPadding}}px;">
       <!-- 标题区 -->
       <view class="lb-title-section anim-fade-up">
         <view class="lb-title-row">
@@ -51,7 +36,6 @@
         </view>
         <view class="lb-period-footer">
           <view class="lb-period-info">
-            <view class="lb-info-icon"><image src="/assets/icons/score-statement-history.png" mode="aspectFit" /></view>
             <text class="lb-info-text">同台切磋 ≥ {{minGames}} 局方可入榜</text>
           </view>
           <text class="lb-disclaimer">纯积分不涉金钱</text>
@@ -128,6 +112,7 @@
                   <text class="rank-item-name">{{item.nickname}}</text>
                   <view class="rank-item-tag rank-item-tag-gold" wx:if="{{item.displayRank === 1}}"><text>榜首</text></view>
                   <view class="rank-item-tag rank-item-tag-self" wx:if="{{item.is_self}}"><text>你本人</text></view>
+                  <view class="rank-item-tag rank-item-tag-tier" wx:if="{{item.tier_short}}" bindtap="goRankPage"><text>{{item.tier_short}} {{item.stars}}★</text></view>
                 </view>
                 <view class="rank-item-detail">
                   <text>{{item.games}} 场 · {{item.wins}} 胜</text>

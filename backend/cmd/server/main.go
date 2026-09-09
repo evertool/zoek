@@ -77,6 +77,9 @@ func main() {
 	r.Use(middleware.ErrorHandler(log))
 	r.Use(middleware.CORS(cfg.CORS.AllowOrigins))
 
+	// Serve uploaded files (avatars)
+	r.Static("/uploads", "./uploads")
+
 	// Health check
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -94,6 +97,7 @@ func main() {
 	roundHandler := handler.NewRoundHandler(s)
 	adjHandler := handler.NewAdjustmentHandler(s)
 	settlementHandler := handler.NewSettlementHandler(s)
+	rankHandler := handler.NewRankHandler(s)
 	leaderboardHandler := handler.NewLeaderboardHandler(s)
 
 	// API v1
@@ -109,6 +113,7 @@ func main() {
 			// User
 			auth.GET("/user/profile", authHandler.GetProfile)
 			auth.PUT("/user/profile", authHandler.UpdateProfile)
+			auth.POST("/user/avatar", authHandler.UploadAvatar)
 
 			// Games
 			auth.POST("/games", gameHandler.CreateGame)
@@ -121,6 +126,7 @@ func main() {
 			auth.POST("/games/:game_id/end", gameHandler.EndGame)
 			auth.GET("/games/:game_id/qrcode", gameHandler.GetGameQRCode)
 			auth.POST("/games/:game_id/hide", gameHandler.HideGame)
+			auth.POST("/games/:game_id/swap_seat", gameHandler.SwapSeat)
 
 			// Rounds
 			auth.POST("/games/:game_id/rounds", roundHandler.CreateNextRound)
@@ -140,6 +146,9 @@ func main() {
 			// Settlement and History
 			auth.GET("/games/:game_id/settlement", settlementHandler.GetSettlement)
 			auth.GET("/games/:game_id/history", settlementHandler.GetHistoryDetail)
+
+			// Rank（排位段位）
+			auth.GET("/rank/me", rankHandler.GetMyRank)
 
 			// 雀友榜和个人数据
 			auth.GET("/leaderboard", leaderboardHandler.GetLeaderboard)

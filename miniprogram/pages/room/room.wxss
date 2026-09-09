@@ -1,14 +1,6 @@
 /* pages/room/room.wxss — 台间页 v6 Stitch 100% 还原 */
 .page { min-height: 100vh; background: var(--background); }
-.main-content { padding-top: 112rpx; padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: 200rpx; display: flex; flex-direction: column; gap: var(--space-md); }
-
-/* Header */
-.header-back { width: 44rpx; height: 44rpx; display: flex; align-items: center; justify-content: center; }
-.header-back-icon { font-size: 36rpx; color: var(--on-surface-variant); }
-.header-logo-small { width: 56rpx; height: 56rpx; border-radius: var(--radius-default); background: var(--primary); display: flex; align-items: center; justify-content: center; }
-.header-logo-icon { width: 40rpx; height: 40rpx; }
-.header-title-group { display: flex; flex-direction: column; }
-.header-title { font-size: 36rpx; font-weight: 600; color: var(--on-surface); }
+.main-content { padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: 200rpx; display: flex; flex-direction: column; gap: var(--space-md); }
 
 /* 状态栏 */
 .room-status-bar { display: flex; align-items: center; justify-content: space-between; }
@@ -18,29 +10,21 @@
 .qr-show-btn { display: flex; align-items: center; gap: 8rpx; background: var(--surface-container-lowest); padding: 12rpx 24rpx; border-radius: var(--radius-full); box-shadow: var(--shadow-card); }
 .qr-show-icon { width: 28rpx; height: 28rpx; }
 .qr-show-text { font-size: 24rpx; color: var(--primary); font-weight: 500; }
+.room-status-left { display: flex; align-items: center; gap: 12rpx; }
+.nav-back-btn { width: 68rpx; height: 68rpx; border-radius: 50%; background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.nav-back-icon { width: 32rpx; height: 32rpx; }
 
-/* QR 迎宾卡 */
-.qr-banner { background: var(--surface-container-lowest); border-radius: var(--radius-lg); padding: var(--space-md); box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: space-between; }
-.qr-banner.hidden { display: none; }
-.qr-banner-left { display: flex; flex-direction: column; gap: 8rpx; flex: 1; }
-.qr-banner-title-row { display: flex; align-items: center; gap: 12rpx; }
-.qr-banner-title { font-size: 28rpx; font-weight: 600; color: var(--on-surface); }
-.qr-banner-badge { background: var(--secondary-fixed); color: var(--on-secondary-fixed); font-size: 20rpx; padding: 4rpx 12rpx; border-radius: var(--radius-default); }
-.qr-banner-desc { font-size: 24rpx; color: var(--on-surface-variant); }
-.qr-banner-meta { display: flex; align-items: center; gap: 8rpx; }
-.qr-banner-num { font-size: 20rpx; color: var(--primary); font-weight: 500; }
-.qr-banner-right { flex-shrink: 0; padding-left: 16rpx; }
-.qr-banner-img { width: 128rpx; height: 128rpx; border-radius: var(--radius-default); }
-.qr-banner-placeholder { width: 128rpx; height: 128rpx; border-radius: var(--radius-default); background: var(--surface-container-low); display: flex; align-items: center; justify-content: center; font-size: 28rpx; color: var(--outline); }
+/* 底部红色文字按钮（取消开台 / 结束散台） */
+.btn-plain-danger { display: flex; align-items: center; justify-content: center; gap: 10rpx; padding: 24rpx; }
+.btn-plain-danger text { font-size: 30rpx; font-weight: 600; color: var(--error); }
+.btn-plain-danger-row { justify-content: flex-start; padding-left: 36rpx; }
+.btn-plain-danger-icon { width: 32rpx; height: 32rpx; }
 
 /* 2×2 座位 */
 .seat-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gutter-grid); }
 .seat-card-2x2 { background: var(--surface-container-lowest); border-radius: var(--radius-lg); padding: var(--space-md); box-shadow: var(--shadow-card); display: flex; flex-direction: column; gap: var(--space-sm); }
 .seat-card-top { display: flex; align-items: center; justify-content: space-between; }
-.seat-wind-row { display: flex; align-items: center; gap: 8rpx; }
-.seat-wind-svg { width: 48rpx; height: 48rpx; }
-.seat-wind-east { background: var(--secondary-container); color: var(--on-secondary-container); }
-.seat-wind-south, .seat-wind-west, .seat-wind-north { background: var(--surface-container-high); color: var(--on-surface-variant); }
+.seat-wind-badge-img { width: 48rpx; height: 48rpx; }
 .seat-player-row { display: flex; align-items: center; gap: 16rpx; }
 .seat-player-avatar { width: 80rpx; height: 80rpx; border-radius: 50%; background: var(--surface-container); flex-shrink: 0; }
 .seat-player-placeholder { display: flex; align-items: center; justify-content: center; font-size: 32rpx; font-weight: 600; color: var(--on-surface); }
@@ -127,7 +111,5 @@
 
 /* 底部操作栏 */
 .room-footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 20rpx var(--margin-screen) calc(env(safe-area-inset-bottom) + 20rpx); background: rgba(248, 249, 255, 0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1rpx solid var(--outline-variant); z-index: 50; display: flex; flex-direction: column; gap: 16rpx; }
-.room-waiting { text-align: center; }
-.room-waiting-text { font-size: 24rpx; color: var(--on-surface-variant); }
 .room-actions { display: flex; gap: var(--space-sm); }
 .room-actions .btn-primary, .room-actions .btn-secondary { flex: 1; }

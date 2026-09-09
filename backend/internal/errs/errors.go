@@ -52,6 +52,8 @@ var (
 	ErrGameNotEnded   = New("GAME_NOT_ENDED", "牌局未结束", ActionRefreshGame)
 	ErrAdjustExpired  = New("ADJUSTMENT_EXPIRED", "积分调整已过期", ActionReadOnly)
 	ErrAdjustResolved = New("ADJUSTMENT_RESOLVED", "积分调整已处理", ActionRefreshGame)
+	ErrSeatOccupied   = New("SEAT_OCCUPIED", "该座位已有玩家，需对方同意才能互换", ActionRetry)
+	ErrGameHasScores  = New("GAME_HAS_SCORES", "已有记分记录，请使用结束散台进行结算", ActionRetry)
 	ErrInvalidInput   = New("INVALID_INPUT", "输入参数有误", ActionRetry)
 	ErrInternal       = New("INTERNAL", "服务器内部错误", ActionRetry)
 )

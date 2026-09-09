@@ -65,6 +65,8 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 			auth.POST("/games/:game_id/cancel", gameH.CancelGame)
 			auth.POST("/games/:game_id/end", gameH.EndGame)
 			auth.POST("/games/:game_id/hide", gameH.HideGame)
+			auth.POST("/games/:game_id/swap_seat", gameH.SwapSeat)
+			auth.GET("/rank/me", NewRankHandler(s).GetMyRank)
 
 			auth.POST("/games/:game_id/rounds", roundH.CreateNextRound)
 			auth.GET("/games/:game_id/rounds/current", roundH.GetCurrentRound)
@@ -196,9 +198,9 @@ func TestProfilePersistence(t *testing.T) {
 	}
 	token := "Bearer " + m["token"].(string)
 
-	// Save profile (nickname + base64 data-URL avatar)
+	// Save profile (nickname + relative-path avatar)
 	w = doRequest(t, r, "PUT", "/api/v1/user/profile", token,
-		map[string]string{"nickname": "阿强", "avatar_url": "data:image/jpeg;base64,AAAA"})
+		map[string]string{"nickname": "阿强", "avatar_url": "/uploads/avatars/test_avatar.jpg"})
 	assertStatus(t, w, http.StatusOK)
 	m = parseJSON(t, w)
 	if m["need_profile"] != false {
@@ -215,40 +217,36 @@ func TestProfilePersistence(t *testing.T) {
 	if m["nickname"] != "阿强" {
 		t.Fatalf("re-login nickname = %v, want 阿强", m["nickname"])
 	}
-	if m["avatar_url"] != "data:image/jpeg;base64,AAAA" {
-		t.Fatalf("re-login avatar_url = %v, want saved data URL", m["avatar_url"])
+	if m["avatar_url"] != "/uploads/avatars/test_avatar.jpg" {
+		t.Fatalf("re-login avatar_url = %v, want /uploads/avatars/test_avatar.jpg", m["avatar_url"])
 	}
 }
 
-// TestProfileTempAvatarRejected verifies that a WeChat chooseAvatar temporary
-// path (http://tmp/, wxfile://) is not accepted as a persistent avatar: it
-// dies after app restart, so the user must still complete their profile.
-func TestProfileTempAvatarRejected(t *testing.T) {
+// TestProfileEmptyAvatarNotComplete verifies that saving only a nickname
+// (without avatar) still leaves need_profile=true.
+func TestProfileEmptyAvatarNotComplete(t *testing.T) {
 	r, _, _ := testSetup(t)
 
-	w := doRequest(t, r, "POST", "/api/v1/auth/login", "", map[string]string{"code": "tmpav"})
+	w := doRequest(t, r, "POST", "/api/v1/auth/login", "", map[string]string{"code": "noav"})
 	assertStatus(t, w, http.StatusOK)
 	m := parseJSON(t, w)
 	token := "Bearer " + m["token"].(string)
 
-	// Legacy client behaviour: saving the raw temporary avatar path
+	// Save nickname only (no avatar)
 	w = doRequest(t, r, "PUT", "/api/v1/user/profile", token,
-		map[string]string{"nickname": "阿明", "avatar_url": "http://tmp/R1S_deadbeef"})
+		map[string]string{"nickname": "阿明", "avatar_url": ""})
 	assertStatus(t, w, http.StatusOK)
 	m = parseJSON(t, w)
 	if m["need_profile"] != true {
-		t.Fatalf("after saving tmp avatar need_profile = %v, want true", m["need_profile"])
-	}
-	if m["avatar_url"] != "" {
-		t.Fatalf("tmp avatar must not be stored, got %v", m["avatar_url"])
+		t.Fatalf("after saving nickname only need_profile = %v, want true", m["need_profile"])
 	}
 
-	// Re-login: avatar is gone after restart, profile still incomplete
-	w = doRequest(t, r, "POST", "/api/v1/auth/login", "", map[string]string{"code": "tmpav"})
+	// Re-login: profile still incomplete
+	w = doRequest(t, r, "POST", "/api/v1/auth/login", "", map[string]string{"code": "noav"})
 	assertStatus(t, w, http.StatusOK)
 	m = parseJSON(t, w)
 	if m["need_profile"] != true {
-		t.Fatalf("re-login with only tmp avatar need_profile = %v, want true", m["need_profile"])
+		t.Fatalf("re-login without avatar need_profile = %v, want true", m["need_profile"])
 	}
 }
 
@@ -324,6 +322,172 @@ func TestJoinGameAlreadyJoined(t *testing.T) {
 	assertStatus(t, w, http.StatusOK)
 }
 
+func TestSwapSeat(t *testing.T) {
+	r, _, _ := testSetup(t)
+	creator := loginAndAuth(t, r, "creator")
+	joiner := loginAndAuth(t, r, "joiner")
+
+	w := doRequest(t, r, "POST", "/api/v1/games", creator, map[string]string{"request_id": "r1"})
+	assertStatus(t, w, http.StatusCreated)
+	inviteToken := parseJSON(t, w)["invite_token"].(string)
+
+	// 第二位玩家加入（凑满 2 人自动开局）
+	w = doRequest(t, r, "POST", "/api/v1/games/join", joiner, map[string]string{"invite_token": inviteToken, "request_id": "r2"})
+	assertStatus(t, w, http.StatusCreated)
+	gameID := int64(parseJSON(t, w)["game_id"].(float64))
+
+	// joiner 在 2 号位，长按换到空位 4：立即生效，无需申请
+	path := fmt.Sprintf("/api/v1/games/%d/swap_seat", gameID)
+	w = doRequest(t, r, "POST", path, joiner, map[string]int{"target_seat": 4})
+	assertStatus(t, w, http.StatusOK)
+	if m := parseJSON(t, w); m["seat"].(float64) != 4 {
+		t.Fatalf("seat = %v, want 4", m["seat"])
+	}
+
+	// 换到已占用的 1 号位：需要对方同意，接口直接拒绝
+	w = doRequest(t, r, "POST", path, joiner, map[string]int{"target_seat": 1})
+	assertStatus(t, w, http.StatusBadRequest)
+	if m := parseJSON(t, w); m["code"] != "SEAT_OCCUPIED" {
+		t.Fatalf("code = %v, want SEAT_OCCUPIED", m["code"])
+	}
+
+	// 非法座位号
+	w = doRequest(t, r, "POST", path, joiner, map[string]int{"target_seat": 5})
+	assertStatus(t, w, http.StatusBadRequest)
+
+	// 换位后玩家列表按座位号排列：1 号位 creator 在前，4 号位 joiner 在后
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), joiner, nil)
+	assertStatus(t, w, http.StatusOK)
+	players := parseJSON(t, w)["players"].([]interface{})
+	if len(players) != 2 {
+		t.Fatalf("players = %d, want 2", len(players))
+	}
+	if first := players[0].(map[string]interface{}); first["nickname"] != "玩家creator" {
+		t.Fatalf("first player = %v, want 玩家creator", first["nickname"])
+	}
+}
+
+// createGame4P 开一桌并凑满 4 人（2 人自动开局后第 3/4 人继续凑脚加入）。
+func createGame4P(t *testing.T, r *gin.Engine) (int64, []string) {
+	t.Helper()
+	creator := loginAndAuth(t, r, "p1")
+	w := doRequest(t, r, "POST", "/api/v1/games", creator, map[string]string{"request_id": "r1"})
+	assertStatus(t, w, http.StatusCreated)
+	inviteToken := parseJSON(t, w)["invite_token"].(string)
+	auths := []string{creator}
+	var gameID int64
+	for i, code := range []string{"p2", "p3", "p4"} {
+		auth := loginAndAuth(t, r, code)
+		w = doRequest(t, r, "POST", "/api/v1/games/join", auth, map[string]string{"invite_token": inviteToken, "request_id": fmt.Sprintf("j%d", i)})
+		assertStatus(t, w, http.StatusCreated)
+		gameID = int64(parseJSON(t, w)["game_id"].(float64))
+		auths = append(auths, auth)
+	}
+	return gameID, auths
+}
+
+// playRound 全员提交分数并锁定该局。
+func playRound(t *testing.T, r *gin.Engine, gameID, roundID int64, auths []string, scores []int) {
+	t.Helper()
+	for i, auth := range auths {
+		w := doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth,
+			map[string]interface{}{"score": scores[i], "request_id": fmt.Sprintf("s-%d-%d", roundID, i)})
+		assertStatus(t, w, http.StatusOK)
+	}
+	w := doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/lock", gameID, roundID), auths[0],
+		map[string]string{"request_id": fmt.Sprintf("lock-%d", roundID)})
+	assertStatus(t, w, http.StatusOK)
+}
+
+func TestRankSettleOnEnd(t *testing.T) {
+	r, _, _ := testSetup(t)
+	gameID, auths := createGame4P(t, r)
+
+	// 第 1 局：+40 +10 -20 -30
+	w := doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auths[0], nil)
+	assertStatus(t, w, http.StatusOK)
+	round1 := int64(parseJSON(t, w)["round_id"].(float64))
+	playRound(t, r, gameID, round1, auths, []int{40, 10, -20, -30})
+
+	// 第 2 局：+5 +5 -25 +15
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds", gameID), auths[0], map[string]string{"request_id": "n2"})
+	assertStatus(t, w, http.StatusCreated)
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auths[0], nil)
+	round2 := int64(parseJSON(t, w)["round_id"].(float64))
+	playRound(t, r, gameID, round2, auths, []int{5, 5, -25, 15})
+
+	// 散台（总分：p1 +45 胜 / p2 +15 平 / p4 -15 平 / p3 -45 负）
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auths[0], map[string]string{"request_id": "e1"})
+	assertStatus(t, w, http.StatusOK)
+
+	// p1：胜 +1 星
+	w = doRequest(t, r, "GET", "/api/v1/rank/me", auths[0], nil)
+	assertStatus(t, w, http.StatusOK)
+	m := parseJSON(t, w)
+	if m["stars"].(float64) != 1 || m["wins"].(float64) != 1 || m["streak"].(float64) != 1 || m["points"].(float64) != 45 {
+		t.Fatalf("p1 rank = %v", m)
+	}
+	if tier := m["tier"].(map[string]interface{}); tier["tier_short"] != "九品" || tier["stars_in_tier"].(float64) != 1 {
+		t.Fatalf("p1 tier = %v", tier)
+	}
+
+	// p3：末位 -1 星，但九品 0 星保底不掉
+	w = doRequest(t, r, "GET", "/api/v1/rank/me", auths[2], nil)
+	m = parseJSON(t, w)
+	if m["stars"].(float64) != 0 || m["losses"].(float64) != 1 || m["points"].(float64) != -45 {
+		t.Fatalf("p3 rank = %v", m)
+	}
+
+	// p4：第三名（-15）按名次为平，不扣星
+	w = doRequest(t, r, "GET", "/api/v1/rank/me", auths[3], nil)
+	m = parseJSON(t, w)
+	if m["stars"].(float64) != 0 || m["draws"].(float64) != 1 {
+		t.Fatalf("p4 rank = %v, want draw no star change", m)
+	}
+
+	// 历史详情带排位变动
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/history", gameID), auths[0], nil)
+	assertStatus(t, w, http.StatusOK)
+	m = parseJSON(t, w)
+	if rc, ok := m["rank_changes"].([]interface{}); !ok || len(rc) != 4 {
+		t.Fatalf("rank_changes = %v, want 4 entries", m["rank_changes"])
+	}
+	if players, ok := m["players"].([]interface{}); !ok || len(players) != 4 {
+		t.Fatalf("players = %v, want 4", m["players"])
+	}
+
+	// 记录页标签筛选：p1 能按「胜」筛到，p3 按「负」筛到；日期筛选命中
+	w = doRequest(t, r, "GET", "/api/v1/games/history?result=win", auths[0], nil)
+	assertStatus(t, w, http.StatusOK)
+	m = parseJSON(t, w)
+	if m["total"].(float64) != 1 {
+		t.Fatalf("history result=win total = %v", m["total"])
+	}
+	g := m["games"].([]interface{})[0].(map[string]interface{})
+	if g["my_score"].(float64) != 45 || g["my_rank"].(float64) != 1 || g["is_ranked"] != true {
+		t.Fatalf("history item = %v", g)
+	}
+
+	w = doRequest(t, r, "GET", "/api/v1/games/history?result=lose", auths[2], nil)
+	m = parseJSON(t, w)
+	if m["total"].(float64) != 1 {
+		t.Fatalf("history result=lose total = %v", m["total"])
+	}
+
+	w = doRequest(t, r, "GET", "/api/v1/games/history?days=7", auths[0], nil)
+	m = parseJSON(t, w)
+	if m["total"].(float64) != 1 {
+		t.Fatalf("history days=7 total = %v", m["total"])
+	}
+
+	// 分页字段
+	w = doRequest(t, r, "GET", "/api/v1/games/history?page=1&page_size=20", auths[0], nil)
+	m = parseJSON(t, w)
+	if _, ok := m["has_more"]; !ok {
+		t.Fatal("missing has_more")
+	}
+}
+
 func TestStartGameNotEnoughPlayers(t *testing.T) {
 	r, _, _ := testSetup(t)
 	auth := loginAndAuth(t, r, "creator")
@@ -348,6 +512,42 @@ func TestCancelGame(t *testing.T) {
 	// Cancel
 	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/cancel", gameID), auth, map[string]string{"request_id": "r2"})
 	assertStatus(t, w, http.StatusOK)
+}
+
+func TestCancelActiveGameWithoutScores(t *testing.T) {
+	r, _, _ := testSetup(t)
+	gameID, auth1, _ := createGameAndStart(t, r)
+
+	// 已自动开局但还没有入账的局：仍可取消开台
+	w := doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/cancel", gameID), auth1, map[string]string{"request_id": "r2"})
+	assertStatus(t, w, http.StatusOK)
+}
+
+func TestCancelWithScoresRejected(t *testing.T) {
+	r, _, _ := testSetup(t)
+	gameID, auth1, auth2 := createGameAndStart(t, r)
+
+	w := doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	roundID := int64(parseJSON(t, w)["round_id"].(float64))
+
+	// 双方提交并锁定一局，产生记分记录
+	w = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth1,
+		map[string]interface{}{"score": 16, "request_id": "sub1"})
+	assertStatus(t, w, http.StatusOK)
+	w = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth2,
+		map[string]interface{}{"score": -16, "request_id": "sub2"})
+	assertStatus(t, w, http.StatusOK)
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/lock", gameID, roundID), auth1,
+		map[string]string{"request_id": "lock1"})
+	assertStatus(t, w, http.StatusOK)
+
+	// 有记分记录：不能取消，只能散台结算
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/cancel", gameID), auth1, map[string]string{"request_id": "r2"})
+	assertStatus(t, w, http.StatusBadRequest)
+	if m := parseJSON(t, w); m["code"] != "GAME_HAS_SCORES" {
+		t.Fatalf("code = %v, want GAME_HAS_SCORES", m["code"])
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -701,10 +901,21 @@ func TestJoinAutoStart(t *testing.T) {
 		t.Fatalf("current_round_number = %v, want 1", m["current_round_number"])
 	}
 
-	// Third join while active: QR still works for invite, but join is blocked (members implicit lock via status != forming)
+	// Third/Fourth join while active: 开局后未满 4 人仍可继续凑脚（排位需要 4 人局）
 	third := loginAndAuth(t, r, "autostart-t")
 	w = doRequest(t, r, "POST", "/api/v1/games/join", third,
 		map[string]string{"invite_token": inviteToken, "request_id": "as-join3"})
+	assertStatus(t, w, http.StatusCreated)
+
+	fourth := loginAndAuth(t, r, "autostart-f")
+	w = doRequest(t, r, "POST", "/api/v1/games/join", fourth,
+		map[string]string{"invite_token": inviteToken, "request_id": "as-join4"})
+	assertStatus(t, w, http.StatusCreated)
+
+	// Fifth join: 满 4 人后锁定，不再接受加入
+	fifth := loginAndAuth(t, r, "autostart-5")
+	w = doRequest(t, r, "POST", "/api/v1/games/join", fifth,
+		map[string]string{"invite_token": inviteToken, "request_id": "as-join5"})
 	assertStatus(t, w, http.StatusBadRequest)
 }
 

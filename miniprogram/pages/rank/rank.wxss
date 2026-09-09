@@ -1,0 +1,86 @@
+/* pages/rank/rank.wxss — 排位段位页 */
+.page { min-height: 100vh; background: var(--background); }
+.main-content { padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: 60rpx; display: flex; flex-direction: column; gap: var(--space-md); }
+.gd-top-bar { display: flex; align-items: center; }
+.nav-back-btn { width: 68rpx; height: 68rpx; border-radius: 50%; background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: center; }
+.nav-back-icon { width: 32rpx; height: 32rpx; }
+.card { background: var(--surface-container-lowest); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+
+/* 赛季横幅 */
+.rk-season { display: flex; align-items: center; justify-content: space-between; padding: 16rpx 24rpx; border-radius: var(--radius-lg); background: var(--surface-container-low); }
+.rk-season-text { font-size: 22rpx; color: var(--on-surface-variant); }
+.rk-season-chip { padding: 4rpx 14rpx; border-radius: var(--radius-full); background: var(--surface-container-high); font-size: 18rpx; color: var(--on-surface-variant); }
+
+/* 我的段位卡 */
+.rk-hero { padding: var(--space-md); display: flex; flex-direction: column; gap: 18rpx; }
+.rk-hero-top { display: flex; align-items: center; gap: 20rpx; }
+.rk-avatar { width: 110rpx; height: 110rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 44rpx; font-weight: 700; overflow: hidden; border: 4rpx solid var(--primary-fixed-dim); flex-shrink: 0; }
+.rk-avatar-img { width: 100%; height: 100%; }
+.rk-hero-info { flex: 1; display: flex; flex-direction: column; gap: 6rpx; min-width: 0; }
+.rk-nickname { font-size: 36rpx; font-weight: 700; color: var(--on-surface); }
+.rk-tier-name { font-size: 26rpx; font-weight: 600; color: var(--primary); }
+.rk-grade-chip { padding: 8rpx 18rpx; border-radius: var(--radius-full); background: var(--primary-fixed); color: var(--on-primary-fixed); font-size: 20rpx; font-weight: 600; flex-shrink: 0; }
+
+.rk-progress { display: flex; align-items: baseline; justify-content: space-between; }
+.rk-progress-label { font-size: 24rpx; color: var(--on-surface-variant); }
+.rk-progress-num { font-size: 24rpx; font-weight: 700; color: var(--on-surface); }
+
+.rk-stars { display: flex; align-items: center; gap: 14rpx; flex-wrap: wrap; }
+.rk-star { width: 88rpx; height: 88rpx; border-radius: var(--radius-default); background: var(--surface-container-low); border: 2rpx solid var(--outline-variant); display: flex; align-items: center; justify-content: center; font-size: 44rpx; color: var(--outline); }
+.rk-star.filled { background: #fff7e0; border-color: #eab308; color: #eab308; }
+.rk-protect-chip { padding: 6rpx 14rpx; border-radius: var(--radius-full); background: var(--surface-container-high); font-size: 18rpx; color: var(--on-surface-variant); }
+.rk-total-stars { font-size: 28rpx; font-weight: 700; color: var(--secondary); }
+
+.rk-streak { display: flex; align-items: center; gap: 12rpx; padding: 16rpx 20rpx; border-radius: var(--radius-default); background: #fff4e5; }
+.rk-streak-text { font-size: 26rpx; font-weight: 700; color: #b45309; }
+.rk-streak-sub { font-size: 20rpx; color: #b45309; opacity: 0.8; margin-left: auto; }
+
+.rk-stats { display: flex; gap: 12rpx; }
+.rk-stat { flex: 1; background: var(--surface-container-low); border-radius: var(--radius-default); padding: 14rpx 16rpx; display: flex; flex-direction: column; gap: 6rpx; }
+.rk-stat-label { font-size: 20rpx; color: var(--on-surface-variant); }
+.rk-stat-val { font-size: 30rpx; font-weight: 700; color: var(--on-surface); }
+.rk-stat-orange { color: var(--secondary); }
+
+/* 机制区 */
+.rk-section { display: flex; flex-direction: column; gap: 16rpx; }
+.rk-section-head { display: flex; align-items: baseline; justify-content: space-between; }
+.rk-section-title { font-size: 30rpx; font-weight: 700; color: var(--on-surface); }
+.rk-section-sub { font-size: 20rpx; color: var(--outline); }
+.rk-rules { padding: 8rpx var(--space-md); }
+.rk-rule { display: flex; align-items: center; gap: 16rpx; padding: 20rpx 0; border-bottom: 1rpx solid var(--outline-variant); }
+.rk-rule:last-child { border-bottom: none; }
+.rk-rule-icon { width: 56rpx; height: 56rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26rpx; flex-shrink: 0; }
+.rk-rule-green { background: var(--primary-fixed); }
+.rk-rule-orange { background: var(--secondary-fixed); }
+.rk-rule-red { background: var(--tertiary-fixed); }
+.rk-rule-body { flex: 1; display: flex; flex-direction: column; gap: 4rpx; min-width: 0; }
+.rk-rule-title { font-size: 26rpx; font-weight: 600; color: var(--on-surface); }
+.rk-rule-desc { font-size: 20rpx; color: var(--on-surface-variant); }
+.rk-rule-badge { padding: 6rpx 14rpx; border-radius: var(--radius-full); font-size: 18rpx; font-weight: 700; flex-shrink: 0; }
+.rk-badge-green { background: var(--primary-fixed); color: var(--on-primary-fixed); }
+.rk-badge-orange { background: var(--secondary-fixed); color: var(--on-secondary-fixed); }
+.rk-badge-red { background: var(--tertiary-fixed); color: var(--on-tertiary-fixed); }
+.rk-protect { display: flex; align-items: center; gap: 10rpx; padding: 0 8rpx; }
+.rk-protect-text { font-size: 20rpx; color: var(--on-surface-variant); }
+
+/* 六品段位表 */
+.rk-tiers { display: flex; flex-direction: column; gap: 14rpx; }
+.rk-tier { display: flex; align-items: center; gap: 16rpx; padding: 18rpx 20rpx; border-radius: var(--radius-lg); background: var(--surface-container-lowest); box-shadow: var(--shadow-card); }
+.rk-tier.current { border: 2rpx solid var(--primary); background: #f2faf5; }
+.rk-tier-tile { width: 72rpx; height: 72rpx; border-radius: var(--radius-default); display: flex; align-items: center; justify-content: center; font-size: 36rpx; font-weight: 700; flex-shrink: 0; }
+.rk-tile-1 { background: #f1f5f9; color: #475569; }
+.rk-tile-2 { background: #e2e8f0; color: #334155; }
+.rk-tile-3 { background: #fef3c7; color: #b45309; }
+.rk-tile-4 { background: var(--primary-fixed); color: var(--on-primary-fixed); }
+.rk-tile-5 { background: #fecaca; color: #991b1b; }
+.rk-tile-6 { background: #1b6b4a; color: #fbbf24; }
+.rk-tier-info { flex: 1; display: flex; flex-direction: column; gap: 4rpx; min-width: 0; }
+.rk-tier-name { font-size: 26rpx; font-weight: 700; color: var(--on-surface); }
+.rk-tier-req { font-size: 20rpx; color: var(--on-surface-variant); }
+.rk-tier-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6rpx; flex-shrink: 0; }
+.rk-tier-grade { padding: 4rpx 12rpx; border-radius: var(--radius-full); background: var(--surface-container-high); font-size: 18rpx; color: var(--on-surface-variant); }
+.rk-tier-now { background: var(--primary); color: var(--on-primary); font-weight: 600; }
+.rk-tier-range { font-size: 18rpx; color: var(--outline); }
+
+/* 底部分享 */
+.rk-share-btn { display: flex; align-items: center; justify-content: center; margin-top: 8rpx; }

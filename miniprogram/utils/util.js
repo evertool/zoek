@@ -7,7 +7,7 @@ function formatScore(score) {
 
 function statusText(status) {
   const map = {
-    forming: '等待中',
+    forming: '凑紧脚',
     active: '进行中',
     ended: '已结束',
     expired: '已失效',
@@ -80,39 +80,174 @@ function avatarColor(name) {
 }
 
 /**
- * 将微信授权头像的临时文件转为 base64 数据 URL。
- * 临时路径重启后失效，转 base64 才能持久保存（MVP 无对象存储）。
- * @param {string} filePath — chooseAvatar 返回的临时路径
- * @returns {Promise<string>} — data:image/jpeg;base64,... 形式的数据 URL
+ * 将头像文件压缩到 1MB 以内。
+ * - 超过 5MB 拒绝上传
+ * - 超过 1MB 逐步降低质量压缩
+ * - 压缩不支持时退回原图
+ * @param {string} filePath — 临时文件路径
+ * @returns {Promise<string>} — 压缩后的临时文件路径
  */
-function avatarToDataUrl(filePath) {
+function compressAvatar(filePath) {
   return new Promise((resolve, reject) => {
     if (!filePath) {
-      reject(new Error('no avatar file'))
+      reject(new Error('no file'))
       return
     }
-    if (filePath.indexOf('data:') === 0) {
+    // 微信头像授权返回的是网络路径，不压缩
+    if (filePath.indexOf('http://') === 0 || filePath.indexOf('https://') === 0) {
       resolve(filePath)
       return
     }
-    const fs = wx.getFileSystemManager()
-    const readAsBase64 = (path) => {
-      fs.readFile({
-        filePath: path,
-        encoding: 'base64',
-        success: (res) => resolve('data:image/jpeg;base64,' + res.data),
-        fail: (err) => reject(err)
-      })
-    }
-    // 先压缩控制体积；压缩不支持时（如 png）退回原图
-    wx.compressImage({
-      src: filePath,
-      quality: 60,
-      compressedWidth: 240,
-      success: (res) => readAsBase64(res.tempFilePath),
-      fail: () => readAsBase64(filePath)
+    wx.getFileInfo({
+      filePath: filePath,
+      success: (info) => {
+        var sizeKB = info.size / 1024
+        // 小于 1MB 直接返回
+        if (sizeKB <= 1024) {
+          resolve(filePath)
+          return
+        }
+        // 大于 5MB 拒绝
+        if (sizeKB > 5 * 1024) {
+          reject(new Error('FILE_TOO_LARGE'))
+          return
+        }
+        // 逐步压缩：从 quality 80 开始递减
+        var tryCompress = function (quality) {
+          wx.compressImage({
+            src: filePath,
+            quality: quality,
+            compressedWidth: 480,
+            success: function (res) {
+              wx.getFileInfo({
+                filePath: res.tempFilePath,
+                success: function (info2) {
+                  if (info2.size / 1024 <= 1024) {
+                    resolve(res.tempFilePath)
+                  } else if (quality > 20) {
+                    tryCompress(quality - 20)
+                  } else {
+                    // 已尽最大压缩，返回当前结果
+                    resolve(res.tempFilePath)
+                  }
+                },
+                fail: function () {
+                  resolve(res.tempFilePath)
+                }
+              })
+            },
+            fail: function () {
+              // 压缩失败，退回原图
+              resolve(filePath)
+            }
+          })
+        }
+        tryCompress(80)
+      },
+      fail: function () {
+        // 无法获取文件信息，直接尝试压缩
+        resolve(filePath)
+      }
     })
   })
+}
+
+/**
+ * 下载网络头像到本地临时文件。
+ * 仅在 chooseAvatar 返回 https:// 开头的微信头像 URL 时使用。
+ * @param {string} url — 网络头像 URL
+ * @returns {Promise<string>} — 本地临时文件路径
+ */
+function downloadAvatar(url) {
+  return new Promise(function (resolve, reject) {
+    wx.downloadFile({
+      url: url,
+      success: function (res) {
+        if (res.statusCode === 200) {
+          resolve(res.tempFilePath)
+        } else {
+          reject(new Error('download failed: ' + res.statusCode))
+        }
+      },
+      fail: function (err) {
+        reject(err)
+      }
+    })
+  })
+}
+
+/**
+ * 上传头像到服务器并返回相对路径。
+ * 内部自动执行压缩逻辑。
+ * - 微信授权头像（网络 URL）：先下载到本地再上传（不压缩）
+ * - 本地临时文件：直接压缩后上传
+ * @param {string} filePath — chooseAvatar 返回的临时路径或网络 URL
+ * @returns {Promise<string>} — 服务器返回的相对路径（如 /uploads/avatars/xxx.jpg）
+ */
+function uploadAvatar(filePath) {
+  return new Promise(function (resolve, reject) {
+    // 微信头像授权返回的是网络 URL，需要先下载到本地
+    var prepare = (filePath.indexOf('http://') === 0 || filePath.indexOf('https://') === 0)
+      ? downloadAvatar(filePath)
+      : Promise.resolve(filePath)
+    prepare.then(function (localPath) {
+      return compressAvatar(localPath)
+    }).then(function (compressedPath) {
+      var app = getApp()
+      wx.uploadFile({
+        url: app.globalData.baseURL + '/user/avatar',
+        filePath: compressedPath,
+        name: 'file',
+        header: {
+          'Authorization': 'Bearer ' + app.globalData.token
+        },
+        success: function (res) {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            var data = JSON.parse(res.data)
+            resolve(data.avatar_url)
+          } else {
+            reject(new Error('upload failed: ' + res.statusCode))
+          }
+        },
+        fail: function (err) {
+          reject(err)
+        }
+      })
+    }).catch(function (err) {
+      reject(err)
+    })
+  })
+}
+
+/**
+ * 将后端返回的相对路径头像 URL 转为完整可访问的 URL。
+ * 如果已经是完整 URL（https://）或 data URL，直接返回。
+ * @param {string} url — 后端返回的 avatar_url
+ * @returns {string} — 前端可直接使用的完整 URL
+ */
+function resolveAvatarURL(url) {
+  if (!url) return ''
+  if (url.indexOf('http://') === 0 || url.indexOf('https://') === 0 || url.indexOf('data:') === 0) {
+    return url
+  }
+  // 相对路径，拼接服务器基地址（去掉 /api/v1 后缀）
+  var app = getApp()
+  var base = (app && app.globalData && app.globalData.baseURL) || ''
+  var origin = base.replace(/\/api\/v\d+$/, '')
+  return origin + url
+}
+
+/**
+ * 自定义导航页面顶部让位高度（px）：状态栏 + 胶囊按钮 + 少量间距。
+ * 用于去掉自定义 Header 后，内容不被系统胶囊遮挡。
+ */
+function navPadding() {
+  try {
+    return wx.getMenuButtonBoundingClientRect().bottom + 8
+  } catch (e) {
+    const info = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()
+    return (info.statusBarHeight || 20) + 48
+  }
 }
 
 module.exports = {
@@ -123,5 +258,9 @@ module.exports = {
   formatDateTime,
   adjustmentTypeText,
   avatarColor,
-  avatarToDataUrl
+  compressAvatar,
+  downloadAvatar,
+  uploadAvatar,
+  resolveAvatarURL,
+  navPadding
 }

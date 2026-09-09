@@ -7,6 +7,10 @@
     "pages/settlement/settlement",
     "pages/history/history",
     "pages/detail/detail",
+    "pages/game-detail/game-detail",
+    "pages/game-ledger/game-ledger",
+    "pages/game-chart/game-chart",
+    "pages/rank/rank",
     "pages/profile/profile",
     "pages/join/join",
     "pages/leaderboard/leaderboard"

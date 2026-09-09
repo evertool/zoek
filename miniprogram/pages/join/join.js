@@ -1,6 +1,7 @@
 // pages/join/join.js — 扫码入台页
 const app = getApp()
 const api = require('../../utils/api')
+const guard = require('../../utils/guard')
 
 Page({
   data: {
@@ -13,6 +14,9 @@ Page({
   },
 
   onLoad(options) {
+    // 登录/资料完善守卫：未通过弹回首页，完成后带着原参数回来继续入台
+    if (!guard.ensure(true)) return
+
     // 小程序码扫码进入
     if (options.scene) {
       const gameID = Number(decodeURIComponent(options.scene))

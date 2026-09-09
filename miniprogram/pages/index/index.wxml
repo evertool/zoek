@@ -29,32 +29,18 @@
     </view>
   </view>
 
-  <!-- ===== 已登录 ===== -->
-  <block wx:if="{{isLoggedIn}}">
-    <!-- 固定毛玻璃 Header -->
-    <view class="stitch-header pt-safe">
-      <view class="stitch-header-inner">
-        <view class="stitch-header-brand">
-          <view class="stitch-header-logo">
-            <image class="stitch-header-logo-icon" src="/assets/icons/app-icon-hongzhong.png" mode="aspectFit" />
-          </view>
-          <view class="stitch-header-text-group">
-            <view class="stitch-header-title">得闲开台</view>
-            <view class="stitch-header-subtitle">今铺我赢晒！</view>
-          </view>
-        </view>
-        <view class="stitch-header-avatar">
-          <text class="stitch-header-avatar-text">人</text>
-        </view>
-      </view>
+  <!-- ===== 已登录但缺头像/昵称：强制完善资料页 ===== -->
+  <view class="profile-gate" style="padding-top: {{navPadding}}px;" wx:elif="{{needProfile}}">
+    <view class="gate-hero">
+      <view class="gate-logo"><image class="gate-logo-icon" src="/assets/icons/app-icon-hongzhong.png" mode="aspectFit" /></view>
+      <view class="gate-title">得闲开台</view>
+      <view class="gate-subtitle">开台之前，先俾雀友认得你</view>
     </view>
+    <view class="gate-card">
+      <view class="gate-card-title">完善资料</view>
 
-    <!-- 主内容区 -->
-    <view class="main-content">
-      <!-- 完善资料卡 -->
-      <view class="card profile-card anim-fade-up" wx:if="{{needProfile}}">
-        <view class="profile-card-title">完善资料</view>
-        <view class="text-secondary profile-tip">开台之前，先俾雀友认得你</view>
+      <!-- 微信头像选择 -->
+      <view class="avatar-chooser-wrap">
         <button class="avatar-chooser" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
           <image class="avatar-img" src="{{tempAvatar}}" mode="aspectFill" wx:if="{{tempAvatar}}" />
           <view class="avatar-placeholder" wx:else>
@@ -62,12 +48,27 @@
             <text class="avatar-placeholder-text">选头像</text>
           </view>
         </button>
-        <input class="text-input" type="nickname" placeholder="输入昵称" placeholder-class="input-placeholder" value="{{tempNickname}}" bindinput="onNicknameInput" maxlength="20" />
-        <button class="btn-primary save-profile-btn" bindtap="doSaveProfile">保存资料</button>
       </view>
 
+      <!-- 微信昵称输入 -->
+      <input class="text-input" type="nickname" placeholder="输入昵称" placeholder-class="input-placeholder" value="{{tempNickname}}" bindinput="onNicknameInput" maxlength="20" />
+
+      <!-- 保存按钮 -->
+      <button class="btn-primary save-profile-btn {{!tempAvatar || !tempNickname ? 'btn-disabled' : ''}}" bindtap="doSaveProfile" disabled="{{!tempAvatar || !tempNickname}}">保存资料</button>
+    </view>
+    <view class="gate-footer">
+      <view class="footer-line"></view>
+      <text class="footer-text">头像昵称仅雀友可见</text>
+      <view class="footer-line"></view>
+    </view>
+  </view>
+
+  <!-- ===== 已登录且资料完整：牌局页 ===== -->
+  <block wx:else>
+    <!-- 主内容区 -->
+    <view class="main-content" style="padding-top: {{navPadding}}px;">
       <!-- 开台入口卡 -->
-      <view class="create-card anim-fade-up delay-2" bindtap="goCreate" wx:if="{{!needProfile}}">
+      <view class="create-card anim-fade-up delay-2" bindtap="goCreate">
         <view class="create-card-top">
           <view class="create-info">
             <view class="create-title">一键快速开台</view>
@@ -86,7 +87,7 @@
       </view>
 
       <!-- 进行中牌局 -->
-      <block wx:if="{{!needProfile}}">
+      <block>
         <view class="section-header anim-fade-up delay-3" wx:if="{{games.length > 0}}">
           <view class="section-left">
             <text class="section-title">当前牌局</text>
@@ -137,7 +138,7 @@
       </block>
 
       <!-- 最近战绩 -->
-      <view class="recent-section" wx:if="{{!needProfile && games.length > 0}}">
+      <view class="recent-section" wx:if="{{games.length > 0}}">
         <view class="section-header">
           <text class="section-title">最近战绩</text>
           <view class="recent-more"><text class="recent-more-text">全部记录</text><text class="recent-more-arrow">›</text></view>

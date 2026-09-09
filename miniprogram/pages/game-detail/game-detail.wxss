@@ -1,0 +1,67 @@
+/* pages/game-detail/game-detail.wxss — 每局详情页 */
+.page { min-height: 100vh; background: var(--background); }
+.main-content { padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: 60rpx; display: flex; flex-direction: column; gap: var(--space-md); }
+.gd-top-bar { display: flex; align-items: center; }
+.nav-back-btn { width: 68rpx; height: 68rpx; border-radius: 50%; background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: center; }
+.nav-back-icon { width: 32rpx; height: 32rpx; }
+.card { background: var(--surface-container-lowest); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+
+/* 头部战局卡 */
+.gd-hero { padding: var(--space-md); display: flex; flex-direction: column; gap: 14rpx; position: relative; }
+.gd-hero-row { display: flex; align-items: center; gap: 12rpx; flex-wrap: wrap; }
+.gd-hero-row-mid { justify-content: space-between; }
+.gd-hero-date { display: flex; align-items: center; gap: 10rpx; font-size: 26rpx; font-weight: 600; color: var(--on-surface); }
+.gd-dot { width: 12rpx; height: 12rpx; border-radius: 50%; background: var(--primary); }
+.gd-pill { padding: 6rpx 16rpx; border-radius: var(--radius-full); font-size: 20rpx; font-weight: 500; }
+.gd-pill-blue { background: var(--surface-container-high); color: var(--on-surface-variant); }
+.gd-zero-chip { padding: 6rpx 16rpx; border-radius: var(--radius-full); background: var(--primary-fixed); color: var(--on-primary-fixed); font-size: 20rpx; font-weight: 600; }
+.gd-hero-mylabel { font-size: 26rpx; color: var(--on-surface-variant); }
+.gd-hero-score-row { display: flex; align-items: flex-end; justify-content: space-between; }
+.gd-hero-score { font-size: 72rpx; font-weight: 700; line-height: 1; }
+.gd-hero-unit { font-size: 24rpx; color: var(--on-surface-variant); margin-left: 8rpx; }
+.gd-hero-players { display: flex; flex-direction: column; align-items: flex-end; gap: 6rpx; max-width: 55%; }
+.gd-players-label { font-size: 20rpx; color: var(--on-surface-variant); }
+.gd-players-names { font-size: 28rpx; font-weight: 600; color: var(--on-surface); text-align: right; }
+.gd-champion-chip { position: absolute; top: 90rpx; left: 200rpx; padding: 6rpx 16rpx; border-radius: var(--radius-full); background: #fff3e0; color: #8a5a00; font-size: 20rpx; font-weight: 600; }
+
+/* 区块标题 */
+.gd-section { display: flex; flex-direction: column; gap: 16rpx; }
+.gd-section-head { display: flex; align-items: baseline; justify-content: space-between; }
+.gd-section-title { font-size: 34rpx; font-weight: 700; color: var(--on-surface); }
+.gd-section-sub { font-size: 22rpx; color: var(--on-surface-variant); }
+
+/* 收支总览 2×2 */
+.gd-totals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gutter-grid); }
+.gd-total-card { background: var(--surface-container-lowest); border-radius: var(--radius-lg); padding: var(--space-sm); box-shadow: var(--shadow-card); display: flex; flex-direction: column; gap: 16rpx; position: relative; }
+.gd-total-champion { border: 2rpx solid var(--primary-fixed-dim); }
+.gd-total-top { display: flex; align-items: center; gap: 12rpx; }
+.gd-avatar-wrap { position: relative; }
+.gd-avatar { width: 64rpx; height: 64rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 28rpx; font-weight: 700; }
+.gd-avatar-seat { position: absolute; bottom: -8rpx; left: 50%; transform: translateX(-50%); padding: 0 8rpx; border-radius: var(--radius-full); background: var(--surface-container-high); color: var(--on-surface-variant); font-size: 16rpx; white-space: nowrap; }
+.gd-total-name-col { display: flex; flex-direction: column; gap: 4rpx; min-width: 0; flex: 1; }
+.gd-total-name { font-size: 28rpx; font-weight: 600; color: var(--on-surface); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-total-wind { font-size: 20rpx; color: var(--on-surface-variant); }
+.gd-seal { width: 40rpx; height: 40rpx; border-radius: 50%; background: var(--primary-fixed); color: var(--on-primary-fixed); display: flex; align-items: center; justify-content: center; font-size: 22rpx; font-weight: 700; }
+.gd-total-score-row { display: flex; align-items: baseline; justify-content: flex-end; gap: 6rpx; }
+.gd-total-score { font-size: 44rpx; font-weight: 700; }
+.gd-total-unit { font-size: 22rpx; color: var(--on-surface-variant); }
+
+/* 逐局流水 */
+.gd-flow-card { background: var(--surface-container-lowest); border-radius: var(--radius-lg); padding: 8rpx var(--space-md); box-shadow: var(--shadow-card); }
+.gd-flow-item { display: flex; align-items: flex-start; gap: 16rpx; padding: 20rpx 0; border-bottom: 1rpx solid var(--outline-variant); }
+.gd-flow-item:last-child { border-bottom: none; }
+.gd-flow-item.gd-flow-adjust { background: var(--surface-container); margin: 0 -16rpx; padding: 20rpx 16rpx; border-radius: var(--radius-default); border-bottom: none; margin-bottom: 4rpx; }
+.gd-flow-num { width: 52rpx; height: 52rpx; border-radius: 50%; background: var(--surface-container-high); color: var(--on-surface-variant); font-size: 22rpx; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.gd-flow-num-adjust { background: var(--primary-fixed); color: var(--on-primary-fixed); }
+.gd-flow-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6rpx; }
+.gd-flow-title-row { display: flex; align-items: center; gap: 10rpx; }
+.gd-flow-title { font-size: 28rpx; font-weight: 600; color: var(--on-surface); }
+.gd-fix-tag { padding: 2rpx 10rpx; border-radius: var(--radius-default); background: var(--primary); color: var(--on-primary); font-size: 18rpx; font-weight: 600; }
+.gd-flow-sub { font-size: 24rpx; color: var(--on-surface-variant); }
+.gd-flow-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6rpx; }
+.gd-flow-score { font-size: 34rpx; font-weight: 700; }
+.gd-flow-time { font-size: 20rpx; color: var(--outline); }
+
+/* 底部动作 */
+.gd-actions { display: flex; flex-direction: column; gap: 16rpx; margin-top: 8rpx; }
+.gd-share-btn { margin: 0; }

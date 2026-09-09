@@ -1,0 +1,101 @@
+<!--pages/game-chart/game-chart.wxml — 图表分析页 v6 Stitch 还原-->
+<view class="page">
+  <view class="main-content" style="padding-top: {{navPadding}}px;">
+    <view class="gd-top-bar">
+      <view class="nav-back-btn" bindtap="goBack">
+        <image class="nav-back-icon" src="/assets/icons/nav-back.svg" mode="aspectFit" />
+      </view>
+    </view>
+
+    <block wx:if="{{detail}}">
+      <!-- 头部 -->
+      <view class="gc-hero card anim-fade-up">
+        <view class="gc-hero-head">
+          <view class="gc-hero-title-row">
+            <view class="gc-tile-badge">雀</view>
+            <text class="gc-hero-title">{{detail.gameName}} · 积分走势</text>
+          </view>
+          <view class="gc-zero-chip" wx:if="{{detail.zeroSum}}"><text>☑ Σ 零和对账平稳</text></view>
+        </view>
+        <view class="gc-hero-sub">
+          <view class="gc-hero-date">
+            <text class="gc-date-big">{{detail.dateText}}</text>
+            <view class="gc-round-tag">{{detail.roundsText}}</view>
+          </view>
+          <view class="gc-diff">
+            <text class="gc-diff-label">校对差额</text>
+            <text class="gc-diff-val">{{diffText}}</text>
+          </view>
+        </view>
+        <view class="gc-mini-cards">
+          <view class="gc-mini-card" wx:for="{{players}}" wx:for-item="p" wx:key="user_id">
+            <view class="gc-mini-top">
+              <view class="gc-mini-dot" style="background: {{p.color}};"></view>
+              <text class="gc-mini-name">{{p.nickname}} ({{p.wind}})</text>
+            </view>
+            <view class="gc-mini-bottom">
+              <text class="gc-mini-tag">{{p.tag}}</text>
+              <text class="gc-mini-score {{p.scoreClass}}">{{p.finalScore > 0 ? '+' : ''}}{{p.finalScore}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 累计积分走势 -->
+      <view class="gc-section card anim-fade-up delay-1">
+        <view class="gc-section-head">
+          <text class="gc-section-title">📈 全场累计积分走势</text>
+          <text class="gc-section-sub">点击图例可筛选</text>
+        </view>
+        <view class="gc-legend">
+          <view class="gc-legend-chip {{p.show === false ? 'off' : ''}}" wx:for="{{players}}" wx:for-item="p" wx:key="user_id" data-uid="{{p.user_id}}" bindtap="onLegendTap">
+            <view class="gc-legend-dot" style="background: {{p.color}};"></view>
+            <text>{{p.nickname}}</text>
+          </view>
+        </view>
+        <canvas type="2d" id="line-chart" class="gc-line-canvas"></canvas>
+        <view class="gc-pressure" wx:if="{{pressureText}}"><text>● {{pressureText}}</text></view>
+      </view>
+
+      <!-- 战局复盘 -->
+      <view class="gc-section card anim-fade-up delay-2">
+        <view class="gc-section-head">
+          <text class="gc-section-title">🌀 风云变幻 · 战局复盘</text>
+        </view>
+        <view class="gc-insights">
+          <view class="gc-insight" wx:for="{{insights}}" wx:for-item="ins" wx:key="title">
+            <view class="gc-insight-icon"><text>{{ins.icon}}</text></view>
+            <view class="gc-insight-body">
+              <view class="gc-insight-title-row">
+                <text class="gc-insight-title">{{ins.title}}</text>
+                <text class="gc-insight-highlight">{{ins.highlight}}</text>
+              </view>
+              <text class="gc-insight-desc">{{ins.desc}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 逐局净胜负柱状 -->
+      <view class="gc-section card anim-fade-up delay-2">
+        <view class="gc-section-head">
+          <text class="gc-section-title">📊 逐局单局净胜负</text>
+          <text class="gc-section-sub">单位：分</text>
+        </view>
+        <canvas type="2d" id="bar-chart" class="gc-bar-canvas"></canvas>
+        <view class="gc-bar-note">
+          <view class="gc-note-item"><view class="gc-note-dot" style="background:#1b6b4a;"></view><text>绿色代表赢家单局净入</text></view>
+          <view class="gc-note-item"><view class="gc-note-dot" style="background:#b91c1c;"></view><text>红色代表出铳/被自摸扣减</text></view>
+        </view>
+      </view>
+
+      <!-- 底部动作 -->
+      <view class="gc-actions">
+        <button class="btn-primary gc-share-btn" open-type="share"><text>私密分享走势图卡片</text></button>
+        <view class="btn-secondary gc-back-ledger" bindtap="goBack"><text>📋 返回手帐明细表</text></view>
+      </view>
+    </block>
+
+    <view class="load-tip" wx:if="{{loading}}">加载中...</view>
+  </view>
+</view>

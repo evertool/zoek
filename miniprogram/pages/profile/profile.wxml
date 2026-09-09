@@ -1,22 +1,7 @@
 <!--pages/profile/profile.wxml — 我的页 v6 Stitch 100% 还原-->
 <view class="page">
-  <!-- 固定 Header -->
-  <view class="stitch-header pt-safe">
-    <view class="stitch-header-inner">
-      <view class="stitch-header-brand">
-        <view class="stitch-header-logo"><image class="stitch-header-logo-icon" src="/assets/icons/app-icon-hongzhong.png" mode="aspectFit" /></view>
-        <text class="stitch-header-title">Profile Mine</text>
-      </view>
-      <view class="header-capsule">
-        <view class="header-capsule-btn"><text>···</text></view>
-        <view class="header-capsule-divider"></view>
-        <view class="header-capsule-btn"><text>●</text></view>
-      </view>
-    </view>
-  </view>
-
   <!-- 未登录 -->
-  <view class="empty-state" wx:if="{{!isLoggedIn}}">
+  <view class="empty-state" style="padding-top: {{navPadding}}px;" wx:if="{{!isLoggedIn}}">
     <view class="empty-tile mj-tile anim-float">我</view>
     <view class="empty-text">未登入</view>
     <view class="text-secondary" style="margin-top: 8rpx;">登入后可以开台记分</view>
@@ -25,7 +10,7 @@
 
   <!-- 已登录 -->
   <block wx:if="{{isLoggedIn}}">
-    <view class="main-content">
+    <view class="main-content" style="padding-top: {{navPadding}}px;">
       <!-- Toast -->
       <view class="pf-toast {{showToast ? 'pf-toast-show' : ''}}">
         <image class="pf-toast-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
@@ -43,7 +28,7 @@
           <view class="pf-profile-info">
             <view class="pf-name-row">
               <text class="pf-name">{{nickname}}</text>
-              <view class="pf-rank-tag"><image class="pf-rank-icon" src="/assets/icons/rank-1-god-crown.png" mode="aspectFit" /><text>排位等级</text></view>
+              <view class="pf-rank-tag" bindtap="goRank"><image class="pf-rank-icon" src="/assets/icons/rank-1-god-crown.png" mode="aspectFit" /><text>{{rankTier || '九品 · 初'}}</text></view>
             </view>
             <view class="pf-mahjong-id-row">
               <text class="pf-mahjong-id" id="mahjong-id">雀友号: {{userId}}</text>

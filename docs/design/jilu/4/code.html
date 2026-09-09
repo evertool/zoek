@@ -1,0 +1,489 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"><link href="https://fonts.googleapis.com" rel="preconnect"><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500&amp;family=Plus+Jakarta+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      "colors": {
+        "inverse-primary": "#8ad6ae",
+        "primary-fixed": "#a6f3c9",
+        "surface-container": "#e5eeff",
+        "tertiary": "#8e1215",
+        "primary-container": "#1b6b4a",
+        "on-tertiary-container": "#ffcdc7",
+        "on-secondary": "#ffffff",
+        "surface": "#f8f9ff",
+        "on-primary-container": "#9ce9bf",
+        "tertiary-container": "#b02d29",
+        "surface-variant": "#d3e4fe",
+        "tertiary-fixed": "#ffdad6",
+        "on-surface": "#0b1c30",
+        "inverse-on-surface": "#eaf1ff",
+        "on-primary": "#ffffff",
+        "on-surface-variant": "#3f4943",
+        "on-primary-fixed": "#002113",
+        "on-error-container": "#93000a",
+        "surface-bright": "#f8f9ff",
+        "on-secondary-container": "#663500",
+        "secondary-fixed": "#ffdcc3",
+        "error-container": "#ffdad6",
+        "surface-container-low": "#eff4ff",
+        "surface-container-high": "#dce9ff",
+        "on-tertiary-fixed-variant": "#8e1214",
+        "surface-container-highest": "#d3e4fe",
+        "primary-fixed-dim": "#8ad6ae",
+        "on-primary-fixed-variant": "#005235",
+        "surface-dim": "#cbdbf5",
+        "surface-container-lowest": "#ffffff",
+        "secondary-container": "#fe932c",
+        "outline": "#6f7a72",
+        "primary": "#005235",
+        "on-tertiary": "#ffffff",
+        "on-secondary-fixed": "#2f1500",
+        "surface-tint": "#1b6b4a",
+        "inverse-surface": "#213145",
+        "secondary": "#904d00",
+        "background": "#f8f9ff",
+        "on-error": "#ffffff",
+        "secondary-fixed-dim": "#ffb77d",
+        "error": "#ba1a1a",
+        "on-background": "#0b1c30",
+        "tertiary-fixed-dim": "#ffb4ac",
+        "on-tertiary-fixed": "#410002",
+        "on-secondary-fixed-variant": "#6e3900",
+        "outline-variant": "#bfc9c0"
+      },
+      "borderRadius": {
+        "DEFAULT": "0.25rem",
+        "lg": "0.5rem",
+        "xl": "0.75rem",
+        "full": "9999px"
+      },
+      "spacing": {
+        "space-md": "1rem",
+        "space-xs": "0.5rem",
+        "space-xl": "1.5rem",
+        "space-lg": "1.25rem",
+        "space-2xs": "0.25rem",
+        "space-sm": "0.75rem",
+        "gutter-grid": "0.75rem",
+        "space-3xl": "2.5rem",
+        "space-2xl": "2rem",
+        "margin-screen": "1.25rem"
+      },
+      "fontFamily": {
+        "body-md": ["Be Vietnam Pro"],
+        "display-lg": ["Plus Jakarta Sans"],
+        "headline-md": ["Plus Jakarta Sans"],
+        "label-lg": ["Plus Jakarta Sans"],
+        "body-lg": ["Be Vietnam Pro"],
+        "label-md": ["Plus Jakarta Sans"],
+        "headline-lg": ["Plus Jakarta Sans"],
+        "label-sm": ["Plus Jakarta Sans"],
+        "display-lg-mobile": ["Plus Jakarta Sans"],
+        "score-numeral": ["Plus Jakarta Sans"],
+        "headline-sm": ["Plus Jakarta Sans"],
+        "body-sm": ["Be Vietnam Pro"]
+      },
+      "fontSize": {
+        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+        "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+        "label-sm": ["10px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "500" }],
+        "display-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+        "score-numeral": ["22px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+        "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+        "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }]
+      }
+    }
+  }
+}</script><style>@layer base{html,body{width:100%;min-height:100%;margin:0;padding:0;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,16px);}.pt-safe{padding-top:env(safe-area-inset-top,44px);}}::-webkit-scrollbar{display:none;}</style></head><body class="bg-surface text-on-surface flex flex-col antialiased selection:bg-primary-fixed-dim min-h-screen"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.03)]"><div class="h-14 px-margin-screen flex items-center justify-between"><div class="flex items-center gap-space-xs"><button aria-label="返回上一页" class="w-11 h-11 -ml-2 rounded-full flex items-center justify-center text-on-surface hover:bg-surface-container-high/50 active:bg-surface-container-high transition-colors" onclick="history.back()" type="button"><span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span></button></div><div class="flex items-center gap-space-xs"><div aria-label="微信小程序胶囊" class="w-[88px] h-8 rounded-full bg-surface-container-lowest/80 backdrop-blur-md px-2.5 flex items-center justify-between shadow-[0_1px_6px_rgba(0,0,0,0.04)] select-none"><div class="flex items-center gap-1 text-on-surface-variant"><span class="w-1 h-1 rounded-full bg-on-surface-variant"></span><span class="w-1.5 h-1.5 rounded-full bg-on-surface-variant"></span><span class="w-1 h-1 rounded-full bg-on-surface-variant"></span></div><div class="w-[1px] h-3 bg-outline-variant/30"></div><div class="w-4 h-4 rounded-full flex items-center justify-center text-on-surface-variant"><span class="w-3 h-3 rounded-full border-[1.5px] border-on-surface-variant inline-block"></span></div></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-14 pb-safe bg-surface"><div class="flex flex-col w-full max-w-[480px] mx-auto px-margin-screen pb-space-2xl">
+<!-- 顶部轻便状态栏 -->
+<div class="flex items-center justify-between py-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary-fixed text-primary text-label-sm font-label-sm font-bold">嶺</span>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">得闲开台 · 积分走势</span>
+</div>
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary font-label-md text-label-md">
+<span class="material-symbols-outlined text-[14px]">verified</span>
+<span class="">Σ 零和对账平稳</span>
+</div>
+</div>
+<!-- 牌局概览面板卡片 -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm relative overflow-hidden">
+<div class="flex items-start justify-between">
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-headline-md text-headline-md text-on-surface">9月8日 散台圆满</span>
+<span class="px-2 py-0.5 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm">8局满编</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">广州荔枝湾茶社 · 岭南十三张全清</p>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">校对差额</span>
+<span class="font-score-numeral text-score-numeral text-primary">0.00</span>
+</div>
+</div>
+<!-- 4位雀友图例与得分卡（支持点击高亮） -->
+<div class="grid grid-cols-2 gap-space-xs mt-1" id="player-filter-group">
+<!-- 雀友 1：阿豪 -->
+<button class="player-pill active flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low transition-all duration-200 text-left" id="pill-ahao" onclick="togglePlayer('ahao')" type="button">
+<div class="flex items-center gap-2 min-w-0">
+<div class="w-3 h-3 rounded-full bg-[#1b6b4a] ring-2 ring-[#1b6b4a]/20"></div>
+<div class="flex flex-col truncate">
+<span class="font-label-md text-label-md text-on-surface font-semibold truncate">阿豪 (东)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[10px]">峰值 +48</span>
+</div>
+</div>
+<span class="font-score-numeral text-score-numeral text-[#1b6b4a] ml-1">+45</span>
+</button>
+<!-- 雀友 2：细辉 -->
+<button class="player-pill active flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low transition-all duration-200 text-left" id="pill-xihui" onclick="togglePlayer('xihui')" type="button">
+<div class="flex items-center gap-2 min-w-0">
+<div class="w-3 h-3 rounded-full bg-[#0284c7] ring-2 ring-[#0284c7]/20"></div>
+<div class="flex flex-col truncate">
+<span class="font-label-md text-label-md text-on-surface font-semibold truncate">细辉 (南)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[10px]">后盘逆袭</span>
+</div>
+</div>
+<span class="font-score-numeral text-score-numeral text-[#0284c7] ml-1">+12</span>
+</button>
+<!-- 雀友 3：May姐 -->
+<button class="player-pill active flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low transition-all duration-200 text-left" id="pill-mayjie" onclick="togglePlayer('mayjie')" type="button">
+<div class="flex items-center gap-2 min-w-0">
+<div class="w-3 h-3 rounded-full bg-[#d97706] ring-2 ring-[#d97706]/20"></div>
+<div class="flex flex-col truncate">
+<span class="font-label-md text-label-md text-on-surface font-semibold truncate">May姐 (西)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[10px]">逆风韧性</span>
+</div>
+</div>
+<span class="font-score-numeral text-score-numeral text-tertiary ml-1">-25</span>
+</button>
+<!-- 雀友 4：大旧强 -->
+<button class="player-pill active flex items-center justify-between p-2.5 rounded-lg bg-surface-container-low transition-all duration-200 text-left" id="pill-dajiu" onclick="togglePlayer('dajiu')" type="button">
+<div class="flex items-center gap-2 min-w-0">
+<div class="w-3 h-3 rounded-full bg-[#dc2626] ring-2 ring-[#dc2626]/20"></div>
+<div class="flex flex-col truncate">
+<span class="font-label-md text-label-md text-on-surface font-semibold truncate">大旧强 (北)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant text-[10px]">尾盘吃炮</span>
+</div>
+</div>
+<span class="font-score-numeral text-score-numeral text-tertiary ml-1">-32</span>
+</button>
+</div>
+</div>
+<!-- 核心图表区域 ——「全场8局累计积分线性走势图」 -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm mt-space-md flex flex-col gap-space-sm relative">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">show_chart</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">全场累计积分走势</h2>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">点击图例可筛选</span>
+</div>
+<!-- 图表容器 -->
+<div class="relative w-full overflow-hidden select-none pt-2">
+<!-- 走势 SVG (基于 420x240 视口坐标系统)
+           X轴: 40 -> 390, 8个区间 (每区间约 43.75px)
+           开局=40, G1=83.75, G2=127.5, G3=171.25, G4=215, G5=258.75, G6=302.5, G7=346.25, G8=390
+           Y轴范围: +60 (y=25) 到 -40 (y=215), 零轴 0 位于 y=139
+           比例尺: 1分 = 1.9px, y = 139 - (分值 * 1.9)
+      -->
+<svg class="w-full h-auto overflow-visible" viewBox="0 0 420 240" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<!-- 零轴以上水面微光渐变 -->
+<linearGradient id="waterSurface" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#1b6b4a" stop-opacity="0.08"></stop>
+<stop offset="100%" stop-color="#1b6b4a" stop-opacity="0.0"></stop>
+</linearGradient>
+<filter height="140%" id="glowJade" width="140%" x="-20%" y="-20%">
+<feDropShadow dx="0" dy="2" flood-color="#1b6b4a" flood-opacity="0.3" stdDeviation="3"></feDropShadow>
+</filter>
+</defs>
+<!-- 水上区域背景底色标识 -->
+<rect fill="url(#waterSurface)" height="114" rx="4" width="364" x="36" y="25"></rect>
+<!-- Y轴刻度虚线及文案 -->
+<!-- +60 (y=25) -->
+<line stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="0.8" x1="36" x2="400" y1="25" y2="25"></line>
+<text fill="#94a3b8" font-family="Plus Jakarta Sans" font-size="9" text-anchor="end" x="30" y="29">+60</text>
+<!-- +40 (y=63) -->
+<line stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="0.8" x1="36" x2="400" y1="63" y2="63"></line>
+<text fill="#94a3b8" font-family="Plus Jakarta Sans" font-size="9" text-anchor="end" x="30" y="67">+40</text>
+<!-- +20 (y=101) -->
+<line stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="0.8" x1="36" x2="400" y1="101" y2="101"></line>
+<text fill="#94a3b8" font-family="Plus Jakarta Sans" font-size="9" text-anchor="end" x="30" y="105">+20</text>
+<!-- 0 零分水准基线 (粗线高对比) -->
+<line stroke="#64748b" stroke-dasharray="4,2" stroke-width="1.4" x1="36" x2="400" y1="139" y2="139"></line>
+<rect fill="#64748b" height="14" rx="3" width="30" x="2" y="132"></rect>
+<text fill="#ffffff" font-family="Plus Jakarta Sans" font-size="9" font-weight="600" text-anchor="middle" x="17" y="142.5">0 基准</text>
+<!-- -20 (y=177) -->
+<line stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="0.8" x1="36" x2="400" y1="177" y2="177"></line>
+<text fill="#94a3b8" font-family="Plus Jakarta Sans" font-size="9" text-anchor="end" x="30" y="181">-20</text>
+<!-- -40 (y=215) -->
+<line stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="0.8" x1="36" x2="400" y1="215" y2="215"></line>
+<text fill="#94a3b8" font-family="Plus Jakarta Sans" font-size="9" text-anchor="end" x="30" y="219">-40</text>
+<!-- X轴刻度指示 -->
+<text fill="#64748b" font-family="Be Vietnam Pro" font-size="9" text-anchor="middle" x="40" y="233">起手</text>
+<text fill="#64748b" font-family="Be Vietnam Pro" font-size="9" text-anchor="middle" x="83.75" y="233">1局</text>
+<text fill="#64748b" font-family="Be Vietnam Pro" font-size="9" text-anchor="middle" x="127.5" y="233">2局</text>
+<text fill="#64748b" font-family="Be Vietnam Pro" font-size="9" text-anchor="middle" x="171.25" y="233">3局</text>
+<text fill="#64748b" font-family="Be Vietnam Pro" font-size="9" text-anchor="middle" x="215" y="233">4局</text>
+<text fill="#64748b" font-family="Be Vietnam Pro" font-size="9" text-anchor="middle" x="258.75" y="233">5局</text>
+<text fill="#64748b" font-family="Be Vietnam Pro" font-size="9" text-anchor="middle" x="302.5" y="233">6局</text>
+<text fill="#64748b" font-family="Be Vietnam Pro" font-size="9" text-anchor="middle" x="346.25" y="233">7局</text>
+<text fill="#64748b" font-family="Be Vietnam Pro" font-size="9" text-anchor="middle" x="390" y="233">8局</text>
+<!-- 4条轨迹折线 -->
+<!-- 1. 阿豪 (翡翠绿): 0(139) -> +16(108.6) -> +8(123.8) -> +8(123.8) -> +20(101) -> +35(72.5) -> +35(72.5) -> +35(72.5) -> +45(53.5) -->
+<g class="chart-line-group transition-opacity duration-300" id="line-ahao">
+<path d="M 40 139 L 83.75 108.6 L 127.5 123.8 L 171.25 123.8 L 215 101 L 258.75 72.5 L 302.5 72.5 L 346.25 72.5 L 390 53.5" fill="none" filter="url(#glowJade)" stroke="#1b6b4a" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.8"></path>
+<!-- 关键拐点标记：第5局杠上开花确立胜势 -->
+<circle cx="258.75" cy="72.5" fill="#1b6b4a" r="4.5" stroke="#ffffff" stroke-width="2"></circle>
+<!-- 终点 -->
+<circle cx="390" cy="53.5" fill="#1b6b4a" r="5" stroke="#ffffff" stroke-width="2"></circle>
+<text fill="#1b6b4a" font-family="Plus Jakarta Sans" font-size="10" font-weight="700" text-anchor="middle" x="390" y="44">+45</text>
+</g>
+<!-- 2. 细辉 (天青蓝): 0(139) -> -8(154.2) -> +16(108.6) -> +16(108.6) -> +12(116.2) -> +7(125.7) -> +7(125.7) -> +1(137.1) -> +12(116.2) -->
+<g class="chart-line-group transition-opacity duration-300" id="line-xihui">
+<path d="M 40 139 L 83.75 154.2 L 127.5 108.6 L 171.25 108.6 L 215 116.2 L 258.75 125.7 L 302.5 125.7 L 346.25 137.1 L 390 116.2" fill="none" stroke="#0284c7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4"></path>
+<!-- 关键拐点标记：第2局清一色爆发翻盘 -->
+<circle cx="127.5" cy="108.6" fill="#0284c7" r="4.5" stroke="#ffffff" stroke-width="2"></circle>
+<!-- 终点 -->
+<circle cx="390" cy="116.2" fill="#0284c7" r="4" stroke="#ffffff" stroke-width="2"></circle>
+<text fill="#0284c7" font-family="Plus Jakarta Sans" font-size="10" font-weight="700" text-anchor="middle" x="390" y="110">+12</text>
+</g>
+<!-- 3. May姐 (暖琥珀): 0(139) -> -8(154.2) -> -24(184.6) -> -16(169.4) -> -24(184.6) -> -29(194.1) -> -29(194.1) -> -29(194.1) -> -25(186.5) -->
+<g class="chart-line-group transition-opacity duration-300" id="line-mayjie">
+<path d="M 40 139 L 83.75 154.2 L 127.5 184.6 L 171.25 169.4 L 215 184.6 L 258.75 194.1 L 302.5 194.1 L 346.25 194.1 L 390 186.5" fill="none" stroke="#d97706" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"></path>
+<circle cx="390" cy="186.5" fill="#d97706" r="4" stroke="#ffffff" stroke-width="2"></circle>
+<text fill="#d97706" font-family="Plus Jakarta Sans" font-size="10" font-weight="700" text-anchor="middle" x="390" y="199">-25</text>
+</g>
+<!-- 4. 大旧强 (珊瑚红): 0(139) -> 0(139) -> 0(139) -> -8(154.2) -> -8(154.2) -> -13(163.7) -> -13(163.7) -> -7(152.3) -> -32(199.8) -->
+<g class="chart-line-group transition-opacity duration-300" id="line-dajiu">
+<path d="M 40 139 L 83.75 139 L 127.5 139 L 171.25 154.2 L 215 154.2 L 258.75 163.7 L 302.5 163.7 L 346.25 152.3 L 390 199.8" fill="none" stroke="#dc2626" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"></path>
+<!-- 关键拐点标记：第7局抢杠回血 -->
+<circle cx="346.25" cy="152.3" fill="#dc2626" r="4" stroke="#ffffff" stroke-width="2"></circle>
+<circle cx="390" cy="199.8" fill="#dc2626" r="4" stroke="#ffffff" stroke-width="2"></circle>
+<text fill="#dc2626" font-family="Plus Jakarta Sans" font-size="10" font-weight="700" text-anchor="middle" x="390" y="213">-32</text>
+</g>
+<!-- 气泡高光标签 1：第2局细辉 -->
+<g transform="translate(100, 80)">
+<rect fill="#0284c7" height="18" opacity="0.95" rx="4" width="66"></rect>
+<text fill="#ffffff" font-family="Be Vietnam Pro" font-size="8.5" font-weight="500" text-anchor="middle" x="33" y="12">局2 清一色 +24</text>
+</g>
+<!-- 气泡高光标签 2：第5局阿豪杠开 -->
+<g transform="translate(230, 42)">
+<rect fill="#1b6b4a" height="18" opacity="0.95" rx="4" width="68"></rect>
+<text fill="#ffffff" font-family="Be Vietnam Pro" font-size="8.5" font-weight="500" text-anchor="middle" x="34" y="12">局5 杠开确立 +15</text>
+</g>
+</svg>
+</div>
+<!-- 水上水下分界提示条 -->
+<div class="flex items-center justify-between px-2 py-1.5 rounded bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm">
+<div class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="">水上赢面：阿豪 (全场压制 8/8 局)、细辉 (后程入水)</span>
+</div>
+<span class="text-tertiary">水下承受：2人</span>
+</div>
+</div>
+<!-- 走势数据分析卡片 -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm mt-space-md flex flex-col gap-space-sm">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-secondary text-[20px]">psychology_alt</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">风云变幻 · 战局复盘</h3>
+</div>
+<div class="grid grid-cols-1 gap-2.5">
+<!-- 爆发亮点 -->
+<div class="p-3 rounded-lg bg-surface-container-low flex items-start gap-3">
+<div class="w-8 h-8 rounded-full bg-[#0284c7]/15 flex items-center justify-center shrink-0 text-[#0284c7]">
+<span class="material-symbols-outlined text-[18px]">bolt</span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-semibold">单局最大爆发</span>
+<span class="font-label-md text-label-md text-[#0284c7] font-bold">第2局 · 细辉 (+24)</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">自摸清一色带根，单局斩获三家进账，直接扭转开局-8分赤字。</p>
+</div>
+</div>
+<!-- 连红与控盘 -->
+<div class="p-3 rounded-lg bg-surface-container-low flex items-start gap-3">
+<div class="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center shrink-0 text-primary">
+<span class="material-symbols-outlined text-[18px]">trending_up</span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-semibold">全场控盘王</span>
+<span class="font-label-md text-label-md text-primary font-bold">阿豪 (连续4局正收益)</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">8局全程稳居水面零轴之上，自第5局起保持绝对优势领跑全场。</p>
+</div>
+</div>
+<!-- 极差与稳健度 -->
+<div class="p-3 rounded-lg bg-surface-container-low flex items-start gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container/20 flex items-center justify-center shrink-0 text-secondary">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</div>
+<div class="flex flex-col min-w-0 flex-1">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface font-semibold">局间振幅极差分析</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">极差 45分 / 稳健度首位</span>
+</div>
+<div class="mt-1 flex items-center gap-2 text-label-sm font-label-sm">
+<span class="px-2 py-0.5 rounded bg-surface text-on-surface-variant">细辉：局间振幅仅 ±5分，打法防守滴水不漏</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- 逐局得失积分对比条形柱图（单局正负分布） -->
+<div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm mt-space-md flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[20px]">bar_chart</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">逐局单局净胜负 (1-8局)</h3>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">单位: 分</span>
+</div>
+<!-- 8局横向排列微型分布柱形图 -->
+<div class="grid grid-cols-8 gap-1.5 pt-2 pb-1 text-center">
+<!-- 局1: 阿豪+16, 细辉-8, May-8, 大旧0 -->
+<div class="flex flex-col items-center gap-1 bg-surface-container-low py-2 rounded">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">G1</span>
+<div class="h-16 w-full flex items-center justify-center relative">
+<div class="w-1.5 bg-[#1b6b4a] rounded-t" style="height: 32px; margin-bottom: 8px;"></div>
+<div class="w-1.5 bg-tertiary rounded-b" style="height: 16px; margin-top: 24px; margin-left: 2px;"></div>
+</div>
+<span class="font-label-sm text-[10px] text-primary font-bold">+16</span>
+</div>
+<!-- 局2: 细辉+24, May-16, 阿豪-8, 大旧0 -->
+<div class="flex flex-col items-center gap-1 bg-surface-container-low py-2 rounded">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">G2</span>
+<div class="h-16 w-full flex items-center justify-center relative">
+<div class="w-1.5 bg-[#0284c7] rounded-t" style="height: 48px; margin-bottom: 0px;"></div>
+<div class="w-1.5 bg-tertiary rounded-b" style="height: 32px; margin-top: 16px; margin-left: 2px;"></div>
+</div>
+<span class="font-label-sm text-[10px] text-[#0284c7] font-bold">+24</span>
+</div>
+<!-- 局3: May+8, 大旧-8, 阿豪0, 细辉0 -->
+<div class="flex flex-col items-center gap-1 bg-surface-container-low py-2 rounded">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">G3</span>
+<div class="h-16 w-full flex items-center justify-center relative">
+<div class="w-1.5 bg-[#d97706] rounded-t" style="height: 16px; margin-bottom: 16px;"></div>
+<div class="w-1.5 bg-[#dc2626] rounded-b" style="height: 16px; margin-top: 16px; margin-left: 2px;"></div>
+</div>
+<span class="font-label-sm text-[10px] text-[#d97706] font-bold">+8</span>
+</div>
+<!-- 局4: 阿豪+12, 细辉-4, May-8, 大旧0 -->
+<div class="flex flex-col items-center gap-1 bg-surface-container-low py-2 rounded">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">G4</span>
+<div class="h-16 w-full flex items-center justify-center relative">
+<div class="w-1.5 bg-[#1b6b4a] rounded-t" style="height: 24px; margin-bottom: 12px;"></div>
+<div class="w-1.5 bg-tertiary rounded-b" style="height: 16px; margin-top: 20px; margin-left: 2px;"></div>
+</div>
+<span class="font-label-sm text-[10px] text-primary font-bold">+12</span>
+</div>
+<!-- 局5: 阿豪+15, 细辉-5, May-5, 大旧-5 -->
+<div class="flex flex-col items-center gap-1 bg-surface-container-low py-2 rounded">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">G5</span>
+<div class="h-16 w-full flex items-center justify-center relative">
+<div class="w-1.5 bg-[#1b6b4a] rounded-t" style="height: 30px; margin-bottom: 10px;"></div>
+<div class="w-1.5 bg-tertiary rounded-b" style="height: 10px; margin-top: 24px; margin-left: 2px;"></div>
+</div>
+<span class="font-label-sm text-[10px] text-primary font-bold">+15</span>
+</div>
+<!-- 局6: 流局平水 -->
+<div class="flex flex-col items-center gap-1 bg-surface-container-low py-2 rounded">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">G6</span>
+<div class="h-16 w-full flex items-center justify-center relative">
+<div class="w-4 h-1 bg-outline-variant rounded"></div>
+</div>
+<span class="font-label-sm text-[10px] text-on-surface-variant">荒庄</span>
+</div>
+<!-- 局7: 大旧+6, 细辉-6, 阿豪0, May0 -->
+<div class="flex flex-col items-center gap-1 bg-surface-container-low py-2 rounded">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">G7</span>
+<div class="h-16 w-full flex items-center justify-center relative">
+<div class="w-1.5 bg-[#dc2626] rounded-t" style="height: 12px; margin-bottom: 18px;"></div>
+<div class="w-1.5 bg-[#0284c7] rounded-b" style="height: 12px; margin-top: 18px; margin-left: 2px;"></div>
+</div>
+<span class="font-label-sm text-[10px] text-tertiary font-bold">+6</span>
+</div>
+<!-- 局8: 细辉+11, 阿豪+10, May+4, 大旧-25 -->
+<div class="flex flex-col items-center gap-1 bg-surface-container-low py-2 rounded">
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">G8</span>
+<div class="h-16 w-full flex items-center justify-center relative">
+<div class="w-1.5 bg-[#0284c7] rounded-t" style="height: 22px; margin-bottom: 12px;"></div>
+<div class="w-1.5 bg-tertiary rounded-b" style="height: 48px; margin-top: 0px; margin-left: 2px;"></div>
+</div>
+<span class="font-label-sm text-[10px] text-[#0284c7] font-bold">+11</span>
+</div>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm px-1">
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-primary"></span>绿色代表赢家单局净入</span>
+<span class="flex items-center gap-1"><span class="w-2 h-2 rounded bg-tertiary"></span>红色代表出铳/被自摸扣减</span>
+</div>
+</div>
+<!-- 底部操作按钮区域 -->
+<div class="flex flex-col gap-space-xs mt-space-lg">
+<!-- 主操作: 微信私密分享走势长图 -->
+<button class="w-full h-12 rounded-lg bg-primary hover:bg-[#16563b] active:bg-[#124530] text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 shadow-sm transition-colors" onclick="handleShare()" type="button">
+<span class="material-symbols-outlined text-[20px]">share</span>
+<span class="">私密分享走势图卡片</span>
+</button>
+<!-- 辅助操作: 返回对局手账明细 -->
+<button class="w-full h-12 rounded-lg bg-surface-container-lowest active:bg-surface-container-low text-on-surface-variant font-label-lg text-label-lg flex items-center justify-center gap-2 transition-colors" onclick="history.back()" type="button">
+<span class="material-symbols-outlined text-[20px]">receipt_long</span>
+<span class="">返回手账明细表</span>
+</button>
+</div>
+</div>
+<script>
+  // 雀友折线高亮交互逻辑
+  function togglePlayer(playerId) {
+    const pill = document.getElementById('pill-' + playerId);
+    const lineGroup = document.getElementById('line-' + playerId);
+    const allPills = document.querySelectorAll('.player-pill');
+    const allLines = document.querySelectorAll('.chart-line-group');
+
+    // 检查是否已经是单一选中
+    const isSingleActive = !pill.classList.contains('opacity-40') && 
+      Array.from(allPills).filter(p => !p.classList.contains('opacity-40')).length === 1;
+
+    if (isSingleActive) {
+      // 还原所有曲线
+      allPills.forEach(p => p.classList.remove('opacity-40'));
+      allLines.forEach(l => l.style.opacity = '1');
+    } else {
+      // 仅高亮当前选中的雀友
+      allPills.forEach(p => {
+        if (p.id === 'pill-' + playerId) {
+          p.classList.remove('opacity-40');
+        } else {
+          p.classList.add('opacity-40');
+        }
+      });
+      allLines.forEach(l => {
+        if (l.id === 'line-' + playerId) {
+          l.style.opacity = '1';
+        } else {
+          l.style.opacity = '0.15';
+        }
+      });
+    }
+  }
+
+  function handleShare() {
+    // 微信小程序交互轻提示占位
+    if (typeof wx !== 'undefined' && wx.showToast) {
+      wx.showToast({ title: '走势长图已生成', icon: 'success' });
+    } else {
+      alert('已生成「9月8日 散台圆满」高精度走势图卡片，已复制链接！');
+    }
+  }
+</script></main>
+
+</body></html>

@@ -1,15 +1,10 @@
 /* pages/profile/profile.wxss — 我的页 v6 Stitch 100% 还原 */
 .page { min-height: 100vh; background: var(--background); padding-bottom: 160rpx; }
-.main-content { padding-top: 112rpx; padding-bottom: 80rpx; display: flex; flex-direction: column; gap: var(--space-md); }
-.header-capsule { display: flex; align-items: center; gap: 8rpx; background: rgba(211, 228, 254, 0.7); border-radius: var(--radius-full); padding: 8rpx 12rpx; }
-.header-capsule-btn { width: 56rpx; height: 56rpx; display: flex; align-items: center; justify-content: center; }
-.header-capsule-btn text { font-size: 28rpx; color: var(--on-surface); }
-.header-capsule-divider { width: 2rpx; height: 28rpx; background: rgba(191, 201, 192, 0.6); }
+.main-content { padding-bottom: 80rpx; display: flex; flex-direction: column; gap: var(--space-md); }
 
 /* Toast */
 .pf-toast { position: fixed; top: 128rpx; left: 50%; transform: translateX(-50%); z-index: 200; padding: 16rpx 32rpx; border-radius: var(--radius-full); background: rgba(33, 49, 69, 0.9); color: var(--inverse-on-surface); font-size: 24rpx; box-shadow: var(--shadow-modal); opacity: 0; transition: opacity 0.3s ease; pointer-events: none; display: flex; align-items: center; gap: 8rpx; }
 .pf-toast.pf-toast-show { opacity: 1; }
-.stitch-header-logo-icon { width: 56rpx; height: 56rpx; }
 .pf-toast-icon { width: 28rpx; height: 28rpx; }
 
 /* 个人资料卡 */

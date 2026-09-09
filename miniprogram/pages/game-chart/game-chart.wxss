@@ -1,0 +1,66 @@
+/* pages/game-chart/game-chart.wxss — 图表分析页 */
+.page { min-height: 100vh; background: var(--background); }
+.main-content { padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: 60rpx; display: flex; flex-direction: column; gap: var(--space-md); }
+.gd-top-bar { display: flex; align-items: center; }
+.nav-back-btn { width: 68rpx; height: 68rpx; border-radius: 50%; background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: center; }
+.nav-back-icon { width: 32rpx; height: 32rpx; }
+.card { background: var(--surface-container-lowest); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+
+/* 头部 */
+.gc-hero { padding: var(--space-md); display: flex; flex-direction: column; gap: 18rpx; }
+.gc-hero-head { display: flex; align-items: center; justify-content: space-between; }
+.gc-hero-title-row { display: flex; align-items: center; gap: 12rpx; }
+.gc-tile-badge { width: 44rpx; height: 44rpx; border-radius: var(--radius-default); background: var(--primary-fixed); color: var(--on-primary-fixed); font-size: 24rpx; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.gc-hero-title { font-size: 30rpx; font-weight: 700; color: var(--on-surface); }
+.gc-zero-chip { padding: 6rpx 14rpx; border-radius: var(--radius-full); background: var(--primary-fixed); color: var(--on-primary-fixed); font-size: 18rpx; font-weight: 600; }
+.gc-hero-sub { display: flex; align-items: flex-end; justify-content: space-between; }
+.gc-hero-date { display: flex; align-items: center; gap: 12rpx; }
+.gc-date-big { font-size: 36rpx; font-weight: 700; color: var(--on-surface); }
+.gc-round-tag { padding: 4rpx 12rpx; border-radius: var(--radius-full); background: var(--surface-container-high); color: var(--on-surface-variant); font-size: 18rpx; }
+.gc-diff { display: flex; flex-direction: column; align-items: flex-end; }
+.gc-diff-label { font-size: 20rpx; color: var(--on-surface-variant); }
+.gc-diff-val { font-size: 40rpx; font-weight: 700; color: var(--primary); }
+
+/* 迷你卡 */
+.gc-mini-cards { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gutter-grid); }
+.gc-mini-card { background: var(--surface-container-low); border-radius: var(--radius-default); padding: 14rpx 16rpx; display: flex; flex-direction: column; gap: 8rpx; }
+.gc-mini-top { display: flex; align-items: center; gap: 8rpx; }
+.gc-mini-dot { width: 14rpx; height: 14rpx; border-radius: 50%; }
+.gc-mini-name { font-size: 24rpx; font-weight: 600; color: var(--on-surface); }
+.gc-mini-bottom { display: flex; align-items: center; justify-content: space-between; }
+.gc-mini-tag { font-size: 20rpx; color: var(--on-surface-variant); }
+.gc-mini-score { font-size: 30rpx; font-weight: 700; }
+
+/* 区块 */
+.gc-section { padding: var(--space-md); display: flex; flex-direction: column; gap: 16rpx; }
+.gc-section-head { display: flex; align-items: baseline; justify-content: space-between; }
+.gc-section-title { font-size: 30rpx; font-weight: 700; color: var(--on-surface); }
+.gc-section-sub { font-size: 20rpx; color: var(--outline); }
+
+/* 图例 */
+.gc-legend { display: flex; flex-wrap: wrap; gap: 12rpx; }
+.gc-legend-chip { display: flex; align-items: center; gap: 8rpx; padding: 6rpx 16rpx; border-radius: var(--radius-full); background: var(--surface-container-low); font-size: 20rpx; color: var(--on-surface); }
+.gc-legend-chip.off { opacity: 0.4; }
+.gc-legend-dot { width: 14rpx; height: 14rpx; border-radius: 50%; }
+.gc-line-canvas { width: 100%; height: 440rpx; }
+.gc-pressure { background: var(--surface-container-low); border-radius: var(--radius-default); padding: 14rpx 16rpx; font-size: 22rpx; color: var(--on-surface-variant); }
+
+/* 复盘 */
+.gc-insights { display: flex; flex-direction: column; gap: 16rpx; }
+.gc-insight { display: flex; gap: 16rpx; background: var(--surface-container-low); border-radius: var(--radius-default); padding: 16rpx; }
+.gc-insight-icon { width: 56rpx; height: 56rpx; border-radius: 50%; background: var(--surface-container-high); display: flex; align-items: center; justify-content: center; font-size: 28rpx; flex-shrink: 0; }
+.gc-insight-body { flex: 1; display: flex; flex-direction: column; gap: 6rpx; min-width: 0; }
+.gc-insight-title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12rpx; flex-wrap: wrap; }
+.gc-insight-title { font-size: 26rpx; font-weight: 600; color: var(--on-surface); }
+.gc-insight-highlight { font-size: 22rpx; font-weight: 700; color: var(--primary); }
+.gc-insight-desc { font-size: 22rpx; color: var(--on-surface-variant); }
+
+/* 柱状 */
+.gc-bar-canvas { width: 100%; height: 360rpx; }
+.gc-bar-note { display: flex; gap: 24rpx; }
+.gc-note-item { display: flex; align-items: center; gap: 8rpx; font-size: 20rpx; color: var(--on-surface-variant); }
+.gc-note-dot { width: 12rpx; height: 12rpx; border-radius: 50%; }
+
+/* 底部 */
+.gc-actions { display: flex; flex-direction: column; gap: 16rpx; }
+.gc-share-btn, .gc-back-ledger { display: flex; align-items: center; justify-content: center; margin: 0; }

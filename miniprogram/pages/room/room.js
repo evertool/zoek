@@ -2,6 +2,7 @@
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
+const guard = require('../../utils/guard')
 
 const POLL_INTERVAL = 4000
 const WINDS = ['東', '南', '西', '北']
@@ -19,8 +20,8 @@ Page({
     qrLoading: false,
     loading: true,
     isOwner: false,
+    hasScores: false,
     showQrModal: false,
-    showQrBanner: true,
     showScoreModal: false,
     showSwapModal: false,
     scoreTargetSeat: '',
@@ -32,6 +33,10 @@ Page({
   },
 
   onLoad(options) {
+    // 顶部无导航条，内容需让出状态栏 + 胶囊按钮高度
+    this.setData({ navPadding: util.navPadding() })
+    // 登录/资料完善守卫：未通过弹回首页，完成后回来继续进台
+    if (!guard.ensure(true)) return
     this.setData({
       gameID: Number(options.game_id) || 0,
       inviteToken: options.invite_token || ''
@@ -44,6 +49,8 @@ Page({
   },
 
   onShow() {
+    // 未登录/资料不全时（onLoad 已触发弹回），不再发起轮询
+    if (!guard.pass()) return
     if (this.data.gameID && !this.data.loading) {
       this.loadGame()
     }
@@ -91,7 +98,8 @@ Page({
       return {
         ...p,
         isOwner: p.role === 'owner',
-        avatarColor: util.avatarColor(p.nickname)
+        avatarColor: util.avatarColor(p.nickname),
+        avatar_url: util.resolveAvatarURL(p.avatar_url || '')
       }
     })
 
@@ -130,22 +138,15 @@ Page({
       statusText: util.statusText(res.status)
     }
 
-    var canInvite = (game.status === 'forming' || game.status === 'active') &&
-      !game.members_locked && players.length < 4
-
     this.setData({
       game: game,
       players: players,
       seats: seats,
       ledger: ledger,
       isOwner: res.creator_id === app.globalData.userID,
-      loading: false,
-      showQrBanner: canInvite
+      hasScores: (res.completed_rounds || 0) > 0 || ledger.length > 0,
+      loading: false
     })
-
-    if (canInvite && !this.data.qrPath && !this.data.qrLoading) {
-      this.loadQRCode()
-    }
   },
 
   loadQRCode() {
@@ -179,7 +180,11 @@ Page({
   },
 
   toggleQrModal() {
-    this.setData({ showQrModal: !this.data.showQrModal })
+    var opening = !this.data.showQrModal
+    this.setData({ showQrModal: opening })
+    if (opening && !this.data.qrPath && !this.data.qrLoading) {
+      this.loadQRCode()
+    }
   },
 
   openScoringModal(e) {
@@ -218,12 +223,34 @@ Page({
   },
 
   onSeatLongPress(e) {
-    var seat = e.currentTarget.dataset.seat
-    var name = e.currentTarget.dataset.name
+    var seat = Number(e.currentTarget.dataset.seat)
+    var seatInfo = this.data.seats.find(function(s) { return s.seat === seat })
+    if (!seatInfo) return
+    // 空位：立即换过去，无需申请
+    if (!seatInfo.player) {
+      this.swapToEmptySeat(seat)
+      return
+    }
+    // 自己的座位：无需换位
+    if (seatInfo.player.user_id === app.globalData.userID) {
+      this.showToast('这是你的座位')
+      return
+    }
+    // 已有玩家的座位：发起换位申请
     this.setData({
       showSwapModal: true,
-      swapTargetText: '与【' + seat + '位 · ' + name + '】互换座位'
+      swapTargetText: '与【' + seat + '位 · ' + seatInfo.player.nickname + '】互换座位'
     })
+  },
+
+  swapToEmptySeat(seat) {
+    api.post('/games/' + this.data.gameID + '/swap_seat', {
+      target_seat: seat,
+      request_id: api.genRequestID()
+    }).then(() => {
+      this.showToast('已换至' + WINDS[seat - 1] + '位')
+      this.loadGame()
+    }).catch(() => {})
   },
 
   closeSwapModal() {
@@ -240,7 +267,13 @@ Page({
   },
 
   goBack() {
-    wx.navigateBack()
+    // 分享/扫码直接进入本页时页面栈只有一层，回首页兜底
+    var pages = getCurrentPages()
+    if (pages.length > 1) {
+      wx.navigateBack()
+    } else {
+      wx.reLaunch({ url: '/pages/index/index' })
+    }
   },
 
   goScore() {
@@ -253,7 +286,7 @@ Page({
 
   doCancel() {
     wx.showModal({
-      title: '取消牌台',
+      title: '取消开台',
       content: '确定要取消这个牌台吗？',
       confirmColor: '#B33A3A',
       success: (res) => {

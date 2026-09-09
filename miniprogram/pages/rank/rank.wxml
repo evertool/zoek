@@ -1,0 +1,140 @@
+<!--pages/rank/rank.wxml — 排位段位页 v6 Stitch 还原-->
+<view class="page">
+  <view class="main-content" style="padding-top: {{navPadding}}px;">
+    <view class="gd-top-bar">
+      <view class="nav-back-btn" bindtap="goBack">
+        <image class="nav-back-icon" src="/assets/icons/nav-back.svg" mode="aspectFit" />
+      </view>
+    </view>
+
+    <!-- 赛季横幅 -->
+    <view class="rk-season anim-fade-up">
+      <text class="rk-season-text">S1 广府雀友排位巡回 · 4人局散台即排位</text>
+      <view class="rk-season-chip"><text>规则 ↓</text></view>
+    </view>
+
+    <block wx:if="{{rank}}">
+      <!-- 我的段位卡 -->
+      <view class="rk-hero card anim-fade-up">
+        <view class="rk-hero-top">
+          <view class="rk-avatar" style="background: {{rank.avatarColor}};">
+            <image class="rk-avatar-img" src="{{rank.avatar_url}}" mode="aspectFill" wx:if="{{rank.avatar_url}}" />
+            <text wx:else>{{rank.nickname[0]}}</text>
+          </view>
+          <view class="rk-hero-info">
+            <text class="rk-nickname">{{rank.nickname}}</text>
+            <text class="rk-tier-name">{{rank.tier.tier_name}}</text>
+          </view>
+          <view class="rk-grade-chip">{{rank.tier.grade}}</view>
+        </view>
+
+        <view class="rk-progress" wx:if="{{rank.tier.stars_needed > 0}}">
+          <text class="rk-progress-label">升「{{rank.next_tier}}」还需 {{rank.tier.stars_needed - rank.tier.stars_in_tier}} 星</text>
+          <text class="rk-progress-num">{{rank.tier.stars_in_tier}} / {{rank.tier.stars_needed}} 星</text>
+        </view>
+
+        <!-- 星星 -->
+        <view class="rk-stars" wx:if="{{rank.tier.stars_needed > 0}}">
+          <view class="rk-star {{s.filled ? 'filled' : ''}}" wx:for="{{starRow}}" wx:for-item="s" wx:key="index">
+            <text>{{s.filled ? '★' : '☆'}}</text>
+          </view>
+          <view class="rk-protect-chip" wx:if="{{rank.tier.tier_index === 1}}"><text>输场保星</text></view>
+        </view>
+        <view class="rk-stars" wx:else>
+          <text class="rk-total-stars">累计 {{rank.stars}} 星 · 至尊无上限</text>
+        </view>
+
+        <!-- 连胜横幅 -->
+        <view class="rk-streak" wx:if="{{rank.streak >= 2}}">
+          <text class="rk-streak-icon">🔥</text>
+          <text class="rk-streak-text">{{rank.streak}} 连胜进行中</text>
+          <text class="rk-streak-sub" wx:if="{{rank.streak >= 6}}">下胜再额外 +2 星（共得 3 颗）</text>
+          <text class="rk-streak-sub" wx:elif="{{rank.streak >= 2}}">再胜一场额外 +{{rank.streak + 1 >= 6 ? 2 : 1}} 星</text>
+        </view>
+
+        <!-- 数据 -->
+        <view class="rk-stats">
+          <view class="rk-stat">
+            <text class="rk-stat-label">胜场 / 总局</text>
+            <view class="rk-stat-val-row"><text class="rk-stat-val">{{rank.wins}} / {{rank.total_games}}</text></view>
+          </view>
+          <view class="rk-stat">
+            <text class="rk-stat-label">排位胜率</text>
+            <view class="rk-stat-val-row"><text class="rk-stat-val rk-stat-orange">{{rank.winRateText}}</text></view>
+          </view>
+          <view class="rk-stat">
+            <text class="rk-stat-label">赛季净胜分</text>
+            <view class="rk-stat-val-row"><text class="rk-stat-val {{rank.points >= 0 ? 'text-positive' : 'text-negative'}}">{{rank.pointsText}}</text></view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 升星与连胜爆发机制 -->
+      <view class="rk-section anim-fade-up delay-1">
+        <view class="rk-section-head">
+          <text class="rk-section-title">⬆ 升星与连胜爆发机制</text>
+          <text class="rk-section-sub">纯积分常规则</text>
+        </view>
+        <view class="rk-rules card">
+          <view class="rk-rule">
+            <view class="rk-rule-icon rk-rule-green"><text>🎮</text></view>
+            <view class="rk-rule-body">
+              <text class="rk-rule-title">常规局胜出</text>
+              <text class="rk-rule-desc">一桌 4 人排局散台结算，净赢家 +1 星；第二、第三名为平不扣星。</text>
+            </view>
+            <view class="rk-rule-badge rk-badge-green"><text>+1 颗</text></view>
+          </view>
+          <view class="rk-rule">
+            <view class="rk-rule-icon rk-rule-orange"><text>🔥</text></view>
+            <view class="rk-rule-body">
+              <text class="rk-rule-title">基础连胜（3~5 连）</text>
+              <text class="rk-rule-desc">连续霸台达到 3 场，每场获胜额外加 1 星。</text>
+            </view>
+            <view class="rk-rule-badge rk-badge-orange"><text>额外 +1 星</text></view>
+          </view>
+          <view class="rk-rule">
+            <view class="rk-rule-icon rk-rule-red"><text>⚡</text></view>
+            <view class="rk-rule-body">
+              <text class="rk-rule-title">超神连胜（≥6 连）</text>
+              <text class="rk-rule-desc">霸台耐炼，全台服单场最高连胜环 3 星，触发爆发极速跳级升阶。</text>
+            </view>
+            <view class="rk-rule-badge rk-badge-red"><text>额外 +2 星</text></view>
+          </view>
+        </view>
+        <view class="rk-protect">
+          <text class="rk-protect-icon">🛡</text>
+          <text class="rk-protect-text">保底保护：九品 0 星的雀友偶败北不扣星；末位输局固定扣 1 星。</text>
+        </view>
+      </view>
+
+      <!-- 六品雀位 -->
+      <view class="rk-section anim-fade-up delay-2">
+        <view class="rk-section-head">
+          <text class="rk-section-title">🎴 六品雀位徽标规范</text>
+          <text class="rk-section-sub">雀桥传奇雀衔</text>
+        </view>
+        <view class="rk-tiers">
+          <view class="rk-tier {{rank.tier.tier_index === t.index ? 'current' : ''}}" wx:for="{{[1,2,3,4,5,6]}}" wx:for-item="idx" wx:key="*this" wx:for-index="i">
+            <view class="rk-tier-tile rk-tile-{{idx}}"><text>{{['雀','雀','發','發','中','神'][i]}}</text></view>
+            <view class="rk-tier-info">
+              <text class="rk-tier-name">{{['九品·初入雀境','八品·市井雀手','六品·茶铺雀侠','四品·省城雀师','二品·岭南雀宗','至尊·无双雀神'][i]}}</text>
+              <text class="rk-tier-req">星需 {{['3 星','3 星','4 星','4 星','6 星','无上限'][i]}} · {{['新晋保底不扣星','零基础连胜稳进','橙火高段切磋','需稳踏着齐物徽','扣星加雀考虑心','全服登雀实时对徽'][i]}}</text>
+            </view>
+            <view class="rk-tier-right">
+              <view class="rk-tier-grade" wx:if="{{rank.tier.tier_index !== idx}}">{{['青铜级','白银级','黄金级','铂金级','皇牌级','大满贯'][i]}}</view>
+              <view class="rk-tier-grade rk-tier-now" wx:else><text>当前所在</text></view>
+              <text class="rk-tier-range">{{['I~III段','I~III段','I~IV段','I~IV段','I~V段','全段锁'][i]}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 底部炫耀 -->
+      <button class="btn-primary rk-share-btn anim-fade-up delay-2" open-type="share">
+        <text>🔑 炫耀我的{{rank.tier.tier_short}}段位与连胜</text>
+      </button>
+    </block>
+
+    <view class="load-tip" wx:if="{{loading}}">加载中...</view>
+  </view>
+</view>

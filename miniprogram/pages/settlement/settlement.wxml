@@ -1,17 +1,6 @@
 <!--pages/settlement/settlement.wxml — 结算页 v6 Stitch 100% 还原-->
 <view class="page" wx:if="{{settlement}}">
-  <!-- 固定 Header -->
-  <view class="stitch-header pt-safe">
-    <view class="stitch-header-inner">
-      <view class="stitch-header-brand">
-        <view class="header-back" bindtap="goBack"><text class="header-back-icon">‹</text></view>
-        <text class="header-title">Match Detail</text>
-      </view>
-      <view class="stitch-header-avatar"><text class="stitch-header-avatar-text">人</text></view>
-    </view>
-  </view>
-
-  <view class="main-content">
+  <view class="main-content" style="padding-top: {{navPadding}}px;">
     <!-- 散台庆祝头部 -->
     <view class="settle-header anim-fade-up">
       <view class="settle-status-pill">
@@ -23,6 +12,18 @@
         <text>今晚大赢家，全场话事</text>
         <text class="settle-slogan-icon"><image src="/assets/icons/status-check-success.png" mode="aspectFit" /></text>
       </view>
+    </view>
+
+    <!-- 排位变动卡（4人局散台后） -->
+    <view class="rank-card anim-fade-up delay-1" wx:if="{{rankCard}}" bindtap="goRank">
+      <view class="rank-card-head">
+        <text class="rank-card-title">{{rankCard.title}}</text>
+        <text class="rank-card-total {{rankCard.totalClass}}">{{rankCard.total}}</text>
+      </view>
+      <view class="rank-card-lines">
+        <text class="rank-card-line" wx:for="{{rankCard.lines}}" wx:key="*this">{{item}}</text>
+      </view>
+      <text class="rank-card-link">查看我的段位与连胜 ›</text>
     </view>
 
     <!-- 大赢家聚焦卡 -->

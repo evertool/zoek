@@ -68,11 +68,12 @@ type GameDetailResponse struct {
 }
 
 type PlayerInfo struct {
-	PlayerID int64     `json:"player_id"`
-	UserID   int64     `json:"user_id"`
-	Nickname string    `json:"nickname"`
-	Role     string    `json:"role"`
-	JoinedAt time.Time `json:"joined_at"`
+	PlayerID  int64     `json:"player_id"`
+	UserID    int64     `json:"user_id"`
+	Nickname  string    `json:"nickname"`
+	AvatarURL string    `json:"avatar_url"`
+	Role      string    `json:"role"`
+	JoinedAt  time.Time `json:"joined_at"`
 }
 
 type StartGameRequest struct {
@@ -157,38 +158,139 @@ func (h *GameHandler) GetActiveGames(c *gin.Context) {
 }
 
 // GetHistoryGames handles GET /api/v1/games/history
+// 记录页列表：日期筛选(days=7/30/0) + 标签筛选(result=win/draw/lose) + 分页。
+// 标签按本场名次划分：第 1 名=胜，末名=负，中间=平。
 func (h *GameHandler) GetHistoryGames(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	days, _ := strconv.Atoi(c.DefaultQuery("days", "0"))
+	result := c.DefaultQuery("result", "")
 	if page < 1 {
 		page = 1
 	}
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
-	games, total, err := h.Store.GetHistoryGames(userID, page, pageSize)
+	if result != "" && result != "win" && result != "draw" && result != "lose" {
+		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
+		return
+	}
+
+	games, err := h.Store.GetHistoryGamesAll(userID, store.HistoryGameFilters{Days: days})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 		return
 	}
-	result := make([]gin.H, 0, len(games))
-	for _, g := range games {
-		completed, _ := h.Store.CountLockedRounds(g.ID)
-		result = append(result, gin.H{
+
+	type histItem struct {
+		game          model.Game
+		myScore       int
+		myRank        int
+		tag           string
+		rounds        int64
+		players       []model.GamePlayer
+		hasAdjustment bool
+	}
+	items := make([]histItem, 0, len(games))
+	if len(games) > 0 {
+		gameIDs := make([]int64, 0, len(games))
+		for _, g := range games {
+			gameIDs = append(gameIDs, g.ID)
+		}
+		playersByGame := map[int64][]model.GamePlayer{}
+		if plist, err := h.Store.GetPlayersByGameIDs(gameIDs); err == nil {
+			for _, p := range plist {
+				playersByGame[p.GameID] = append(playersByGame[p.GameID], p)
+			}
+		}
+		totalsByGame, _ := h.Store.GetTotalsByGameIDs(gameIDs)
+		adjCount, _ := h.Store.CountAdjustmentsByGameIDs(gameIDs)
+		roundCounts, _ := h.Store.CountLockedRoundsByGameIDs(gameIDs)
+
+		for _, g := range games {
+			players := playersByGame[g.ID]
+			totals := totalsByGame[g.ID]
+			var myGP *model.GamePlayer
+			for i := range players {
+				if players[i].UserID == userID {
+					myGP = &players[i]
+					break
+				}
+			}
+			if myGP == nil {
+				continue
+			}
+			myScore := totals[myGP.ID]
+			myRank := 1
+			for _, p := range players {
+				if p.ID != myGP.ID && totals[p.ID] > myScore {
+					myRank++
+				}
+			}
+			tag := "draw"
+			if len(players) >= 2 {
+				if myRank == 1 {
+					tag = "win"
+				} else if myRank == len(players) {
+					tag = "lose"
+				}
+			}
+			if result != "" && tag != result {
+				continue
+			}
+			items = append(items, histItem{
+				game: g, myScore: myScore, myRank: myRank, tag: tag,
+				rounds: roundCounts[g.ID],
+				players: players, hasAdjustment: adjCount[g.ID] > 0,
+			})
+		}
+	}
+
+	total := len(items)
+	start := (page - 1) * pageSize
+	if start > total {
+		start = total
+	}
+	end := start + pageSize
+	if end > total {
+		end = total
+	}
+
+	result2 := make([]gin.H, 0, end-start)
+	for _, it := range items[start:end] {
+		g := it.game
+		playerItems := make([]gin.H, 0, len(it.players))
+		for _, p := range it.players {
+			playerItems = append(playerItems, gin.H{"nickname": p.NicknameSnapshot})
+		}
+		var duration int
+		if g.StartedAt != nil && g.EndedAt != nil {
+			duration = int(g.EndedAt.Sub(*g.StartedAt).Minutes())
+		}
+		result2 = append(result2, gin.H{
 			"game_id":          g.ID,
 			"name":             g.Name,
 			"status":           g.Status,
-			"completed_rounds": completed,
+			"completed_rounds": it.rounds,
+			"player_count":     len(it.players),
+			"players":          playerItems,
+			"my_score":         it.myScore,
+			"my_rank":          it.myRank,
+			"result":           it.tag,
+			"is_ranked":        len(it.players) == 4,
+			"has_adjustment":   it.hasAdjustment,
+			"duration_minutes": duration,
 			"ended_at":         g.EndedAt,
 			"created_at":       g.CreatedAt,
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"games":     result,
+		"games":     result2,
 		"total":     total,
 		"page":      page,
 		"page_size": pageSize,
+		"has_more":  end < total,
 	})
 }
 
@@ -229,13 +331,27 @@ func (h *GameHandler) GetGame(c *gin.Context) {
 	completed, _ := h.Store.CountLockedRounds(gameID)
 
 	playerInfos := make([]PlayerInfo, 0, len(players))
+	// 批量获取用户信息以填充头像
+	userCache := map[int64]*model.User{}
 	for _, p := range players {
+		var user *model.User
+		if u, ok := userCache[p.UserID]; ok {
+			user = u
+		} else {
+			user, _ = h.Store.GetUserByID(p.UserID)
+			userCache[p.UserID] = user
+		}
+		avatarURL := ""
+		if user != nil {
+			avatarURL = user.AvatarURL
+		}
 		playerInfos = append(playerInfos, PlayerInfo{
-			PlayerID: p.ID,
-			UserID:   p.UserID,
-			Nickname: p.NicknameSnapshot,
-			Role:     p.Role,
-			JoinedAt: p.JoinedAt,
+			PlayerID:  p.ID,
+			UserID:    p.UserID,
+			Nickname:  p.NicknameSnapshot,
+			AvatarURL: avatarURL,
+			Role:      p.Role,
+			JoinedAt:  p.JoinedAt,
 		})
 	}
 
@@ -294,8 +410,12 @@ func (h *GameHandler) JoinGame(c *gin.Context) {
 		return
 	}
 
-	// Check game is forming
-	if game.Status != "forming" {
+	// 可加入状态：组桌中；或已自动开局但还没凑满 4 人（继续凑脚，满 4 后锁定）
+	if game.Status != "forming" && game.Status != "active" {
+		c.JSON(http.StatusBadRequest, errs.ErrMembersLocked)
+		return
+	}
+	if game.Status == "active" && (game.MembersLocked || membersFull(game.ID, h)) {
 		c.JSON(http.StatusBadRequest, errs.ErrMembersLocked)
 		return
 	}
@@ -341,6 +461,55 @@ func (h *GameHandler) JoinGame(c *gin.Context) {
 		"status":    status,
 		"message":   "加入成功",
 	})
+}
+
+// SwapSeat handles POST /api/v1/games/:game_id/swap_seat（长按空位直接换座，无需申请）
+func (h *GameHandler) SwapSeat(c *gin.Context) {
+	gameID, err := strconv.ParseInt(c.Param("game_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
+		return
+	}
+	var req struct {
+		TargetSeat int `json:"target_seat"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
+		return
+	}
+	userID := middleware.GetUserID(c)
+
+	game, err := h.Store.GetGame(gameID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, errs.ErrNotFound)
+		return
+	}
+	if game.Status == "ended" || game.Status == "cancelled" {
+		c.JSON(http.StatusBadRequest, errs.ErrGameEnded)
+		return
+	}
+
+	player, err := h.Store.SwapToEmptySeat(gameID, userID, req.TargetSeat)
+	if err != nil {
+		if be, ok := err.(*errs.BizError); ok {
+			c.JSON(http.StatusBadRequest, be)
+			return
+		}
+		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"game_id":   gameID,
+		"seat":      player.Seat,
+		"message":   "已换座",
+	})
+}
+
+// membersFull 牌局是否已凑满 4 人。
+func membersFull(gameID int64, h *GameHandler) bool {
+	count, err := h.Store.CountGamePlayers(gameID)
+	return err != nil || count >= 4
 }
 
 // StartGame handles POST /api/v1/games/:game_id/start (PRD §4.2-A: 开始记分)
@@ -439,12 +608,14 @@ func (h *GameHandler) CancelGame(c *gin.Context) {
 		return
 	}
 
-	if game.Status != "forming" {
-		c.JSON(http.StatusBadRequest, errs.ErrGameNotForming)
+	// 允许取消：组桌中，或已开局但还没有入账的局（有记分记录须走散台结算）
+	completed, _ := h.Store.CountLockedRounds(gameID)
+	if (game.Status != "forming" && game.Status != "active") || completed > 0 {
+		c.JSON(http.StatusBadRequest, errs.ErrGameHasScores)
 		return
 	}
 
-	_, err = h.Store.UpdateGameStatus(gameID, "forming", "cancelled")
+	_, err = h.Store.UpdateGameStatus(gameID, game.Status, "cancelled")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, errs.ErrGameNotForming)
 		return
@@ -503,6 +674,9 @@ func (h *GameHandler) EndGame(c *gin.Context) {
 	}
 
 	_ = h.Store.InvalidateJoinExpiresAt(gameID)
+
+	// 4 人局散台即排位结算（幂等；结算失败不阻断散台响应）
+	_ = h.Store.SettleGameRank(gameID)
 
 	c.JSON(http.StatusOK, SimpleResponse{Message: "牌局已结束"})
 }

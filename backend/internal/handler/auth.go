@@ -1,13 +1,18 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lk/zoek/backend/internal/errs"
 	"github.com/lk/zoek/backend/internal/middleware"
 	"github.com/lk/zoek/backend/internal/model"
+	"github.com/lk/zoek/backend/internal/rank"
 	"github.com/lk/zoek/backend/internal/store"
 	"github.com/lk/zoek/backend/pkg/wechat"
 )
@@ -73,15 +78,66 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 // profileIncomplete reports whether the user still lacks nickname or avatar.
 // PRD §4.2-A: 资料完整的老用户重新登录不得再次弹出完善资料页。
-// chooseAvatar 的微信临时路径（http://tmp/、wxfile://）重启后失效，视同未设置。
+// 优先读 User.ProfileCompleted 字段，兜底再做运行时推导。
 func profileIncomplete(u *model.User) bool {
-	return u.Nickname == "" || !isPersistentAvatar(u.AvatarURL)
+	if u.ProfileCompleted {
+		return false
+	}
+	return u.Nickname == "" || u.AvatarURL == ""
 }
 
-// isPersistentAvatar reports whether the avatar URL survives app restarts.
-// 仅接受 base64 数据 URL 和 https 地址；微信临时路径不算完整资料。
-func isPersistentAvatar(url string) bool {
-	return strings.HasPrefix(url, "data:image") || strings.HasPrefix(url, "https://")
+// UploadAvatar handles POST /api/v1/user/avatar.
+// 接收 multipart 文件，保存到 uploads/avatars/ 目录，返回相对路径。
+func (h *AuthHandler) UploadAvatar(c *gin.Context) {
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errs.New("NO_FILE", "请上传头像文件", errs.ActionRetry))
+		return
+	}
+
+	// 限制文件大小 5MB（前端也做了压缩，这里是后端兜底）
+	if file.Size > 5*1024*1024 {
+		c.JSON(http.StatusBadRequest, errs.New("FILE_TOO_LARGE", "头像文件不能超过5MB", errs.ActionRetry))
+		return
+	}
+
+	// 获取文件扩展名
+	ext := strings.ToLower(filepath.Ext(file.Filename))
+	if ext == "" {
+		ext = ".jpg"
+	}
+	// 只允许常见图片格式
+	allowedExts := map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".webp": true}
+	if !allowedExts[ext] {
+		c.JSON(http.StatusBadRequest, errs.New("INVALID_FORMAT", "仅支持 jpg/png/webp 格式", errs.ActionRetry))
+		return
+	}
+
+	userID := middleware.GetUserID(c)
+
+	// 生成文件名：{userID}_{timestamp}{ext}
+	filename := fmt.Sprintf("%d_%d%s", userID, fileHeaderToTimestamp(file.Filename), ext)
+	uploadDir := "uploads/avatars"
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+		return
+	}
+	savePath := filepath.Join(uploadDir, filename)
+	if err := c.SaveUploadedFile(file, savePath); err != nil {
+		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+		return
+	}
+
+	// 返回相对路径
+	relPath := "/" + filepath.ToSlash(savePath)
+	c.JSON(http.StatusOK, gin.H{
+		"avatar_url": relPath,
+	})
+}
+
+// fileHeaderToTimestamp generates a timestamp-based suffix from filename for uniqueness.
+func fileHeaderToTimestamp(_ string) int64 {
+	return time.Now().Unix()
 }
 
 // GetProfile handles GET /api/v1/user/profile.
@@ -98,6 +154,7 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		"avatar_url":   user.AvatarURL,
 		"need_profile": profileIncomplete(user),
 		"created_at":   user.CreatedAt,
+		"rank":         rank.InfoFromStars(user.RankStars),
 	})
 }
 

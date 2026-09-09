@@ -1,22 +1,7 @@
 <!--pages/history/history.wxml — 开台手账 v6 Stitch 100% 还原-->
 <view class="page">
-  <!-- 固定 Header -->
-  <view class="stitch-header pt-safe">
-    <view class="stitch-header-inner">
-      <view class="stitch-header-brand">
-        <view class="stitch-header-logo"><image class="stitch-header-logo-icon" src="/assets/icons/app-icon-hongzhong.png" mode="aspectFit" /></view>
-        <text class="stitch-header-title">Game History</text>
-      </view>
-      <view class="header-capsule">
-        <view class="header-capsule-btn"><text>···</text></view>
-        <view class="header-capsule-divider"></view>
-        <view class="header-capsule-btn"><text>●</text></view>
-      </view>
-    </view>
-  </view>
-
   <!-- 未登录 -->
-  <view class="empty-state" wx:if="{{!isLoggedIn}}">
+  <view class="empty-state" style="padding-top: {{navPadding}}px;" wx:if="{{!isLoggedIn}}">
     <view class="empty-tile mj-tile mj-tile-green anim-float">記</view>
     <view class="empty-text">未登入</view>
     <view class="text-secondary" style="margin-top: 8rpx;">登入后查看对局记录</view>
@@ -24,7 +9,7 @@
   </view>
 
   <block wx:if="{{isLoggedIn}}">
-    <view class="main-content">
+    <view class="main-content" style="padding-top: {{navPadding}}px;">
       <!-- 标题区 -->
       <view class="hs-title-section anim-fade-up">
         <view class="hs-title-row">
@@ -35,10 +20,16 @@
             </view>
             <text class="hs-subtitle">清清楚楚 · 雀叙手账 · 一目了然</text>
           </view>
-          <view class="hs-month-filter" bindtap="toggleMonthFilter">
-            <image class="hs-month-icon" src="/assets/icons/score-statement-history.png" mode="aspectFit" />
-            <text class="hs-month-text">{{currentMonthText}}</text>
-            <text class="hs-month-arrow">▾</text>
+        </view>
+        <!-- 日期筛选（近30 / 近7天 / 全部） -->
+        <view class="hs-day-tabs">
+          <view
+            class="hs-day-tab {{days === item.days ? 'active' : ''}}"
+            wx:for="{{dayTabs}}"
+            wx:key="days"
+            data-days="{{item.days}}"
+            bindtap="onDayFilter">
+            <text>{{item.label}}</text>
           </view>
         </view>
       </view>
@@ -49,7 +40,7 @@
         <view class="hs-overview-header">
           <view class="hs-overview-left">
             <view class="hs-overview-icon-wrap"><image class="hs-overview-icon" src="/assets/icons/table-balance-zero-sum.png" mode="aspectFit" /></view>
-            <text class="hs-overview-title">本月概览</text>
+            <text class="hs-overview-title">{{overviewLabel}}</text>
           </view>
           <view class="hs-overview-sync">
             <image class="hs-sync-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
@@ -80,12 +71,17 @@
         </view>
       </view>
 
-      <!-- 筛选栏 -->
+      <!-- 筛选栏（标签：胜/平/负） -->
       <view class="hs-filter-bar anim-fade-up delay-2">
         <view class="hs-filter-tabs">
-          <view class="hs-filter-tab active"><text>全部对局</text></view>
-          <view class="hs-filter-tab"><text>只看赢局</text></view>
-          <view class="hs-filter-tab"><text>只看输局</text></view>
+          <view
+            class="hs-filter-tab {{result === item.value ? 'active' : ''}}"
+            wx:for="{{resultTabs}}"
+            wx:key="value"
+            data-result="{{item.value}}"
+            bindtap="onResultFilter">
+            <text>{{item.label}}</text>
+          </view>
         </view>
         <text class="hs-filter-count">共 {{total}} 组记录</text>
       </view>
@@ -109,12 +105,13 @@
             <text class="hs-group-sub">{{group.subText}}</text>
           </view>
 
-          <view class="hs-record-card" wx:for="{{group.items}}" wx:for-item="item" wx:key="game_id" bindtap="goSettlement" data-id="{{item.game_id}}">
+          <view class="hs-record-card" wx:for="{{group.items}}" wx:for-item="item" wx:key="game_id" bindtap="goDetail" data-id="{{item.game_id}}">
             <view class="hs-card-top">
               <view class="hs-card-info">
                 <view class="hs-card-time-row">
                   <text class="hs-card-time">{{item.timeText}}</text>
                   <view class="hs-card-status"><image class="hs-status-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" /><text>{{item.statusText}}</text></view>
+                  <view class="hs-rank-badge" wx:if="{{item.is_ranked}}">排位</view>
                 </view>
                 <view class="hs-card-meta">
                   <text class="hs-meta-item"><text class="hs-meta-icon">⏱</text>{{item.duration}}</text>
@@ -125,7 +122,7 @@
               <view class="hs-card-score">
                 <text class="hs-score-val {{item.my_score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.my_score >= 0 ? '+' : ''}}{{item.my_score}}</text>
                 <view class="hs-score-tag hs-score-tag-win" wx:if="{{item.my_rank === 1}}"><image class="hs-score-tag-icon" src="/assets/icons/rank-1-god-crown.png" mode="aspectFit" /><text>本台冠军</text></view>
-                <view class="hs-score-tag hs-score-tag-normal" wx:else><text>第 {{item.my_rank}} 名</text></view>
+                <view class="hs-score-tag hs-score-tag-normal" wx:else><text>第 {{item.my_rank}} 名 · {{item.resultText}}</text></view>
               </view>
             </view>
             <view class="hs-card-footer">
@@ -134,7 +131,7 @@
                 <text class="hs-status-text-icon" wx:else><image src="/assets/icons/sys-shield-security.png" mode="aspectFit" /></text>
                 <text>{{item.footerText}}</text>
               </view>
-              <view class="hs-card-detail">
+              <view class="hs-card-detail" catchtap="goLedger" data-id="{{item.game_id}}">
                 <text>{{item.detailText}}</text>
                 <text class="hs-card-arrow">›</text>
               </view>

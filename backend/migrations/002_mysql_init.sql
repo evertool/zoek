@@ -5,12 +5,13 @@
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS users (
-    id          BIGINT PRIMARY KEY AUTO_INCREMENT,
-    openid      VARCHAR(64) NOT NULL UNIQUE,
-    nickname    VARCHAR(32) NOT NULL,
-    avatar_url  MEDIUMTEXT,
-    created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    id                 BIGINT PRIMARY KEY AUTO_INCREMENT,
+    openid             VARCHAR(64) NOT NULL UNIQUE,
+    nickname           VARCHAR(32) NOT NULL,
+    avatar_url         MEDIUMTEXT,
+    profile_completed  TINYINT(1) NOT NULL DEFAULT 0,
+    created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS games (
@@ -37,6 +38,7 @@ CREATE TABLE IF NOT EXISTS game_players (
     user_id           BIGINT NOT NULL,
     nickname_snapshot VARCHAR(32) NOT NULL,
     role              VARCHAR(16) NOT NULL DEFAULT 'player',
+    seat              SMALLINT NOT NULL DEFAULT 0,
     joined_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uk_game_user (game_id, user_id),
     INDEX idx_game (game_id),
