@@ -8,6 +8,8 @@ const CN_NUMS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', 
 
 Page({
   data: {
+    capsuleTop: 0,
+    capsuleHeight: 32,
     gameID: 0,
     detail: null,
     flow: [],
@@ -16,7 +18,8 @@ Page({
   },
 
   onLoad(options) {
-    this.setData({ navPadding: util.navPadding() })
+    var cap = util.capsuleBox()
+    this.setData({ navPadding: util.navPadding(), capsuleTop: cap.top, capsuleHeight: cap.height })
     if (!guard.ensure(true)) return
     this.setData({ gameID: Number(options.game_id) || 0 })
     if (!this.data.gameID) {
@@ -99,7 +102,7 @@ Page({
         scoreText: ev.score > 0 ? '+' + ev.score : '' + ev.score
       }))
 
-      var endedAt = res.ended_at ? new Date(res.ended_at) : null
+      var endedAt = util.toDate(res.ended_at)
       this.setData({
         detail: {
           gameName: res.game_name,
@@ -129,9 +132,8 @@ Page({
   },
 
   formatHM(ts) {
-    if (!ts) return ''
-    var d = new Date(ts)
-    if (isNaN(d.getTime())) return ''
+    var d = util.toDate(ts)
+    if (!d) return ''
     return (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes()
   },
 

@@ -17,6 +17,7 @@ try {
 Page({
   data: {
     games: [],
+    recent: [],
     loading: true,
     isLoggedIn: false,
     needProfile: false,
@@ -45,9 +46,28 @@ Page({
 
     if (isLoggedIn && !needProfile) {
       this.loadGames()
+      this.loadRecent()
+      this.startPolling()
     } else {
       this.setData({ loading: false })
     }
+  },
+
+  /** 当前牌局实时刷新：雀友进来后头像自动更新 */
+  startPolling() {
+    this.stopPolling()
+    this._poll = setInterval(() => this.loadGames(), 5000)
+  },
+
+  stopPolling() {
+    if (this._poll) {
+      clearInterval(this._poll)
+      this._poll = null
+    }
+  },
+
+  onHide() {
+    this.stopPolling()
   },
 
   /** 加载 Lottie 麻将牌动画 */
@@ -112,10 +132,16 @@ Page({
         ...p,
         wind: p.wind || WINDS[i] || '',
         windClass: p.windClass || WIND_CLASSES[i] || 'east',
-        scoreClass: (p.total_score || p.score || 0) >= 0 ? 'positive' : 'negative',
-        scoreText: ((p.total_score || p.score || 0) >= 0 ? '+' : '') + (p.total_score || p.score || 0),
         avatar_url: util.resolveAvatarURL(p.avatar_url || '')
       }))
+      var durationText = ''
+      if (g.duration_minutes > 0) {
+        durationText = g.duration_minutes >= 60
+          ? '已打 ' + Math.floor(g.duration_minutes / 60) + ' 小时 ' + (g.duration_minutes % 60) + ' 分'
+          : '已打 ' + g.duration_minutes + ' 分钟'
+      } else {
+        durationText = '刚开台'
+      }
       return {
         ...g,
         players,
@@ -123,13 +149,66 @@ Page({
         statusClass: util.statusClass(g.status),
         roundInfo: g.current_round_number
           ? `第${g.current_round_number}局 · 已完成${g.completed_rounds}局`
-          : `已完成${g.completed_rounds}局`
+          : `已完成${g.completed_rounds}局`,
+        durationText: durationText,
+        canInvite: (g.player_count || 0) < 4 && (g.completed_rounds || 0) === 0
       }
     })
       this.setData({ games, loading: false })
     }).catch(() => {
       this.setData({ loading: false })
     })
+  },
+
+  /** 最近战绩（真实数据，最近 3 场） */
+  loadRecent() {
+    api.get('/games/history', { page: 1, page_size: 3 }).then(res => {
+      const recent = (res.games || []).map(g => ({
+        game_id: g.game_id,
+        name: g.name || '得闲开台',
+        statusText: util.statusText(g.status),
+        timeText: this.formatRecentTime(g.ended_at || g.created_at),
+        playersText: (g.players || []).map(function(p) { return p.nickname }).slice(0, 4).join('、'),
+        my_score: g.my_score || 0,
+        my_rank: g.my_rank || 0,
+        resultText: g.result === 'win' ? '胜' : (g.result === 'lose' ? '负' : '平')
+      }))
+      this.setData({ recent })
+    }).catch(function() {})
+  },
+
+  formatRecentTime(ts) {
+    var d = util.toDate(ts)
+    if (!d) return ''
+    var now = new Date()
+    var day = (now.getMonth() + 1) === (d.getMonth() + 1) && now.getDate() === d.getDate()
+      ? '今天'
+      : (d.getMonth() + 1) + '月' + d.getDate() + '日'
+    var hm = (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes()
+    return day + ' ' + hm
+  },
+
+  goHistory() {
+    wx.switchTab({ url: '/pages/history/history' })
+  },
+
+  goRecentDetail(e) {
+    wx.navigateTo({ url: '/pages/game-detail/game-detail?game_id=' + e.currentTarget.dataset.id })
+  },
+
+  /** 卡上邀请雀友：分享当前台的邀请链接 */
+  onCardInvite(e) {
+    this._shareGameId = e.currentTarget.dataset.id
+  },
+
+  onShareAppMessage() {
+    if (this._shareGameId) {
+      return {
+        title: '开咗张台，快啲上桌！',
+        path: '/pages/join/join?invite_token=' + this._shareGameId
+      }
+    }
+    return { title: '得闲开台 — 粤语麻雀记分神器', path: '/pages/index/index' }
   },
 
   // ===== 登录流程 =====
@@ -242,9 +321,22 @@ Page({
       wx.navigateTo({
         url: `/pages/room/room?game_id=${res.game_id}&invite_token=${res.invite_token}`
       })
-    }).catch(() => {
+    }).catch(err => {
       wx.hideLoading()
       this._creating = false
+      if (err && err.code === 'ALREADY_IN_GAME' && err.game_id) {
+        wx.showModal({
+          title: '你已有一张进行中的牌台',
+          content: '同时只能开一张台，先去处理当前牌台',
+          showCancel: false,
+          confirmText: '去看看',
+          success: () => {
+            wx.navigateTo({ url: '/pages/room/room?game_id=' + err.game_id })
+          }
+        })
+      } else {
+        wx.showToast({ title: (err && err.message) || '开台失败，请重试', icon: 'none' })
+      }
     })
   },
 

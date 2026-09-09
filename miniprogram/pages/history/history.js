@@ -179,14 +179,14 @@ Page({
   },
 
   formatTime(ts) {
-    if (!ts) return ''
-    var d = new Date(ts * 1000)
+    var d = util.toDate(ts)
+    if (!d) return ''
     return (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes()
   },
 
   formatDate(ts) {
-    if (!ts) return ''
-    var d = new Date(ts * 1000)
+    var d = util.toDate(ts)
+    if (!d) return ''
     return (d.getMonth() + 1) + '月' + d.getDate() + '日'
   },
 

@@ -1,9 +1,11 @@
 /* pages/rank/rank.wxss — 排位段位页 */
 .page { min-height: 100vh; background: var(--background); }
 .main-content { padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: 60rpx; display: flex; flex-direction: column; gap: var(--space-md); }
-.gd-top-bar { display: flex; align-items: center; }
-.nav-back-btn { width: 68rpx; height: 68rpx; border-radius: 50%; background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: center; }
-.nav-back-icon { width: 32rpx; height: 32rpx; }
+.top-bar { display: flex; align-items: center; padding-left: var(--margin-screen); padding-right: var(--margin-screen); }
+.nav-back-btn { border-radius: 50%; background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.nav-back-icon { width: 55%; height: 55%; }
+.btn-primary text, .btn-secondary text { white-space: nowrap; }
+.btn-primary, .btn-secondary { overflow: hidden; }
 .card { background: var(--surface-container-lowest); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
 
 /* 赛季横幅 */

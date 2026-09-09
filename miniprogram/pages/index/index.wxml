@@ -103,7 +103,7 @@
                 <view class="game-card-dot"></view>
                 <text class="game-card-name">{{item.name || '未命名牌局'}} (第{{item.current_round_number || item.completed_rounds}}局)</text>
               </view>
-              <text class="game-card-time">已玩 {{item.completed_rounds}} 分钟</text>
+              <text class="game-card-time">{{item.durationText}}</text>
             </view>
             <view class="seat-grid">
               <view class="seat-cell" wx:for="{{item.players}}" wx:for-item="player" wx:key="player_id" wx:if="{{item.players}}">
@@ -115,17 +115,20 @@
                 <text class="seat-name">{{player.nickname}}</text>
                 <view class="seat-score seat-score-{{player.scoreClass}}">{{player.scoreText}}</view>
               </view>
-              <view class="seat-cell seat-empty" wx:if="{{!item.players || item.players.length < 4}}">
-                <view class="seat-avatar-wrap">
-                  <view class="seat-avatar seat-avatar-empty"><image class="seat-empty-icon" src="/assets/icons/table-seat-empty-add.png" mode="aspectFit" /></view>
+              <block wx:if="{{!item.players || item.players.length < 4}}">
+                <view class="seat-cell seat-empty" wx:for="{{[0,1]}}" wx:for-item="seat" wx:key="*this" wx:if="{{item.players.length + seat < 4}}">
+                  <view class="seat-avatar-wrap">
+                    <view class="seat-avatar seat-avatar-empty"><image class="seat-empty-icon" src="/assets/icons/table-seat-empty-add.png" mode="aspectFit" /></view>
+                  </view>
+                  <text class="seat-name text-secondary">虚位以待</text>
+                  <view class="seat-score seat-score-pending">待加入</view>
                 </view>
-                <text class="seat-name text-secondary">三缺一</text>
-                <view class="seat-score seat-score-pending">待加入</view>
-              </view>
+              </block>
             </view>
-            <view class="game-card-actions">
-              <view class="game-action-btn game-action-secondary"><image class="game-action-icon" src="/assets/icons/share-wechat.png" mode="aspectFit" /><text>邀请雀友</text></view>
-              <view class="game-action-btn game-action-primary"><image class="game-action-icon" src="/assets/icons/score-statement-history.png" mode="aspectFit" /><text>录入计分</text></view>
+            <view class="game-card-actions" wx:if="{{item.canInvite}}">
+              <button class="game-action-btn game-action-secondary game-action-share" open-type="share" catchtap="onCardInvite" data-id="{{item.game_id}}">
+                <image class="game-action-icon" src="/assets/icons/share-wechat.png" mode="aspectFit" /><text>邀请雀友</text>
+              </button>
             </view>
           </view>
         </view>
@@ -137,36 +140,27 @@
         </view>
       </block>
 
-      <!-- 最近战绩 -->
-      <view class="recent-section" wx:if="{{games.length > 0}}">
+      <!-- 最近战绩（真实数据） -->
+      <view class="recent-section" wx:if="{{recent.length > 0}}">
         <view class="section-header">
           <text class="section-title">最近战绩</text>
-          <view class="recent-more"><text class="recent-more-text">全部记录</text><text class="recent-more-arrow">›</text></view>
+          <view class="recent-more" bindtap="goHistory"><text class="recent-more-text">全部记录</text><text class="recent-more-arrow">›</text></view>
         </view>
         <view class="recent-card">
-          <view class="recent-item">
-            <view class="recent-item-icon recent-item-icon-win"><image src="/assets/icons/rank-1-god-crown.png" mode="aspectFit" /></view>
-            <view class="recent-item-info">
-              <text class="recent-item-name">荔湾茶楼周六局 · 4圈完</text>
-              <text class="recent-item-sub">昨天 21:40 · 赢家: 小芬</text>
+          <block wx:for="{{recent}}" wx:for-item="rec" wx:key="game_id">
+            <view class="recent-divider" wx:if="{{index > 0}}"></view>
+            <view class="recent-item" bindtap="goRecentDetail" data-id="{{rec.game_id}}">
+              <view class="recent-item-icon {{rec.my_score >= 0 ? 'recent-item-icon-win' : 'recent-item-icon-loss'}}"><image src="{{rec.my_rank === 1 ? '/assets/icons/rank-1-god-crown.png' : '/assets/icons/rank-4-facai.png'}}" mode="aspectFit" /></view>
+              <view class="recent-item-info">
+                <text class="recent-item-name">{{rec.name}}</text>
+                <text class="recent-item-sub">{{rec.timeText}} · 对局: {{rec.playersText}}</text>
+              </view>
+              <view class="recent-item-score">
+                <text class="recent-score-val {{rec.my_score >= 0 ? 'text-positive' : 'text-negative'}}">{{rec.my_score >= 0 ? '+' : ''}}{{rec.my_score}}</text>
+                <text class="recent-score-rank">第 {{rec.my_rank}} 名 · {{rec.resultText}}</text>
+              </view>
             </view>
-            <view class="recent-item-score">
-              <text class="recent-score-val text-positive">+164</text>
-              <text class="recent-score-rank">第 1 名</text>
-            </view>
-          </view>
-          <view class="recent-divider"></view>
-          <view class="recent-item">
-            <view class="recent-item-icon recent-item-icon-loss"><image src="/assets/icons/rank-4-facai.png" mode="aspectFit" /></view>
-            <view class="recent-item-info">
-              <text class="recent-item-name">下班自摸快局 · 2圈完</text>
-              <text class="recent-item-sub">周四 20:15 · 赢家: 阿健</text>
-            </view>
-            <view class="recent-item-score">
-              <text class="recent-score-val text-negative">-36</text>
-              <text class="recent-score-rank">第 3 名</text>
-            </view>
-          </view>
+          </block>
         </view>
       </view>
     </view>

@@ -1,11 +1,12 @@
 <!--pages/game-ledger/game-ledger.wxml — 手帐明细页 v6 Stitch 还原-->
 <view class="page">
-  <view class="main-content" style="padding-top: {{navPadding}}px;">
-    <view class="gd-top-bar">
-      <view class="nav-back-btn" bindtap="goBack">
-        <image class="nav-back-icon" src="/assets/icons/nav-back.svg" mode="aspectFit" />
-      </view>
+  <view class="top-bar" style="padding-top: {{capsuleTop}}px;">
+    <view class="nav-back-btn" style="width: {{capsuleHeight}}px; height: {{capsuleHeight}}px;" bindtap="goBack">
+      <image class="nav-back-icon" src="/assets/icons/nav-back.svg" mode="aspectFit" />
     </view>
+  </view>
+
+  <view class="main-content">
 
     <block wx:if="{{detail}}">
       <!-- 头部：日期 + 四人风位总览 -->
@@ -73,7 +74,7 @@
       <view class="gl-section anim-fade-up delay-2">
         <view class="gl-section-head">
           <text class="gl-section-title">📷 雀局合影留念</text>
-          <text class="gl-section-sub">广州天河 · 茶居包厢</text>
+          <text class="gl-section-sub">茶余饭后 · 拍张合照留念</text>
         </view>
         <view class="gl-photo card" bindtap="pickPhoto">
           <image class="gl-photo-img" src="{{photoPath}}" mode="aspectFill" wx:if="{{photoPath}}" />

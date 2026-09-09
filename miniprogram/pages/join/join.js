@@ -10,6 +10,7 @@ Page({
     loading: true,
     joining: false,
     error: '',
+    inGameId: 0,
     game: null
   },
 
@@ -63,14 +64,27 @@ Page({
       request_id: api.genRequestID()
     }).then(res => {
       wx.redirectTo({ url: `/pages/room/room?game_id=${res.game_id}` })
-    }).catch(err => {
-      if (err && err.action === 'BACK_TO_ROOM' && err.game_id) {
-        wx.redirectTo({ url: `/pages/room/room?game_id=${err.game_id}` })
-        return
-      }
-      const msg = (err && err.message) || '加入失败'
-      this.setData({ loading: false, joining: false, error: msg })
-    })
+    }).catch(err => this.handleJoinError(err))
+  },
+
+  handleJoinError(err) {
+    if (err && err.action === 'BACK_TO_ROOM' && err.game_id) {
+      wx.redirectTo({ url: `/pages/room/room?game_id=${err.game_id}` })
+      return
+    }
+    if (err && err.code === 'ALREADY_IN_GAME') {
+      // 房间互斥：已在别的牌台，引导回去
+      this.setData({ loading: false, joining: false, inGameId: err.game_id || 0, error: err.message || '你已有一张进行中的牌台' })
+      return
+    }
+    const msg = (err && err.message) || '加入失败'
+    this.setData({ loading: false, joining: false, error: msg })
+  },
+
+  goMyRoom() {
+    if (this.data.inGameId) {
+      wx.redirectTo({ url: '/pages/room/room?game_id=' + this.data.inGameId })
+    }
   },
 
   tryJoin() {
@@ -85,8 +99,7 @@ Page({
         wx.redirectTo({ url: `/pages/room/room?game_id=${err.game_id}` })
         return
       }
-      const msg = (err && err.message) || '加入失败'
-      this.setData({ loading: false, joining: false, error: msg })
+      this.handleJoinError(err)
     })
   },
 

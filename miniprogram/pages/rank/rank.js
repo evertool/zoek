@@ -6,6 +6,8 @@ const guard = require('../../utils/guard')
 
 Page({
   data: {
+    capsuleTop: 0,
+    capsuleHeight: 32,
     rank: null,
     starRow: [],
     loading: true,
@@ -13,7 +15,8 @@ Page({
   },
 
   onLoad() {
-    this.setData({ navPadding: util.navPadding() })
+    var cap = util.capsuleBox()
+    this.setData({ navPadding: util.navPadding(), capsuleTop: cap.top, capsuleHeight: cap.height })
   },
 
   onShow() {

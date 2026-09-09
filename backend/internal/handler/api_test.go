@@ -488,6 +488,45 @@ func TestRankSettleOnEnd(t *testing.T) {
 	}
 }
 
+func TestRoomExclusivity(t *testing.T) {
+	r, _, _ := testSetup(t)
+	creator := loginAndAuth(t, r, "ex-a")
+	joiner := loginAndAuth(t, r, "ex-b")
+	other := loginAndAuth(t, r, "ex-c")
+
+	// creator 开台，joiner 加入（2 人自动开局）
+	w := doRequest(t, r, "POST", "/api/v1/games", creator, map[string]string{"request_id": "ex-1"})
+	assertStatus(t, w, http.StatusCreated)
+	game1 := int64(parseJSON(t, w)["game_id"].(float64))
+	invite1 := parseJSON(t, w)["invite_token"].(string)
+	w = doRequest(t, r, "POST", "/api/v1/games/join", joiner, map[string]string{"invite_token": invite1, "request_id": "ex-2"})
+	assertStatus(t, w, http.StatusCreated)
+
+	// creator 已有进行中的牌台：再开一张 → 409 并返回现有牌台 ID
+	w = doRequest(t, r, "POST", "/api/v1/games", creator, map[string]string{"request_id": "ex-3"})
+	assertStatus(t, w, http.StatusConflict)
+	m := parseJSON(t, w)
+	if m["code"] != "ALREADY_IN_GAME" || int64(m["game_id"].(float64)) != game1 {
+		t.Fatalf("create conflict = %v", m)
+	}
+
+	// other 开第二张台，joiner 想加入 → 409
+	w = doRequest(t, r, "POST", "/api/v1/games", other, map[string]string{"request_id": "ex-4"})
+	assertStatus(t, w, http.StatusCreated)
+	invite2 := parseJSON(t, w)["invite_token"].(string)
+	w = doRequest(t, r, "POST", "/api/v1/games/join", joiner, map[string]string{"invite_token": invite2, "request_id": "ex-5"})
+	assertStatus(t, w, http.StatusConflict)
+	if m := parseJSON(t, w); m["code"] != "ALREADY_IN_GAME" {
+		t.Fatalf("join conflict = %v", m)
+	}
+
+	// creator 取消自己的台后释放，可再开
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/cancel", game1), creator, map[string]string{"request_id": "ex-6"})
+	assertStatus(t, w, http.StatusOK)
+	w = doRequest(t, r, "POST", "/api/v1/games", creator, map[string]string{"request_id": "ex-7"})
+	assertStatus(t, w, http.StatusCreated)
+}
+
 func TestStartGameNotEnoughPlayers(t *testing.T) {
 	r, _, _ := testSetup(t)
 	auth := loginAndAuth(t, r, "creator")
@@ -962,54 +1001,56 @@ func TestLeaderboardAndUserStats(t *testing.T) {
 	r, _, _ := testSetup(t)
 
 	auth1 := loginAndAuth(t, r, "lb-a")
-	w := doRequest(t, r, "POST", "/api/v1/games", auth1, map[string]string{"request_id": "lb-create"})
-	assertStatus(t, w, http.StatusCreated)
-	m := parseJSON(t, w)
-	gameID := int64(m["game_id"].(float64))
-	inviteToken := m["invite_token"].(string)
-
 	auth2 := loginAndAuth(t, r, "lb-b")
-	w = doRequest(t, r, "POST", "/api/v1/games/join", auth2,
-		map[string]string{"invite_token": inviteToken, "request_id": "lb-join"})
-	assertStatus(t, w, http.StatusCreated)
 
-	// Round 1 exists via auto-start
-	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auth1, nil)
-	m = parseJSON(t, w)
-	roundID := int64(m["round_id"].(float64))
+	// 打满 3 场（同台切磋 >= 3 次才可入榜），auth1 每场 +16 全胜
+	for gi := 0; gi < 3; gi++ {
+		w := doRequest(t, r, "POST", "/api/v1/games", auth1, map[string]string{"request_id": fmt.Sprintf("lb-create-%d", gi)})
+		assertStatus(t, w, http.StatusCreated)
+		m := parseJSON(t, w)
+		gameID := int64(m["game_id"].(float64))
+		inviteToken := m["invite_token"].(string)
 
-	// Both submit +16 / -16, then lock
-	w = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth1,
-		map[string]interface{}{"score": 16, "request_id": "lb-s1"})
-	assertStatus(t, w, http.StatusOK)
-	w = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth2,
-		map[string]interface{}{"score": -16, "request_id": "lb-s2"})
-	assertStatus(t, w, http.StatusOK)
-	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/lock", gameID, roundID), auth1,
-		map[string]string{"request_id": "lb-lock"})
-	assertStatus(t, w, http.StatusOK)
+		w = doRequest(t, r, "POST", "/api/v1/games/join", auth2,
+			map[string]string{"invite_token": inviteToken, "request_id": fmt.Sprintf("lb-join-%d", gi)})
+		assertStatus(t, w, http.StatusCreated)
 
-	// End the game
-	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auth1,
-		map[string]string{"request_id": "lb-end"})
-	assertStatus(t, w, http.StatusOK)
+		// Round 1 exists via auto-start
+		w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auth1, nil)
+		m = parseJSON(t, w)
+		roundID := int64(m["round_id"].(float64))
+
+		w = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth1,
+			map[string]interface{}{"score": 16, "request_id": fmt.Sprintf("lb-s1-%d", gi)})
+		assertStatus(t, w, http.StatusOK)
+		w = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth2,
+			map[string]interface{}{"score": -16, "request_id": fmt.Sprintf("lb-s2-%d", gi)})
+		assertStatus(t, w, http.StatusOK)
+		w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/lock", gameID, roundID), auth1,
+			map[string]string{"request_id": fmt.Sprintf("lb-lock-%d", gi)})
+		assertStatus(t, w, http.StatusOK)
+
+		w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auth1,
+			map[string]string{"request_id": fmt.Sprintf("lb-end-%d", gi)})
+		assertStatus(t, w, http.StatusOK)
+	}
 
 	// Personal stats
-	w = doRequest(t, r, "GET", "/api/v1/user/stats", auth1, nil)
+	w := doRequest(t, r, "GET", "/api/v1/user/stats", auth1, nil)
 	assertStatus(t, w, http.StatusOK)
-	m = parseJSON(t, w)
-	if m["games"] != float64(1) {
-		t.Fatalf("stats games = %v, want 1", m["games"])
+	m := parseJSON(t, w)
+	if m["games"] != float64(3) {
+		t.Fatalf("stats games = %v, want 3", m["games"])
 	}
-	if m["wins"] != float64(1) { // +16 vs -16 → rank 1
-		t.Fatalf("stats wins = %v, want 1", m["wins"])
+	if m["wins"] != float64(3) {
+		t.Fatalf("stats wins = %v, want 3", m["wins"])
 	}
 	trend, ok := m["trend"].([]interface{})
-	if !ok || len(trend) != 1 {
-		t.Fatalf("stats trend = %v, want 1 point", m["trend"])
+	if !ok || len(trend) != 3 {
+		t.Fatalf("stats trend = %v, want 3 points", m["trend"])
 	}
 
-	// Leaderboard contains both players
+	// Leaderboard: 入榜门槛 = 同台切磋 >= 3 场，两人都够格
 	w = doRequest(t, r, "GET", "/api/v1/leaderboard", auth1, nil)
 	assertStatus(t, w, http.StatusOK)
 	m = parseJSON(t, w)
@@ -1020,5 +1061,28 @@ func TestLeaderboardAndUserStats(t *testing.T) {
 	first := lb[0].(map[string]interface{})
 	if first["user_id"] == nil || first["win_rate"] != float64(100) {
 		t.Fatalf("leaderboard[0] = %v, want the winner with 100%% win rate", first)
+	}
+	if first["best_streak"].(float64) != 3 {
+		t.Fatalf("leaderboard[0] best_streak = %v, want 3", first["best_streak"])
+	}
+	if first["best_score"].(float64) != 16 {
+		t.Fatalf("leaderboard[0] best_score = %v, want 16", first["best_score"])
+	}
+	tags := first["tags"].([]interface{})
+	foundStreakKing := false
+	for _, tag := range tags {
+		if tag == "连胜王" {
+			foundStreakKing = true
+		}
+	}
+	if !foundStreakKing {
+		t.Fatalf("leaderboard[0] tags = %v, want 连胜王", tags)
+	}
+
+	// 时间筛选：近 7 天命中
+	w = doRequest(t, r, "GET", "/api/v1/leaderboard?days=7", auth1, nil)
+	m = parseJSON(t, w)
+	if len(m["leaderboard"].([]interface{})) != 2 {
+		t.Fatalf("leaderboard days=7 size = %v, want 2", m["leaderboard"])
 	}
 }

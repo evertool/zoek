@@ -8,6 +8,8 @@ const TILE_TAGS = ['', '一筒', '二筒', '三筒', '四筒', '五筒', '六筒
 
 Page({
   data: {
+    capsuleTop: 0,
+    capsuleHeight: 32,
     gameID: 0,
     detail: null,
     rounds: [],
@@ -18,7 +20,8 @@ Page({
   },
 
   onLoad(options) {
-    this.setData({ navPadding: util.navPadding() })
+    var cap = util.capsuleBox()
+    this.setData({ navPadding: util.navPadding(), capsuleTop: cap.top, capsuleHeight: cap.height })
     if (!guard.ensure(true)) return
     this.setData({ gameID: Number(options.game_id) || 0 })
     if (!this.data.gameID) {
@@ -51,7 +54,7 @@ Page({
         var desc = zero ? '流局荒庄' : (winner.nickname + (losers.length === 1 ? '胡' : '自摸自立'))
         var lockedText = ''
         if (r.locked_at) {
-          var d = new Date(r.locked_at)
+          var d = util.toDate(r.locked_at)
           lockedText = (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes() + ' 鎖定'
         }
         return {
@@ -80,7 +83,7 @@ Page({
   },
 
   buildMeta(res, players) {
-    var endedAt = res.ended_at ? new Date(res.ended_at) : null
+    var endedAt = util.toDate(res.ended_at)
     var timeText = ''
     if (endedAt) {
       timeText = (endedAt.getHours() < 10 ? '0' : '') + endedAt.getHours() + ':' + (endedAt.getMinutes() < 10 ? '0' : '') + endedAt.getMinutes()

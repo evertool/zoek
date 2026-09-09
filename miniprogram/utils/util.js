@@ -250,6 +250,30 @@ function navPadding() {
   }
 }
 
+/**
+ * 胶囊按钮盒（px）：top 为胶囊上沿（自绘返回键应与它同一水平线），height 为胶囊高度。
+ */
+function capsuleBox() {
+  try {
+    const rect = wx.getMenuButtonBoundingClientRect()
+    return { top: rect.top, height: rect.height }
+  } catch (e) {
+    const info = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync()
+    return { top: (info.statusBarHeight || 20) + 4, height: 32 }
+  }
+}
+
+/** 兼容 unix 秒 / ISO 字符串两种时间输入 */
+function toDate(ts) {
+  if (!ts) return null
+  if (typeof ts === 'string') {
+    const d = new Date(ts.replace(/-/g, '/').replace('T', ' ').split('.')[0])
+    return isNaN(d.getTime()) ? new Date(ts) : d
+  }
+  if (ts < 1e12) return new Date(ts * 1000)
+  return new Date(ts)
+}
+
 module.exports = {
   formatScore,
   statusText,

@@ -125,6 +125,10 @@ page {
 }
 
 /* ========== 按钮 ========== */
+/* 按钮文字不换行（长文案单行省略） */
+.btn-primary, .btn-secondary, .btn-danger { overflow: hidden; }
+.btn-primary text, .btn-secondary text, .btn-danger text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 .btn-primary {
   background: var(--primary);
   color: var(--on-primary);

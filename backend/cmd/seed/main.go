@@ -228,10 +228,10 @@ func main() {
 func seedLiveTables(st *store.Store, rng *rand.Rand, mockUsers []model.User, hasReal bool, realUserID int64, now time.Time) int {
 	name := fmt.Sprintf("得闲开台 %d月%d日", now.Month(), now.Day())
 
-	// 真实用户坐 1 号位，其余从模拟用户里补
-	tablePlayers := func(size int) []model.User {
+	// withReal: 是否让真实用户坐 1 号位（牌台互斥规则下，真实用户只占一张台）
+	tablePlayers := func(size int, withReal bool) []model.User {
 		players := make([]model.User, 0, size)
-		if hasReal {
+		if withReal && hasReal {
 			var real model.User
 			if err := st.DB.First(&real, realUserID).Error; err == nil {
 				players = append(players, real)
@@ -248,12 +248,12 @@ func seedLiveTables(st *store.Store, rng *rand.Rand, mockUsers []model.User, has
 		return players
 	}
 
-	createTable := func(marker string, size int, status string, startedAgo time.Duration) (*model.Game, []model.GamePlayer) {
+	createTable := func(marker string, size int, status string, startedAgo time.Duration, withReal bool) (*model.Game, []model.GamePlayer) {
 		var existing model.Game
 		if err := st.DB.Where("invite_token_hash = ?", marker).First(&existing).Error; err == nil {
 			return nil, nil // 已生成过，跳过
 		}
-		players := tablePlayers(size)
+		players := tablePlayers(size, withReal)
 		if len(players) < size {
 			return nil, nil
 		}
@@ -299,13 +299,13 @@ func seedLiveTables(st *store.Store, rng *rand.Rand, mockUsers []model.User, has
 
 	created := 0
 
-	// 1) 凑紧脚差一脚：forming 3/4
-	if _, gps := createTable("seed-live-forming-3", 3, "forming", 25*time.Minute); gps != nil {
+	// 1) 凑紧脚差一脚：forming 3/4，真实用户做台主（唯一占用的一张台）
+	if _, gps := createTable("seed-live-forming-3", 3, "forming", 25*time.Minute, true); gps != nil {
 		created++
 	}
 
-	// 2) 齐人未记分：active 4/4，首局开着没人入分
-	if g, _ := createTable("seed-live-active-fresh", 4, "active", 40*time.Minute); g != nil {
+	// 2) 齐人未记分：active 4/4，首局开着没人入分（模拟用户的台）
+	if g, _ := createTable("seed-live-active-fresh", 4, "active", 40*time.Minute, false); g != nil {
 		round := model.Round{GameID: g.ID, RoundNumber: 1, Status: "open", CreatedAt: *g.StartedAt}
 		if err := st.DB.Create(&round).Error; err != nil {
 			fmt.Printf("生成首局失败(游戏 %d): %v\n", g.ID, err)
@@ -313,8 +313,8 @@ func seedLiveTables(st *store.Store, rng *rand.Rand, mockUsers []model.User, has
 		created++
 	}
 
-	// 3) 齐人已记分：active 4/4，若干入账局全部锁定（无进行中的局，可直接散台结算）
-	if g, gps := createTable("seed-live-active-scored", 4, "active", 2*time.Hour); gps != nil {
+	// 3) 齐人已记分：active 4/4，若干入账局全部锁定（无进行中的局，可直接散台结算；模拟用户的台）
+	if g, gps := createTable("seed-live-active-scored", 4, "active", 2*time.Hour, false); gps != nil {
 		rounds := 3 + rng.Intn(3) // 3~5 局
 		lockedAt := *g.StartedAt
 		for rn := 1; rn <= rounds; rn++ {

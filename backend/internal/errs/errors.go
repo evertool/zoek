@@ -54,6 +54,7 @@ var (
 	ErrAdjustResolved = New("ADJUSTMENT_RESOLVED", "积分调整已处理", ActionRefreshGame)
 	ErrSeatOccupied   = New("SEAT_OCCUPIED", "该座位已有玩家，需对方同意才能互换", ActionRetry)
 	ErrGameHasScores  = New("GAME_HAS_SCORES", "已有记分记录，请使用结束散台进行结算", ActionRetry)
+	ErrAlreadyInGame  = New("ALREADY_IN_GAME", "你已有一张进行中的牌台，不能同时进多张台", ActionRetry)
 	ErrInvalidInput   = New("INVALID_INPUT", "输入参数有误", ActionRetry)
 	ErrInternal       = New("INTERNAL", "服务器内部错误", ActionRetry)
 )

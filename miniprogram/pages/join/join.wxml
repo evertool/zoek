@@ -19,7 +19,8 @@
     <view class="join-title anim-fade-up delay-3">入唔到台</view>
     <view class="join-error card anim-fade-up delay-4">{{error}}</view>
     <view class="join-actions anim-fade-up delay-5">
-      <button class="btn-primary" bindtap="tryJoin" disabled="{{joining}}">重新入台</button>
+      <button class="btn-primary" wx:if="{{inGameId}}" bindtap="goMyRoom">去我的牌台</button>
+      <button class="btn-primary" wx:else bindtap="tryJoin" disabled="{{joining}}">重新入台</button>
     </view>
   </view>
 </view>

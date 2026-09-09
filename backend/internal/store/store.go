@@ -258,6 +258,24 @@ func (s *Store) GetActiveGames(userID int64) ([]model.Game, error) {
 	return games, err
 }
 
+// GetUserActiveGameID 返回用户当前进行中（forming/active）的牌局 ID，excludeGameID 用于
+// 「加入该局本身不算冲突」的场景；没有进行中的牌局返回 0。
+func (s *Store) GetUserActiveGameID(userID, excludeGameID int64) (int64, error) {
+	query := s.DB.Model(&model.Game{}).Where(
+		"status IN ('forming', 'active') AND id IN (SELECT game_id FROM game_players WHERE user_id = ?)", userID)
+	if excludeGameID > 0 {
+		query = query.Where("id <> ?", excludeGameID)
+	}
+	var ids []int64
+	if err := query.Order("updated_at DESC").Limit(1).Pluck("id", &ids).Error; err != nil {
+		return 0, err
+	}
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	return ids[0], nil
+}
+
 // GetHistoryGames returns ended/expired/cancelled games for a user with
 // pagination, excluding games the user has hidden from their history.
 // HistoryGameFilters 记录页筛选条件。
@@ -1057,21 +1075,25 @@ func sortPlayerTotals(result []PlayerTotal) {
 // LeaderboardEntry is one user's aggregate performance inside the viewer's
 // 雀友圈（同过台的玩家）.
 type LeaderboardEntry struct {
-	UserID    int64   `json:"user_id"`
-	Nickname  string  `json:"nickname"`
-	AvatarURL string  `json:"avatar_url"`
-	Games     int     `json:"games"`
-	Wins      int     `json:"wins"`
-	Top3      int     `json:"top3"`
-	WinRate   float64 `json:"win_rate"`
-	Top3Rate  float64 `json:"top3_rate"`
-	AvgRank   float64 `json:"avg_rank"`
-	IsSelf    bool    `json:"is_self"`
-	Qualified bool    `json:"qualified"` // 完成局数达到门槛，进入正式榜单
-	TierName  string  `json:"tier_name"` // 排位段位全名
-	TierShort string  `json:"tier_short"`
-	Grade     string  `json:"grade"`
-	Stars     int     `json:"stars"` // 段内星级
+	UserID      int64    `json:"user_id"`
+	Nickname    string   `json:"nickname"`
+	AvatarURL   string   `json:"avatar_url"`
+	Games       int      `json:"games"`
+	Wins        int      `json:"wins"`
+	Top3        int      `json:"top3"`
+	WinRate     float64  `json:"win_rate"`
+	Top3Rate    float64  `json:"top3_rate"`
+	AvgRank     float64  `json:"avg_rank"`
+	BestStreak  int      `json:"best_streak"` // 窗口内最高连胜（连续第1名）
+	BestScore   int      `json:"best_score"`  // 窗口内单场最高分
+	Tags        []string `json:"tags"`        // 规则标签：连胜王/今晚手气王/稳如泰山/大翻盘赢家/常客/铁脚/雀神
+	IsSelf      bool     `json:"is_self"`
+	Qualified   bool     `json:"qualified"` // 完成局数达到门槛，进入正式榜单
+	TierName    string   `json:"tier_name"` // 排位段位全名
+	TierShort   string   `json:"tier_short"`
+	Grade       string   `json:"grade"`
+	Stars       int      `json:"stars"` // 段内星级
+	RankStars   int      `json:"rank_stars"` // 排位累计星（排位榜排序用）
 }
 
 // TrendPoint is one ended game's final score for the personal trend chart.
@@ -1095,23 +1117,38 @@ type UserStats struct {
 }
 
 // GetLeaderboard aggregates ended games in the last `days` days across the
-// viewer's co-play games. Every participant of those games is ranked; users
-// with fewer than minGames completed games stay unqualified.
+// viewer's co-play games（days<=0 表示不限时间）。同台切磋满 minGames 场才可入榜，
+// 最多返回 20 人。标签规则：
+//   - 连胜王：窗口内最高连胜 ≥ 3；       - 雀神：≥30 场且胜率 ≥ 60%；
+//   - 常客：≥10 场；                     - 铁脚：≥50 场；
+//   - 稳如泰山：≥5 场且场均 |得分| ≤ 10；
+//   - 今晚手气王：今日单场最高分 ≥ 20；
+//   - 大翻盘赢家：单场从最深落后翻回（终局-最低点 ≥ 30 且终局为正）。
 func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardEntry, error) {
-	cutoff := time.Now().AddDate(0, 0, -days)
-
+	query := s.DB.Where(
+		"status = 'ended' AND ended_at IS NOT NULL AND id IN "+
+			"(SELECT game_id FROM game_players WHERE user_id = ?)", userID)
+	if days > 0 {
+		query = query.Where("ended_at >= ?", time.Now().AddDate(0, 0, -days))
+	}
 	var games []model.Game
-	err := s.DB.Where(
-		"status = 'ended' AND ended_at >= ? AND id IN "+
-			"(SELECT game_id FROM game_players WHERE user_id = ?)", cutoff, userID).
-		Order("ended_at ASC").Find(&games).Error
-	if err != nil {
+	if err := query.Order("ended_at ASC").Find(&games).Error; err != nil {
 		return nil, err
 	}
 
-	type acc struct{ games, wins, top3, rankSum int }
+	type acc struct {
+		games, wins, top3, rankSum int
+		bestStreak, curStreak      int
+		bestScore, todayBest       int
+		sumAbs                     int64
+		comeback                   bool
+		nick, avatar               string
+	}
 	accs := map[int64]*acc{}
 	nick := map[int64]string{}
+	gpUser := map[int64]int64{} // game_player_id -> user_id（逐场更新）
+	today := time.Now().Format("2006-01-02")
+
 	for _, g := range games {
 		totals, _, err := s.AggregateSettlement(g.ID)
 		if err != nil {
@@ -1127,19 +1164,53 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 			a.rankSum += pt.Rank
 			if pt.Rank == 1 {
 				a.wins++
+				a.curStreak++
+				if a.curStreak > a.bestStreak {
+					a.bestStreak = a.curStreak
+				}
+			} else {
+				a.curStreak = 0
 			}
-			if pt.Rank <= 3 {
-				a.top3++
+			if int(pt.TotalScore) > a.bestScore {
+				a.bestScore = int(pt.TotalScore)
+			}
+			a.sumAbs += absI64(pt.TotalScore)
+			if g.EndedAt != nil && g.EndedAt.Format("2006-01-02") == today && int(pt.TotalScore) > a.todayBest {
+				a.todayBest = int(pt.TotalScore)
 			}
 			nick[pt.UserID] = pt.Nickname
+			gpUser[pt.PlayerID] = pt.UserID
+		}
+
+		// 大翻盘：单场逐局累计，最深落后翻回 ≥ 30 分且终局为正
+		cums, err := s.GetGameRoundScores(g.ID)
+		if err == nil {
+			for gpID, seq := range cums {
+				uid, ok := gpUser[gpID]
+				if !ok || len(seq) == 0 {
+					continue
+				}
+				minV, finalV := seq[0], seq[len(seq)-1]
+				for _, v := range seq {
+					if v < minV {
+						minV = v
+					}
+				}
+				if minV < 0 && finalV > 0 && finalV-minV >= 30 {
+					accs[uid].comeback = true
+				}
+			}
 		}
 	}
 
 	entries := make([]LeaderboardEntry, 0, len(accs))
 	for uid, a := range accs {
-		if nick[uid] == "" {
+		if a.games < minGames {
+			continue // 同台切磋 ≥ minGames 场才可入榜
+		}
+		if a.nick == "" {
 			if u, err := s.GetUserByID(uid); err == nil {
-				nick[uid] = u.Nickname
+				a.nick = u.Nickname
 			}
 		}
 		var avatarURL string
@@ -1148,33 +1219,58 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 		}
 		e := LeaderboardEntry{
 			UserID:    uid,
-			Nickname:  nick[uid],
+			Nickname:  a.nick,
 			AvatarURL: avatarURL,
 			Games:     a.games,
 			Wins:      a.wins,
 			Top3:      a.top3,
 			IsSelf:    uid == userID,
-			Qualified: a.games >= minGames,
+			Qualified: true,
 		}
 		if a.games > 0 {
 			e.WinRate = round2(float64(a.wins) / float64(a.games) * 100)
 			e.Top3Rate = round2(float64(a.top3) / float64(a.games) * 100)
 			e.AvgRank = round2(float64(a.rankSum) / float64(a.games))
 		}
+		e.BestStreak = a.bestStreak
+		e.BestScore = a.bestScore
+
+		// 标签规则
+		tags := []string{}
+		if a.bestStreak >= 3 {
+			tags = append(tags, "连胜王")
+		}
+		if a.todayBest >= 20 {
+			tags = append(tags, "今晚手气王")
+		}
+		if a.games >= 5 && float64(a.sumAbs)/float64(a.games) <= 10 {
+			tags = append(tags, "稳如泰山")
+		}
+		if a.comeback {
+			tags = append(tags, "大翻盘赢家")
+		}
+		if a.games >= 50 {
+			tags = append(tags, "铁脚")
+		} else if a.games >= 10 {
+			tags = append(tags, "常客")
+		}
+		if a.games >= 30 && e.WinRate >= 60 {
+			tags = append(tags, "雀神")
+		}
+		e.Tags = tags
+
 		if u, err := s.GetUserByID(uid); err == nil {
 			info := rank.InfoFromStars(u.RankStars)
 			e.TierName = info.TierName
 			e.TierShort = info.TierShort
 			e.Grade = info.Grade
 			e.Stars = info.StarsInTier
+			e.RankStars = u.RankStars
 		}
 		entries = append(entries, e)
 	}
 
 	sort.Slice(entries, func(i, j int) bool {
-		if entries[i].Qualified != entries[j].Qualified {
-			return entries[i].Qualified
-		}
 		if entries[i].WinRate != entries[j].WinRate {
 			return entries[i].WinRate > entries[j].WinRate
 		}
@@ -1183,7 +1279,41 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 		}
 		return entries[i].Games > entries[j].Games
 	})
+	if len(entries) > 20 {
+		entries = entries[:20] // 只显示前 20
+	}
 	return entries, nil
+}
+
+// GetGameRoundScores 一场牌局中各玩家按已锁定局顺序的累计得分序列。
+func (s *Store) GetGameRoundScores(gameID int64) (map[int64][]int64, error) {
+	var rows []struct {
+		GamePlayerID int64
+		Score        int
+	}
+	err := s.DB.Table("round_submissions rs").
+		Select("rs.game_player_id AS game_player_id, rs.score AS score").
+		Joins("JOIN rounds r ON r.id = rs.round_id").
+		Where("r.game_id = ? AND r.status IN ('ready_for_next', 'locked')", gameID).
+		Order("r.round_number ASC, rs.id ASC").
+		Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	seq := map[int64][]int64{}
+	cum := map[int64]int64{}
+	for _, row := range rows {
+		cum[row.GamePlayerID] += int64(row.Score)
+		seq[row.GamePlayerID] = append(seq[row.GamePlayerID], cum[row.GamePlayerID])
+	}
+	return seq, nil
+}
+
+func absI64(v int64) int64 {
+	if v < 0 {
+		return -v
+	}
+	return v
 }
 
 // GetUserStats summarizes the user's ended games (all time) with a trend of

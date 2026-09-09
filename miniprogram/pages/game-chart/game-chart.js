@@ -8,6 +8,8 @@ const LINE_COLORS = ['#1b6b4a', '#0284c7', '#d97706', '#b91c1c']
 
 Page({
   data: {
+    capsuleTop: 0,
+    capsuleHeight: 32,
     gameID: 0,
     detail: null,
     players: [],
@@ -21,7 +23,8 @@ Page({
   },
 
   onLoad(options) {
-    this.setData({ navPadding: util.navPadding() })
+    var cap = util.capsuleBox()
+    this.setData({ navPadding: util.navPadding(), capsuleTop: cap.top, capsuleHeight: cap.height })
     if (!guard.ensure(true)) return
     this.setData({ gameID: Number(options.game_id) || 0 })
     if (!this.data.gameID) {
@@ -181,8 +184,8 @@ Page({
   },
 
   dateText(ts) {
-    if (!ts) return ''
-    var d = new Date(ts)
+    var d = util.toDate(ts)
+    if (!d) return ''
     return (d.getMonth() + 1) + '月' + d.getDate() + '日 散台圆满'
   },
 
@@ -231,33 +234,58 @@ Page({
     var x = function(i) { return padL + (n <= 1 ? w / 2 : (i / (n - 1)) * w) }
     var y = function(v) { return padT + (1 - (v - minV) / (maxV - minV)) * h }
 
-    // 0 基线虚线
-    ctx.strokeStyle = '#bfc9c0'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1
-    ctx.beginPath(); ctx.moveTo(padL, y(0)); ctx.lineTo(width - padR, y(0)); ctx.stroke()
-    ctx.setLineDash([])
-    if (minV < 0 && maxV > 0) {
-      ctx.fillStyle = '#6f7a72'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right'
-      ctx.fillText('0基准', padL - 4, y(0) + 3)
+    var drawStatic = function() {
+      // 0 基线虚线
+      ctx.strokeStyle = '#bfc9c0'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1
+      ctx.beginPath(); ctx.moveTo(padL, y(0)); ctx.lineTo(width - padR, y(0)); ctx.stroke()
+      ctx.setLineDash([])
+      if (minV < 0 && maxV > 0) {
+        ctx.fillStyle = '#6f7a72'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right'
+        ctx.fillText('0基准', padL - 4, y(0) + 3)
+      }
+      // x 轴标签
+      ctx.fillStyle = '#6f7a72'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center'
+      ctx.fillText('起手', x(0), height - 6)
+      for (var i = 1; i < n; i++) ctx.fillText(i + '局', x(i), height - 6)
     }
 
-    // 各玩家折线
-    players.forEach(function(p) {
-      ctx.strokeStyle = p.color; ctx.lineWidth = 2; ctx.lineJoin = 'round'
-      ctx.beginPath()
-      p.cum.forEach(function(v, i) { i === 0 ? ctx.moveTo(x(i), y(v)) : ctx.lineTo(x(i), y(v)) })
-      ctx.stroke()
-      // 终点圆点 + 数值
-      var lx = x(n - 1), ly = y(p.cum[n - 1])
-      ctx.fillStyle = p.color
-      ctx.beginPath(); ctx.arc(lx, ly, 3, 0, Math.PI * 2); ctx.fill()
-      ctx.font = 'bold 10px sans-serif'
-      ctx.fillText((p.cum[n - 1] > 0 ? '+' : '') + p.cum[n - 1], lx + 5, ly + 3)
-    })
+    var drawLines = function() {
+      players.forEach(function(p) {
+        ctx.strokeStyle = p.color; ctx.lineWidth = 2; ctx.lineJoin = 'round'
+        ctx.beginPath()
+        p.cum.forEach(function(v, i) { i === 0 ? ctx.moveTo(x(i), y(v)) : ctx.lineTo(x(i), y(v)) })
+        ctx.stroke()
+        // 终点圆点 + 数值
+        var lx = x(n - 1), ly = y(p.cum[n - 1])
+        ctx.fillStyle = p.color
+        ctx.beginPath(); ctx.arc(lx, ly, 3, 0, Math.PI * 2); ctx.fill()
+        ctx.font = 'bold 10px sans-serif'
+        ctx.fillText((p.cum[n - 1] > 0 ? '+' : '') + p.cum[n - 1], lx + 5, ly + 3)
+      })
+    }
 
-    // x 轴标签
-    ctx.fillStyle = '#6f7a72'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center'
-    ctx.fillText('起手', x(0), height - 6)
-    for (var i = 1; i < n; i++) ctx.fillText(i + '局', x(i), height - 6)
+    // 线性递画动画：折线从左到右匀速绘出
+    var duration = 900
+    var start = Date.now()
+    var tick = function() {
+      var t = Math.min(1, (Date.now() - start) / duration)
+      ctx.clearRect(0, 0, width, height)
+      drawStatic()
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(0, 0, padL + (w + padR) * t + 2, height)
+      ctx.clip()
+      drawLines()
+      ctx.restore()
+      if (t < 1 && node.requestAnimationFrame) {
+        node.requestAnimationFrame(tick)
+      }
+    }
+    if (node.requestAnimationFrame) {
+      node.requestAnimationFrame(tick)
+    } else {
+      drawStatic(); drawLines()
+    }
   },
 
   drawBarChart(node, width, height) {

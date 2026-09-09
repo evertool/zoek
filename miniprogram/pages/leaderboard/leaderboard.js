@@ -10,6 +10,7 @@ Page({
     isLoggedIn: false,
     stats: null,
     entries: [],
+    boardTab: 'score', // score=积分榜 / rank=排位榜（按段位星级排序）
     days: 30,
     currentPeriod: 30,
     minGames: 3,
@@ -49,27 +50,47 @@ Page({
     this.loadAll().then(() => wx.stopPullDownRefresh())
   },
 
+  // 时间筛选（近30天/近7天/全部）——真实传参给后端
   switchPeriod(e) {
     const period = Number(e.currentTarget.dataset.period)
+    if (period === this.data.currentPeriod) return
     this.setData({ currentPeriod: period, loading: true })
     this.loadAll()
-    this.showToast('已切换至: ' + (period === 30 ? '近 30 天' : period === 7 ? '近 7 天' : '全部'))
+  },
+
+  // 积分榜 / 排位榜切换（排位榜按累计星级排序，本地排序）
+  switchBoard(e) {
+    const tab = e.currentTarget.dataset.tab
+    if (tab === this.data.boardTab) return
+    this.setData({ boardTab: tab })
+    this.applyBoard(tab)
+  },
+
+  applyBoard(tab) {
+    var entries = this.data.entries.slice()
+    if (tab === 'rank') {
+      entries.sort(function(a, b) { return (b.rank_stars || 0) - (a.rank_stars || 0) })
+    }
+    entries = entries.map(function(e, idx) {
+      return { ...e, displayRank: idx + 1 }
+    })
+    var myRank = 0
+    entries.forEach(function(e) { if (e.is_self) myRank = e.displayRank })
+    var stats = this.data.stats ? { ...this.data.stats, my_rank: myRank } : this.data.stats
+    this.setData({ entries: entries, stats: stats })
   },
 
   loadAll() {
     this.setData({ loading: true })
     return Promise.all([
       api.get('/user/stats'),
-      api.get('/leaderboard')
+      api.get('/leaderboard', { days: this.data.currentPeriod })
     ]).then(([stats, lb]) => {
-      let rank = 0
       const entries = (lb.leaderboard || []).map(e => {
-        if (e.qualified) rank++
         const totalScore = e.total_score || 0
-        const scoreClass = totalScore >= 0 ? 'positive' : 'negative'
         return {
           ...e,
-          displayRank: e.qualified ? rank : 0,
+          displayRank: 0,
           winRateText: Math.round(e.win_rate) + '%',
           top3RateText: Math.round(e.top3_rate) + '%',
           avgRankText: e.avg_rank ? e.avg_rank.toFixed(1) : '0.0',
@@ -78,29 +99,57 @@ Page({
           total_score: totalScore
         }
       })
-      const myStats = {
-        ...stats,
-        my_rank: entries.find(e => e.is_self)?.displayRank || 0,
-        total_score: stats.total_score || 0,
-        active_text: stats.games > 0 ? '本周期活跃 · 雀艺渐入佳境' : '未参与牌局',
-        best_streak: stats.best_streak || 0,
-        badges: stats.badges || []
-      }
       this.setData({
-        stats: myStats,
-        entries,
-        days: lb.days || 30,
+        stats: { ...stats, active_text: stats.games > 0 ? '本周期活跃 · 雀艺渐入佳境' : '未参与牌局' },
+        entries: entries,
+        days: lb.days || 0,
         minGames: lb.min_games || 3,
         loading: false
       })
+      this.applyBoard(this.data.boardTab)
     }).catch(() => {
       this.setData({ loading: false })
     })
   },
 
-  inviteFriend(e) {
-    const name = e.currentTarget.dataset.name
-    this.showToast('已向 ' + name + ' 发起开台通知')
+  // ===== 约开台（任务7）：点击先确保有一张自己的台，再分享邀请链接 =====
+  onInviteTap() {
+    this._inviteReady = null
+    if (this._preparing) return
+    this._preparing = true
+    this._inviteReady = api.get('/games/active').then(res => {
+      const games = res.games || []
+      if (games.length) {
+        // 已有台：直接分享现有台（join 页支持 game_id 入台）
+        return { gameId: games[0].game_id }
+      }
+      return api.post('/games', { name: '', request_id: api.genRequestID() }).then(created => {
+        wx.showToast({ title: '已为你开好新台', icon: 'success' })
+        return { gameId: created.game_id, inviteToken: created.invite_token }
+      })
+    }).catch(err => {
+      if (err && err.code === 'ALREADY_IN_GAME' && err.game_id) {
+        return { gameId: err.game_id }
+      }
+      wx.showToast({ title: (err && err.message) || '开台失败，请重试', icon: 'none' })
+      return null
+    }).then(game => {
+      this._preparing = false
+      return game
+    })
+  },
+
+  onShareAppMessage() {
+    const ready = this._inviteReady || Promise.resolve(null)
+    return ready.then(game => {
+      if (game && game.gameId) {
+        return {
+          title: '约起！开咗张台，等你上桌',
+          path: '/pages/join/join?invite_token=' + (game.inviteToken || game.gameId)
+        }
+      }
+      return { title: '得闲开台 — 粤语麻雀记分神器', path: '/pages/index/index' }
+    })
   },
 
   goRankPage() {

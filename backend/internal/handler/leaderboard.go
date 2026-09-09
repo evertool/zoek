@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"strconv"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -27,16 +28,20 @@ const minQualifiedGames = 3
 // maxTrendPoints 个人折线图最多展示最近 N 场
 const maxTrendPoints = 20
 
-// GetLeaderboard handles GET /api/v1/leaderboard.
+// GetLeaderboard handles GET /api/v1/leaderboard?days=7|30|0
 func (h *LeaderboardHandler) GetLeaderboard(c *gin.Context) {
 	userID := middleware.GetUserID(c)
-	entries, err := h.Store.GetLeaderboard(userID, leaderboardWindowDays, minQualifiedGames)
+	days, _ := strconv.Atoi(c.DefaultQuery("days", strconv.Itoa(leaderboardWindowDays)))
+	if days < 0 {
+		days = leaderboardWindowDays
+	}
+	entries, err := h.Store.GetLeaderboard(userID, days, minQualifiedGames)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"days":        leaderboardWindowDays,
+		"days":        days,
 		"min_games":   minQualifiedGames,
 		"leaderboard": entries,
 	})

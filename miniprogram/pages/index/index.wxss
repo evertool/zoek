@@ -144,3 +144,7 @@
 .recent-score-val { font-size: 36rpx; font-weight: 700; }
 .recent-score-rank { font-size: 24rpx; color: var(--on-surface-variant); }
 .recent-divider { height: 2rpx; background: var(--surface-container-high); margin: 0 var(--space-md); }
+
+/* 邀请雀友分享按钮（重置 button 默认样式） */
+.game-action-share { margin: 0; background: inherit; line-height: inherit; }
+.game-action-share::after { border: none; }

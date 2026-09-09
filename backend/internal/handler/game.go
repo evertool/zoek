@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"strconv"
 	"time"
 
@@ -102,6 +103,17 @@ func (h *GameHandler) CreateGame(c *gin.Context) {
 	}
 	userID := middleware.GetUserID(c)
 
+	// 一个用户同时只能有一张进行中的牌台
+	if activeID, err := h.Store.GetUserActiveGameID(userID, 0); err == nil && activeID > 0 {
+		c.JSON(http.StatusConflict, gin.H{
+			"code":    errs.ErrAlreadyInGame.Code,
+			"message": errs.ErrAlreadyInGame.Message,
+			"action":  errs.ErrAlreadyInGame.Action,
+			"game_id": activeID,
+		})
+		return
+	}
+
 	// PRD v1.0 §4.2-A: 开台零摩擦，不填台名，自动生成"得闲开台 M月D日"
 	name := req.Name
 	if name == "" {
@@ -126,6 +138,8 @@ func (h *GameHandler) CreateGame(c *gin.Context) {
 }
 
 // GetActiveGames handles GET /api/v1/games/active
+// 进行中的牌台（互斥规则下至多一张），附带座位玩家昵称/头像/风位；
+// 不返回他人得分（PRD 开牌阶段隐私：未锁定的分不展示）。
 func (h *GameHandler) GetActiveGames(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	games, err := h.Store.GetActiveGames(userID)
@@ -143,13 +157,44 @@ func (h *GameHandler) GetActiveGames(c *gin.Context) {
 			roundNum = &n
 		}
 		completed, _ := h.Store.CountLockedRounds(g.ID)
+
+		players, _ := h.Store.GetGamePlayers(g.ID)
+		playerItems := make([]gin.H, 0, len(players))
+		for _, p := range players {
+			wind := ""
+			if p.Seat >= 1 && p.Seat <= 4 {
+				wind = []string{"東", "南", "西", "北"}[p.Seat-1]
+			}
+			avatar := ""
+			if u, err := h.Store.GetUserByID(p.UserID); err == nil {
+				avatar = u.AvatarURL
+			}
+			playerItems = append(playerItems, gin.H{
+				"player_id":  p.ID,
+				"user_id":    p.UserID,
+				"nickname":   p.NicknameSnapshot,
+				"avatar_url": avatar,
+				"seat":       p.Seat,
+				"wind":       wind,
+				"is_me":      p.UserID == userID,
+			})
+		}
+
+		var duration int
+		if g.StartedAt != nil {
+			duration = int(time.Since(*g.StartedAt).Minutes())
+		}
+
 		result = append(result, gin.H{
 			"game_id":              g.ID,
 			"name":                 g.Name,
 			"status":               g.Status,
 			"player_count":         count,
+			"max_players":          4,
+			"players":              playerItems,
 			"current_round_number": roundNum,
 			"completed_rounds":     completed,
+			"duration_minutes":     duration,
 			"started_at":           g.StartedAt,
 			"created_at":           g.CreatedAt,
 		})
@@ -386,6 +431,9 @@ func (h *GameHandler) JoinGame(c *gin.Context) {
 	if req.GameID > 0 {
 		// 从小程序码扫码进入，直接用 game_id
 		game, err = h.Store.GetGame(req.GameID)
+	} else if numericID, convErr := strconv.ParseInt(strings.TrimSpace(req.InviteToken), 10, 64); convErr == nil && numericID > 0 {
+		// 分享兜底路径：invite_token 直接传 game_id（房间页/首页分享）
+		game, err = h.Store.GetGame(numericID)
 	} else {
 		// 从分享链接进入，用 invite_token
 		game, err = h.Store.GetGameByInviteToken(req.InviteToken)
@@ -406,6 +454,17 @@ func (h *GameHandler) JoinGame(c *gin.Context) {
 			"game_id":   game.ID,
 			"message":   "已加入牌桌",
 			"player_id": existing.ID,
+		})
+		return
+	}
+
+	// 一个用户同时只能在一间房：已在别的牌台则拒绝，并附上现有牌台 ID 供前端跳转
+	if activeID, err := h.Store.GetUserActiveGameID(userID, game.ID); err == nil && activeID > 0 {
+		c.JSON(http.StatusConflict, gin.H{
+			"code":    errs.ErrAlreadyInGame.Code,
+			"message": errs.ErrAlreadyInGame.Message,
+			"action":  errs.ErrAlreadyInGame.Action,
+			"game_id": activeID,
 		})
 		return
 	}
