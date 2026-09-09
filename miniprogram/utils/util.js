@@ -286,5 +286,7 @@ module.exports = {
   downloadAvatar,
   uploadAvatar,
   resolveAvatarURL,
-  navPadding
+  navPadding,
+  capsuleBox,
+  toDate
 }
