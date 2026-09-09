@@ -107,7 +107,7 @@
 
 /* 约开台分享按钮（重置 button 默认样式） */
 /* 约开台分享按钮：重置微信 button 默认样式（默认宽度会撑爆右栏导致左栏竖排） */
-.rank-item-action-btn { width: auto; min-width: 0; display: flex; margin: 0; padding: 8rpx 20rpx; background: var(--primary); color: var(--on-primary); border-radius: var(--radius-full); font-size: 20rpx; line-height: 1.4; }
+.rank-item-action-btn { width: fit-content; min-width: 0; display: inline-flex; align-items: center; margin: 0; padding: 8rpx 20rpx; background: var(--primary); color: var(--on-primary); border-radius: var(--radius-full); font-size: 20rpx; line-height: 1.4; }
 .rank-item-action-btn::after { border: none; }
 
 /* 行内文本单行，防挤压竖排 */
