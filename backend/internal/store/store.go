@@ -1284,12 +1284,13 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 		entries = append(entries, e)
 	}
 
+	// 积分榜按净胜分排名：分高者列前，同分依次比胜率、场次
 	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].TotalScore != entries[j].TotalScore {
+			return entries[i].TotalScore > entries[j].TotalScore
+		}
 		if entries[i].WinRate != entries[j].WinRate {
 			return entries[i].WinRate > entries[j].WinRate
-		}
-		if entries[i].AvgRank != entries[j].AvgRank {
-			return entries[i].AvgRank < entries[j].AvgRank
 		}
 		return entries[i].Games > entries[j].Games
 	})
