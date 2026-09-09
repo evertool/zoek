@@ -453,6 +453,13 @@ func (s *Store) SettleGameRank(gameID int64) error {
 	})
 }
 
+// RankBestScore 用户排位局（4人局）单场最高得分。
+func (s *Store) RankBestScore(userID int64) (int, error) {
+	var best int
+	err := s.DB.Raw("SELECT COALESCE(MAX(score), 0) FROM rank_settlements WHERE user_id = ?", userID).Scan(&best).Error
+	return best, err
+}
+
 // GetRankSettlements 一场牌局的排位结算记录。
 func (s *Store) GetRankSettlements(gameID int64) ([]model.RankSettlement, error) {
 	var rows []model.RankSettlement

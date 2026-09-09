@@ -58,7 +58,8 @@ Page({
     this.loadAll()
   },
 
-  // 积分榜 / 段位榜切换：始终从原始榜单重建（切回积分榜恢复服务端排序）
+  // 积分榜 / 段位榜切换：列表从原始榜单重建；我的卡片切换统计口径
+  // （段位榜只算满 4 人的排位局，积分榜算同窗口全部对局）
   switchBoard(e) {
     const tab = e.currentTarget.dataset.tab
     if (tab === this.data.boardTab) return
@@ -81,6 +82,50 @@ Page({
     entries.forEach(function(e) { if (e.is_self) myRank = e.displayRank })
     var stats = this.data.stats ? { ...this.data.stats, my_rank: myRank } : this.data.stats
     this.setData({ entries: entries, stats: stats })
+
+    if (tab === 'rank') {
+      this.applyRankedCard()
+    } else {
+      this.applyScoreCard()
+    }
+  },
+
+  /** 积分榜口径：榜单中「我」的条目（同窗口全部对局），未入榜回退全量统计 */
+  applyScoreCard() {
+    var mine = (this._rawEntries || []).find(function(e) { return e.is_self })
+    var base = mine || this._userStats || {}
+    this.setData({
+      stats: {
+        ...this.data.stats,
+        my_rank: (this.data.stats && this.data.stats.my_rank) || 0,
+        games: base.games || 0,
+        wins: base.wins || 0,
+        win_rate: Math.round(base.win_rate || 0),
+        best_streak: base.best_streak || 0,
+        best_score: base.best_score || 0,
+        total_score: base.total_score || 0,
+        active_text: (base.games || 0) > 0 ? '本周期活跃 · 雀艺渐入佳境' : '未参与牌局'
+      }
+    })
+  },
+
+  /** 段位榜口径：/rank/me（仅满 4 人排位局） */
+  applyRankedCard() {
+    api.get('/rank/me').then(res => {
+      if (this.data.boardTab !== 'rank') return // 用户已切回积分榜，丢弃
+      this.setData({
+        stats: {
+          ...this.data.stats,
+          games: res.total_games || 0,
+          wins: res.wins || 0,
+          win_rate: Math.round(res.win_rate || 0),
+          best_streak: res.best_streak || 0,
+          best_score: res.best_score || 0,
+          total_score: res.points || 0,
+          active_text: '段位赛绩 · 满4人局计入排位'
+        }
+      })
+    }).catch(function() {})
   },
 
   loadAll() {
@@ -103,24 +148,9 @@ Page({
         }
       })
       this._rawEntries = entries // 保存服务端原始排序，切换榜单时从这里重建
-
-      // 顶部我的卡片与列表同口径：直接取榜单里「我」这条（同一时间窗口），
-      // 未入榜（同台切磋不足 minGames）才回退到全量个人统计
-      const mine = entries.find(e => e.is_self)
-      const base = mine || stats
-      const myStats = {
-        games: base.games || 0,
-        wins: base.wins || 0,
-        win_rate: Math.round(base.win_rate || 0),
-        best_streak: base.best_streak || 0,
-        best_score: base.best_score || 0,
-        total_score: base.total_score || 0,
-        active_text: (base.games || 0) > 0 ? '本周期活跃 · 雀艺渐入佳境' : '未参与牌局',
-        my_rank: 0
-      }
+      this._userStats = stats   // 全量个人统计（积分榜未入榜时兜底）
 
       this.setData({
-        stats: myStats,
         days: lb.days || 0,
         minGames: lb.min_games || 3,
         loading: false

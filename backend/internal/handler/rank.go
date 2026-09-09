@@ -40,6 +40,7 @@ func (h *RankHandler) GetMyRank(c *gin.Context) {
 	if info.TierIndex < len(rank.Tiers) {
 		nextTier = rank.Tiers[info.TierIndex].Name // Tiers[info.TierIndex] 即下一段
 	}
+	bestScore, _ := h.Store.RankBestScore(userID)
 
 	c.JSON(http.StatusOK, gin.H{
 		"tier":        info,
@@ -51,6 +52,7 @@ func (h *RankHandler) GetMyRank(c *gin.Context) {
 		"win_rate":    winRate,
 		"streak":      user.RankStreak,
 		"best_streak": user.RankBestStreak,
+		"best_score":  bestScore,
 		"points":      user.RankPoints,
 		"next_tier":   nextTier,
 		"nickname":    user.Nickname,
