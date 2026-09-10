@@ -32,21 +32,23 @@ Page({
   },
 
   onShow() {
-    // 未登录/资料不全时弹回首页登录或完善资料
-    if (!guard.ensure()) return
-    var isLoggedIn = !!app.globalData.token
-    this.setData({
-      isLoggedIn: isLoggedIn,
-      nickname: app.globalData.nickname || '',
-      avatarURL: app.globalData.avatarURL || '',
-      avatarColor: util.avatarColor(app.globalData.nickname || ''),
-      userId: app.globalData.userID ? ('ZM' + String(app.globalData.userID).padStart(6, '0')) : ''
+    // 等待 app onLaunch 异步校验完成
+    guard.ensureAsync().then(ok => {
+      if (!ok) return
+      var isLoggedIn = !!app.globalData.token
+      this.setData({
+        isLoggedIn: isLoggedIn,
+        nickname: app.globalData.nickname || '',
+        avatarURL: app.globalData.avatarURL || '',
+        avatarColor: util.avatarColor(app.globalData.nickname || ''),
+        userId: app.globalData.userID ? ('ZM' + String(app.globalData.userID).padStart(6, '0')) : ''
+      })
+      if (isLoggedIn) {
+        this.loadStats()
+        this.loadBadges()
+        this.loadRank()
+      }
     })
-    if (isLoggedIn) {
-      this.loadStats()
-      this.loadBadges()
-      this.loadRank()
-    }
   },
 
   // 排位段位胶囊（点击进入排位页）

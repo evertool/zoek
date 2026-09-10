@@ -1,5 +1,5 @@
 <!--pages/adjustment/adjustment.wxml — 补分/退分页 v4 白底卡通版-->
-<view class="page">
+<view class="page" style="padding-top: {{navPadding}}px;">
   <!-- 类型：对称两大块 -->
   <view class="card anim-fade-up">
     <view class="section-title">类型</view>

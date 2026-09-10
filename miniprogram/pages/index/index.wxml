@@ -93,7 +93,7 @@
             <text class="section-title">当前牌局</text>
             <view class="tag tag-active"><view class="tag-dot"></view><text>进行中</text></view>
           </view>
-          <text class="section-sub">东风局</text>
+          <!-- <text class="section-sub">东风局</text> -->
         </view>
 
         <view class="game-card anim-fade-up" wx:for="{{games}}" wx:key="game_id" bindtap="goRoom" data-id="{{item.game_id}}">

@@ -22,13 +22,14 @@ Page({
     pendingAdjustments: [],
     isOwner: false,
     loading: true,
-    submitting: false
+    submitting: false,
+    navPadding: 0
   },
 
   onLoad(options) {
     // 登录/资料完善守卫：未通过弹回首页，完成后回来继续
     if (!guard.ensure(true)) return
-    this.setData({ gameID: Number(options.game_id) || 0 })
+    this.setData({ gameID: Number(options.game_id) || 0, navPadding: util.navPadding() })
     if (!this.data.gameID) {
       wx.showToast({ title: '无效牌局', icon: 'none' })
       return

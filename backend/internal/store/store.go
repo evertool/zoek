@@ -715,6 +715,39 @@ func (s *Store) HideGame(userID, gameID int64) error {
 	return s.DB.Create(&model.GameHidden{GameID: gameID, UserID: userID}).Error
 }
 
+// DeleteGame physically removes a game and all associated data (players, rounds,
+// submissions, adjustments). Only safe for games with no locked rounds (no scores).
+func (s *Store) DeleteGame(gameID int64) error {
+	return s.Transaction(func(tx *gorm.DB) error {
+		// Delete round submissions (via rounds)
+		if err := tx.Where("round_id IN (SELECT id FROM rounds WHERE game_id = ?)", gameID).
+			Delete(&model.RoundSubmission{}).Error; err != nil {
+			return err
+		}
+		// Delete score adjustments
+		if err := tx.Where("game_id = ?", gameID).Delete(&model.ScoreAdjustment{}).Error; err != nil {
+			return err
+		}
+		// Delete rounds
+		if err := tx.Where("game_id = ?", gameID).Delete(&model.Round{}).Error; err != nil {
+			return err
+		}
+		// Delete game players
+		if err := tx.Where("game_id = ?", gameID).Delete(&model.GamePlayer{}).Error; err != nil {
+			return err
+		}
+		// Delete hidden records
+		if err := tx.Where("game_id = ?", gameID).Delete(&model.GameHidden{}).Error; err != nil {
+			return err
+		}
+		// Delete the game itself
+		if err := tx.Delete(&model.Game{}, gameID).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+}
+
 // LockMembers marks a game's members as locked (PRD §2.1 rule 4).
 func (s *Store) LockMembers(gameID int64) error {
 	return s.DB.Model(&model.Game{}).Where("id = ?", gameID).

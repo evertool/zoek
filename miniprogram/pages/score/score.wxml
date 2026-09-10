@@ -1,5 +1,5 @@
 <!--pages/score/score.wxml — 记分页 v4 白底卡通版-->
-<view class="page" wx:if="{{!loading && game}}">
+<view class="page" wx:if="{{!loading && game}}" style="padding-top: {{navPadding}}px;">
   <!-- 深绿状态条 -->
   <view class="hero card-green anim-fade-up">
     <view class="hero-tile mj-tile hero-round-tile anim-wiggle">{{currentRoundNumber || '局'}}</view>

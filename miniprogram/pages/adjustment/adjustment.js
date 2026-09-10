@@ -13,7 +13,8 @@ Page({
     adjustmentType: 'supplement',
     amount: '',
     reason: '',
-    submitting: false
+    submitting: false,
+    navPadding: 0
   },
 
   onLoad(options) {
@@ -21,7 +22,8 @@ Page({
     if (!guard.ensure(true)) return
     this.setData({
       gameID: Number(options.game_id) || 0,
-      roundID: Number(options.round_id) || 0
+      roundID: Number(options.round_id) || 0,
+      navPadding: util.navPadding()
     })
     if (!this.data.gameID) {
       wx.showToast({ title: '无效牌局', icon: 'none' })

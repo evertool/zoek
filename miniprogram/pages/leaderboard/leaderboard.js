@@ -27,19 +27,21 @@ Page({
   },
 
   onShow() {
-    // 未登录/资料不全时弹回首页登录或完善资料
-    if (!guard.ensure()) return
-    const isLoggedIn = !!app.globalData.token
-    this.setData({
-      isLoggedIn,
-      nickname: app.globalData.nickname || '',
-      avatarURL: app.globalData.avatarURL || ''
+    // 等待 app onLaunch 异步校验完成
+    guard.ensureAsync().then(ok => {
+      if (!ok) return
+      const isLoggedIn = !!app.globalData.token
+      this.setData({
+        isLoggedIn,
+        nickname: app.globalData.nickname || '',
+        avatarURL: app.globalData.avatarURL || ''
+      })
+      if (isLoggedIn) {
+        this.loadAll()
+      } else {
+        this.setData({ loading: false })
+      }
     })
-    if (isLoggedIn) {
-      this.loadAll()
-    } else {
-      this.setData({ loading: false })
-    }
   },
 
   onPullDownRefresh() {

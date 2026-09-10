@@ -39,4 +39,22 @@ function ensure(remember) {
   return false
 }
 
-module.exports = { pass, ensure, currentRoute }
+/**
+ * 异步守卫：等待 app.ready() 完成后再判断。
+ * 用于 onShow 中需要确保 token 校验完成后才执行逻辑的场景。
+ * 返回 Promise<boolean>，true 表示通过，false 表示已被弹回。
+ */
+function ensureAsync(remember) {
+  const app = getApp()
+  return app.ready().then(() => {
+    if (pass()) return true
+    const route = remember ? currentRoute() : ''
+    if (route && route.indexOf('/pages/index/index') !== 0) {
+      app.globalData.pendingRoute = route
+    }
+    wx.reLaunch({ url: '/pages/index/index' })
+    return false
+  })
+}
+
+module.exports = { pass, ensure, ensureAsync, currentRoute }

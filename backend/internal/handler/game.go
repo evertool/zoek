@@ -695,9 +695,9 @@ func (h *GameHandler) CancelGame(c *gin.Context) {
 		return
 	}
 
-	_, err = h.Store.UpdateGameStatus(gameID, game.Status, "cancelled")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errs.ErrGameNotForming)
+	// 无积分记录：直接物理删除，不保留历史
+	if err := h.Store.DeleteGame(gameID); err != nil {
+		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 		return
 	}
 

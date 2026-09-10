@@ -27,13 +27,12 @@ function request(method, path, data = {}) {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data)
         } else if (res.statusCode === 401) {
-          // token 过期，清除并提示重新登入
+          // token 过期，清除登录状态
           app.logout()
-          wx.showToast({ title: '登入已过期，请重新登入', icon: 'none' })
-          setTimeout(() => {
-            wx.reLaunch({ url: '/pages/profile/profile' })
-          }, 1500)
-          reject(res.data || res)
+          // 不在请求层自动 reLaunch，由页面守卫处理
+          const err = res.data || {}
+          err.code = 'UNAUTHORIZED'
+          reject(err)
         } else {
           // 业务错误：返回 { code, message, action }
           const err = res.data || {}

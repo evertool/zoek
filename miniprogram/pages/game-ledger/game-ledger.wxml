@@ -2,7 +2,7 @@
 <view class="page">
   <view class="top-bar" style="padding-top: {{capsuleTop}}px;">
     <view class="nav-back-btn" style="width: {{capsuleHeight}}px; height: {{capsuleHeight}}px;" bindtap="goBack">
-      <image class="nav-back-icon" src="/assets/icons/nav-back.svg" mode="aspectFit" />
+      <text class="nav-back-icon">‹</text>
     </view>
   </view>
 

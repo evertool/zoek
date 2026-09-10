@@ -33,24 +33,27 @@ Page({
   },
 
   onShow() {
-    const isLoggedIn = !!app.globalData.token
-    const needProfile = isLoggedIn && app.checkProfileNeeded()
+    // 等待 app onLaunch 中的异步校验完成
+    app.ready().then(() => {
+      const isLoggedIn = !!app.globalData.token
+      const needProfile = isLoggedIn && app.checkProfileNeeded()
 
-    this.setData({ isLoggedIn, needProfile })
+      this.setData({ isLoggedIn, needProfile })
 
-    // 未登录时初始化 Lottie 动画
-    if (!isLoggedIn && lottie && !this._lottieLoaded) {
-      this._lottieLoaded = true
-      setTimeout(() => this.initLottie(), 100)
-    }
+      // 未登录时初始化 Lottie 动画
+      if (!isLoggedIn && lottie && !this._lottieLoaded) {
+        this._lottieLoaded = true
+        setTimeout(() => this.initLottie(), 100)
+      }
 
-    if (isLoggedIn && !needProfile) {
-      this.loadGames()
-      this.loadRecent()
-      this.startPolling()
-    } else {
-      this.setData({ loading: false })
-    }
+      if (isLoggedIn && !needProfile) {
+        this.loadGames()
+        this.loadRecent()
+        this.startPolling()
+      } else {
+        this.setData({ loading: false })
+      }
+    })
   },
 
   /** 当前牌局实时刷新：雀友进来后头像自动更新 */

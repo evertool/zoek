@@ -262,10 +262,6 @@ Page({
     this.showToast('换位申请已发送，等待对方确认')
   },
 
-  shareInvite() {
-    this.showToast('已生成邀请链接')
-  },
-
   goBack() {
     // 分享/扫码直接进入本页时页面栈只有一层，回首页兜底
     var pages = getCurrentPages()
@@ -327,18 +323,5 @@ Page({
     }, 2200)
   },
 
-  stopPropagation() {},
-
-  onShareAppMessage() {
-    return {
-      title: '「' + (this.data.game ? this.data.game.name : '得闲开台') + '」等紧你入台！',
-      path: '/pages/join/join?invite_token=' + (this.data.inviteToken || this.data.gameID)
-    }
-  },
-
-  onShareTimeline() {
-    return {
-      title: '「' + (this.data.game ? this.data.game.name : '得闲开台') + '」等紧你入台！'
-    }
-  }
+  stopPropagation() {}
 })

@@ -6,7 +6,7 @@
     <view class="room-status-bar">
       <view class="room-status-left">
         <view class="nav-back-btn" bindtap="goBack">
-          <image class="nav-back-icon" src="/assets/icons/nav-back.svg" mode="aspectFit" />
+          <text class="nav-back-icon">‹</text>
         </view>
         <view class="status-pill">
           <view class="status-dot {{game.status === 'forming' ? 'status-dot-active' : ''}}"></view>
@@ -14,7 +14,7 @@
         </view>
       </view>
       <view class="qr-show-btn" bindtap="toggleQrModal">
-        <image class="qr-show-icon" src="/assets/icons/table-qrcode.svg" mode="aspectFit" />
+        <image class="qr-show-icon" src="/assets/icons/table-lock-private.png" mode="aspectFit" />
         <text class="qr-show-text">出示台码</text>
       </view>
     </view>
@@ -24,7 +24,7 @@
       <!-- 东位（台主） -->
       <view class="seat-card-2x2" wx:for="{{seats}}" wx:key="seat" data-seat="{{item.seat}}" bindlongpress="onSeatLongPress">
         <view class="seat-card-top">
-          <image class="seat-wind-badge-img" src="/assets/icons/seat-wind-{{item.windClass}}.svg" mode="aspectFit" />
+          <image class="seat-wind-badge-img" src="/assets/icons/seat-wind-{{item.windClass}}.png" mode="aspectFit" />
           <view class="tag tag-forming" wx:if="{{item.isOwner}}">台主</view>
         </view>
         <view class="seat-player-row">
@@ -56,8 +56,8 @@
           </view>
         </view>
         <view class="seat-action" wx:if="{{!item.player}}">
-          <view class="seat-action-btn seat-action-invite" catchtap="shareInvite">
-            <image class="seat-action-icon" src="/assets/icons/share-wechat.png" mode="aspectFit" /><text>呼叫雀友</text>
+          <view class="seat-action-btn seat-action-invite" bindtap="toggleQrModal">
+            <image class="seat-action-icon" src="/assets/icons/share-wechat.png" mode="aspectFit" /><text>出示台码入台</text>
           </view>
         </view>
       </view>
@@ -168,7 +168,6 @@
       <block wx:if="{{isOwner}}">
         <view class="btn-plain-danger" wx:if="{{!hasScores}}" bindtap="doCancel"><text>取消开台</text></view>
         <view class="btn-plain-danger btn-plain-danger-row" wx:else bindtap="doEnd">
-          <image class="btn-plain-danger-icon" src="/assets/icons/action-exit.svg" mode="aspectFit" />
           <text>结束散台</text>
         </view>
       </block>

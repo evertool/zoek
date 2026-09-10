@@ -4,6 +4,7 @@
 
 .page {
   padding: 32rpx;
+  padding-top: 0;
   min-height: 100vh;
   box-sizing: border-box;
 }

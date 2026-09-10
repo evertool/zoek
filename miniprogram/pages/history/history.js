@@ -40,14 +40,16 @@ Page({
   },
 
   onShow() {
-    // 未登录/资料不全时弹回首页登录或完善资料
-    if (!guard.ensure()) return
-    this.setData({ isLoggedIn: !!app.globalData.token })
-    if (app.globalData.token && !this.data.games.length) {
-      this.reload()
-    } else if (!app.globalData.token) {
-      this.setData({ loading: false })
-    }
+    // 等待 app onLaunch 异步校验完成
+    guard.ensureAsync().then(ok => {
+      if (!ok) return
+      this.setData({ isLoggedIn: !!app.globalData.token })
+      if (app.globalData.token && !this.data.games.length) {
+        this.reload()
+      } else if (!app.globalData.token) {
+        this.setData({ loading: false })
+      }
+    })
   },
 
   onPullDownRefresh() {

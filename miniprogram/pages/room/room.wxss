@@ -3,7 +3,7 @@
 .main-content { padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: 200rpx; display: flex; flex-direction: column; gap: var(--space-md); }
 
 /* 状态栏 */
-.room-status-bar { display: flex; align-items: center; justify-content: space-between; }
+.room-status-bar { display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-sm); margin-bottom: var(--space-xs); }
 .status-pill { display: flex; align-items: center; gap: 12rpx; padding: 8rpx 24rpx; border-radius: var(--radius-full); background: var(--primary-fixed); color: var(--on-primary-fixed); font-size: 24rpx; font-weight: 500; }
 .status-dot { width: 8rpx; height: 8rpx; border-radius: 50%; background: var(--primary); }
 .status-dot-active { animation: pulse 2s ease-in-out infinite; }
@@ -12,7 +12,7 @@
 .qr-show-text { font-size: 24rpx; color: var(--primary); font-weight: 500; }
 .room-status-left { display: flex; align-items: center; gap: 12rpx; }
 .nav-back-btn { width: 68rpx; height: 68rpx; border-radius: 50%; background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.nav-back-icon { width: 32rpx; height: 32rpx; }
+.nav-back-icon { font-size: 40rpx; color: var(--on-surface); line-height: 1; }
 
 /* 底部红色文字按钮（取消开台 / 结束散台） */
 .btn-plain-danger { display: flex; align-items: center; justify-content: center; gap: 10rpx; padding: 24rpx; }

@@ -21,18 +21,27 @@ App({
       this.globalData.userID = wx.getStorageSync('user_id') || 0
       this.globalData.nickname = wx.getStorageSync('nickname') || ''
       this.globalData.avatarURL = wx.getStorageSync('avatar_url') || ''
-      api.get('/user/profile').then(res => {
+      // 从 storage 恢复后，以本地数据推导 needProfile（服务端返回前兜底）
+      this.globalData.needProfile = !this.globalData.nickname || !this.globalData.avatarURL
+      // 异步校验 token 有效性并刷新资料
+      this._readyPromise = api.get('/user/profile').then(res => {
         this.globalData.nickname = res.nickname || ''
-        // 后端返回相对路径，拼接完整 URL
         this.globalData.avatarURL = util.resolveAvatarURL(res.avatar_url || '')
-        // 以服务端为准：资料完整则不再弹出完善资料页
         this.globalData.needProfile = !!res.need_profile
         wx.setStorageSync('nickname', this.globalData.nickname)
         wx.setStorageSync('avatar_url', this.globalData.avatarURL)
-      }).catch(() => {
-        this.logout()
+      }).catch(err => {
+        // 仅 401（token 过期）才登出；网络波动等不登出
+        if (err && err.code === 'UNAUTHORIZED') {
+          this.logout()
+        }
       })
     }
+  },
+
+  /** 等待 onLaunch 中的异步 profile 校验完成 */
+  ready() {
+    return this._readyPromise || Promise.resolve()
   },
 
   /** 确保已登录，返回 Promise<string token> */
@@ -107,6 +116,11 @@ App({
     return this.globalData.needProfile ||
       !this.globalData.nickname ||
       !this.globalData.avatarURL
+  },
+
+  /** 已登录且资料完整 */
+  isReady() {
+    return !!this.globalData.token && !this.checkProfileNeeded()
   },
 
   /** 退出登录 */

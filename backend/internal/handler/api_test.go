@@ -962,33 +962,46 @@ func TestJoinAutoStart(t *testing.T) {
 func TestHideGame(t *testing.T) {
 	r, _, _ := testSetup(t)
 
-	auth := loginAndAuth(t, r, "hider")
-	w := doRequest(t, r, "POST", "/api/v1/games", auth, map[string]string{"request_id": "h-create"})
-	assertStatus(t, w, http.StatusCreated)
-	gameID := int64(parseJSON(t, w)["game_id"].(float64))
+	// Use a full game (start + end) to create a history entry,
+	// since cancel now physically deletes games without scores.
+	gameID, auth1, auth2 := createGameAndStart(t, r)
 
-	// Cancel the forming game → lands in history list
-	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/cancel", gameID), auth,
-		map[string]string{"request_id": "h-cancel"})
+	// Lock a round with scores so the game has data, then end it
+	w := doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	roundID := int64(parseJSON(t, w)["round_id"].(float64))
+
+	w = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth1,
+		map[string]interface{}{"score": 8, "request_id": "h-sub1"})
+	assertStatus(t, w, http.StatusOK)
+	w = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth2,
+		map[string]interface{}{"score": -8, "request_id": "h-sub2"})
+	assertStatus(t, w, http.StatusOK)
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/lock", gameID, roundID), auth1,
+		map[string]string{"request_id": "h-lock"})
 	assertStatus(t, w, http.StatusOK)
 
-	w = doRequest(t, r, "GET", "/api/v1/games/history", auth, nil)
+	// End the game → lands in history list
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auth1, map[string]string{"request_id": "h-end"})
+	assertStatus(t, w, http.StatusOK)
+
+	w = doRequest(t, r, "GET", "/api/v1/games/history", auth1, nil)
 	assertStatus(t, w, http.StatusOK)
 	if m := parseJSON(t, w); m["total"] != float64(1) {
 		t.Fatalf("history total = %v, want 1", m["total"])
 	}
 
 	// Hide it
-	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/hide", gameID), auth,
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/hide", gameID), auth1,
 		map[string]string{"request_id": "h-hide"})
 	assertStatus(t, w, http.StatusOK)
 
 	// Idempotent hide
-	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/hide", gameID), auth,
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/hide", gameID), auth1,
 		map[string]string{"request_id": "h-hide2"})
 	assertStatus(t, w, http.StatusOK)
 
-	w = doRequest(t, r, "GET", "/api/v1/games/history", auth, nil)
+	w = doRequest(t, r, "GET", "/api/v1/games/history", auth1, nil)
 	assertStatus(t, w, http.StatusOK)
 	if m := parseJSON(t, w); m["total"] != float64(0) {
 		t.Fatalf("history total after hide = %v, want 0", m["total"])
