@@ -20,6 +20,9 @@ Page({
     rankTier: '',
     tierFull: '',
     badges: [],
+    unlockedCount: 0,
+    showBadgePanel: false,
+    badgeRules: false,
     vibrateEnabled: false,
     showToast: false,
     toastMsg: '',
@@ -79,18 +82,57 @@ Page({
   },
 
   loadBadges() {
-    // Mock badge data — 后端实现后替换
-    this.setData({
-      badges: [
-        { id: 1, name: '雀神', desc: '累计胜场 ≥ 50场 (达成52场)', icon: '🏆', style: 'gold', locked: false, status: '已点亮' },
-        { id: 2, name: '连胜王', desc: '连续 3 场排名第 1', icon: '🔥', style: 'red', locked: false, status: '最高4连胜' },
-        { id: 3, name: '大翻盘', desc: '单场从负转正 ≥ 30分', icon: '🔄', style: 'green', locked: false, status: '已达成' },
-        { id: 4, name: '稳如泰山', desc: '局间积分波动极小', icon: '🛡', style: 'neutral', locked: false, status: '防守高手' },
-        { id: 5, name: '常客', desc: '累计参与 28 场牌局', icon: '🪑', style: 'green', locked: false, status: '活跃牌友' },
-        { id: 6, name: '铁脚', desc: '累计参与 ≥ 100场', icon: '🔒', style: 'neutral', locked: true, progress: 28, current: 28, target: 100 }
-      ]
-    })
+    // 成就徽章：后端按 PRD §3.6.6 v1.3 规则计算（雀神≥100胜/连胜王≥4/流水时间线翻盘/峰值≥300/终局0分/常客20/铁脚200）
+    api.get('/user/badges').then(res => {
+      const ICON_URL = {
+        mahjong_god: '/assets/icons/badge-mahjong-god.svg',
+        streak_fire: '/assets/icons/badge-streak-fire.svg',
+        big_comeback: '/assets/icons/badge-big-comeback.svg',
+        lucky_king: '/assets/icons/badge-lucky-king.svg',
+        stable_mountain: '/assets/icons/badge-stable-mountain.svg'
+      }
+      const EMOJI = { regular: '🪑', iron_leg: '👣' }
+      const STYLE = {
+        mahjong_god: 'gold',
+        streak_fire: 'red',
+        big_comeback: 'green',
+        lucky_king: 'amber',
+        stable_mountain: 'neutral',
+        regular: 'green',
+        iron_leg: 'neutral'
+      }
+      const badges = (res.badges || []).map((b, i) => ({
+        id: i + 1,
+        name: b.name,
+        desc: b.desc,
+        iconURL: ICON_URL[b.code] || '',
+        icon: EMOJI[b.code] || '🏅',
+        style: STYLE[b.code] || 'neutral',
+        locked: !b.unlocked,
+        status: b.unlocked ? '已点亮' : '',
+        progress: b.target > 0 ? Math.min(100, Math.round(b.current / b.target * 100)) : 0,
+        current: b.current,
+        target: b.target
+      }))
+      this.setData({ badges, unlockedCount: res.unlocked_count || 0 })
+    }).catch(function() {})
   },
+
+  /** 打开徽章总览面板（全部徽章排布 + 点亮状态 + 进度 + 规则说明） */
+  openBadgePanel() {
+    this.setData({ showBadgePanel: true })
+  },
+
+  closeBadgePanel() {
+    this.setData({ showBadgePanel: false, badgeRules: false })
+  },
+
+  /** 面板内 ⓘ 说明符号：展开/收起规则说明 */
+  toggleBadgeRules() {
+    this.setData({ badgeRules: !this.data.badgeRules })
+  },
+
+  stopPropagation() {},
 
   doLogin() {
     wx.showLoading({ title: '登录中...' })

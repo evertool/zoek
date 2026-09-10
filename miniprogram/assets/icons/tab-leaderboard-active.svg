@@ -1,0 +1,8 @@
+<svg height="40" id="svg-tab-rank-active" viewBox="0 0 64 64" width="40" xmlns="http://www.w3.org/2000/svg">
+<path d="M18 16 h28 v18 c0 9 -6 16 -14 16 s-14 -7 -14 -16 z" fill="#fffbeb" stroke="#d97706" stroke-width="3"/>
+<path d="M18 22 h-6 c-3 0 -5 2 -5 5 v2 c0 4 3 6 7 6 h4" fill="none" stroke="#d97706" stroke-width="3"/>
+<path d="M46 22 h6 c3 0 5 2 5 5 v2 c0 4 -3 6 -7 6 h-4" fill="none" stroke="#d97706" stroke-width="3"/>
+<path d="M26 50 h12 v6 h-12 z" fill="#d97706"/>
+<rect fill="#b45309" height="4" rx="2" width="24" x="20" y="56"/>
+<polygon fill="#f59e0b" points="32,23 34,28 39,28 35,31 37,36 32,33 27,36 29,31 25,28 30,28"/>
+</svg>

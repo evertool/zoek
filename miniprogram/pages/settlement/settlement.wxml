@@ -10,7 +10,7 @@
       <text class="settle-title">今晚圆满散台</text>
       <view class="settle-slogan">
         <text>今晚大赢家，全场话事</text>
-        <text class="settle-slogan-icon"><image src="/assets/icons/status-check-success.png" mode="aspectFit" /></text>
+        <text class="settle-slogan-icon"><image src="/assets/icons/status-check-success.svg" mode="aspectFit" /></text>
       </view>
     </view>
 
@@ -33,7 +33,7 @@
         <view class="winner-avatar-wrap">
           <image class="winner-avatar" src="{{winnerAvatar}}" mode="aspectFill" wx:if="{{winnerAvatar}}" />
           <view class="winner-avatar winner-placeholder" wx:else><text>{{winnerName[0]}}</text></view>
-          <view class="winner-badge"><image class="winner-badge-icon" src="/assets/icons/badge-mahjong-god.png" mode="aspectFit" /><text>头牌</text></view>
+          <view class="winner-badge"><image class="winner-badge-icon" src="/assets/icons/badge-mahjong-god.svg" mode="aspectFit" /><text>头牌</text></view>
         </view>
         <view class="winner-info">
           <view class="winner-name-row">
@@ -102,17 +102,17 @@
       </view>
       <view class="badge-grid">
         <view class="badge-cell">
-          <view class="badge-icon badge-icon-gold"><image src="/assets/icons/badge-mahjong-god.png" mode="aspectFit" /></view>
+          <view class="badge-icon badge-icon-gold"><image src="/assets/icons/badge-mahjong-god.svg" mode="aspectFit" /></view>
           <text class="badge-name">雀神附体</text>
           <text class="badge-sub">{{winnerName}} 领衔</text>
         </view>
         <view class="badge-cell">
-          <view class="badge-icon badge-icon-green"><image src="/assets/icons/badge-stable-mountain.png" mode="aspectFit" /></view>
+          <view class="badge-icon badge-icon-green"><image src="/assets/icons/badge-stable-mountain.svg" mode="aspectFit" /></view>
           <text class="badge-name">稳如泰山</text>
           <text class="badge-sub">细辉 零出冲</text>
         </view>
         <view class="badge-cell">
-          <view class="badge-icon badge-icon-neutral"><image src="/assets/icons/badge-lucky-king.png" mode="aspectFit" /></view>
+          <view class="badge-icon badge-icon-neutral"><image src="/assets/icons/badge-lucky-king.svg" mode="aspectFit" /></view>
           <text class="badge-name">结余平稳</text>
           <text class="badge-sub">May姐 善防守</text>
         </view>
@@ -122,10 +122,10 @@
     <!-- 底部操作 -->
     <view class="settle-actions anim-fade-up delay-5">
       <view class="btn-primary settle-reopen" bindtap="goReopen">
-        <image class="settle-action-icon" src="/assets/icons/table-settle.png" mode="aspectFit" /><text>再来一局 (一键克隆开台)</text>
+        <image class="settle-action-icon" src="/assets/icons/table-settle.svg" mode="aspectFit" /><text>再来一局 (一键克隆开台)</text>
       </view>
       <view class="btn-secondary settle-share" bindtap="goShare">
-        <image class="settle-action-icon" src="/assets/icons/table-lock-private.png" mode="aspectFit" /><text>私密加密分享 · 生成长图</text>
+        <image class="settle-action-icon" src="/assets/icons/table-lock-private.svg" mode="aspectFit" /><text>私密加密分享 · 生成长图</text>
       </view>
     </view>
 
@@ -139,7 +139,7 @@
 
   <!-- Toast -->
   <view class="toast {{showToast ? 'toast-show' : ''}}">
-    <image class="toast-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+    <image class="toast-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" />
     <text>{{toastMsg}}</text>
   </view>
 </view>

@@ -4,6 +4,9 @@ const api = require('../../utils/api')
 const util = require('../../utils/util')
 const guard = require('../../utils/guard')
 
+// 左滑删除按钮宽度（rpx），用于手势开合阈值换算
+const SWIPE_BTN_RPX = 168
+
 Page({
   data: {
     games: [],
@@ -202,7 +205,12 @@ Page({
 
   // 卡片 → 每局详情页；「查看详细手账」→ 手帐明细页
   goDetail(e) {
-    var gameID = e.currentTarget.dataset.id
+    var gameID = Number(e.currentTarget.dataset.id)
+    // 卡片已滑开时，点击仅收起，不跳转详情
+    if (this.openedId === gameID) {
+      this.closeItem(gameID)
+      return
+    }
     wx.navigateTo({ url: '/pages/game-detail/game-detail?game_id=' + gameID })
   },
 
@@ -238,5 +246,104 @@ Page({
     }).catch(() => {
       wx.hideLoading()
     })
+  },
+
+  // ---- 左滑删除手势 ----
+  // 按 game_id 定位记录在 groups 中的坐标
+  findItem(id) {
+    var groups = this.data.groups
+    for (var gi = 0; gi < groups.length; gi++) {
+      var items = groups[gi].items
+      for (var ii = 0; ii < items.length; ii++) {
+        if (items[ii].game_id === id) return { gi: gi, ii: ii }
+      }
+    }
+    return { gi: -1, ii: -1 }
+  },
+
+  // 收起指定卡片（带过渡动画）
+  closeItem(id) {
+    var pos = this.findItem(id)
+    if (pos.gi < 0) return
+    var path = 'groups[' + pos.gi + '].items[' + pos.ii + ']'
+    this.setData({
+      [path + '.offset']: 0,
+      [path + '.transition']: 'all 0.25s ease'
+    })
+    if (this.openedId === id) this.openedId = 0
+  },
+
+  onTouchStart(e) {
+    var id = Number(e.currentTarget.dataset.id)
+    var pos = this.findItem(id)
+    if (pos.gi < 0) return
+    var item = this.data.groups[pos.gi].items[pos.ii]
+    // 打开新卡片前，先收起其它已打开的
+    if (this.openedId && this.openedId !== id) {
+      this.closeItem(this.openedId)
+    }
+    var t = e.touches[0]
+    this._touch = {
+      id: id, gi: pos.gi, ii: pos.ii,
+      startX: t.clientX, startY: t.clientY,
+      startOffset: item.offset || 0,
+      // 已处于打开状态时，初始最大左移量即为按钮宽，避免二次判定失效
+      maxLeft: (item.offset || 0) < 0 ? -(item.offset) : 0,
+      mode: ''
+    }
+  },
+
+  onTouchMove(e) {
+    if (!this._touch) return
+    var t = e.touches[0]
+    var dx = t.clientX - this._touch.startX
+    var dy = t.clientY - this._touch.startY
+    // 首次移动判定主方向：纵向则交还页面滚动，不拦截
+    if (!this._touch.mode) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return
+      this._touch.mode = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v'
+    }
+    if (this._touch.mode === 'v') return
+    var offset = this._touch.startOffset + dx
+    if (offset > 0) offset = 0
+    if (offset < -this.btnWidthPx) offset = -this.btnWidthPx
+    // 记录滑动过程中达到的最大左移距离，松手判定用它，避免回带导致弹回
+    if (-offset > this._touch.maxLeft) this._touch.maxLeft = -offset
+    var path = 'groups[' + this._touch.gi + '].items[' + this._touch.ii + ']'
+    this.setData({
+      [path + '.offset']: offset,
+      [path + '.transition']: 'none'
+    })
+  },
+
+  onTouchEnd() {
+    if (!this._touch) return
+    var t = this._touch
+    this._touch = null
+    if (t.mode === 'v') return
+    var btnW = this.btnWidthPx || 80
+    var threshold = btnW * 0.3
+    // 以滑动过程中达到的最大左移距离为判定依据
+    var offset = t.maxLeft >= threshold ? -btnW : 0
+    var path = 'groups[' + t.gi + '].items[' + t.ii + ']'
+    this.setData({
+      [path + '.offset']: offset,
+      [path + '.transition']: 'all 0.25s ease'
+    })
+    if (offset < 0) this.openedId = t.id
+    else if (this.openedId === t.id) this.openedId = 0
+  },
+
+  onTouchCancel() {
+    if (!this._touch) return
+    var t = this._touch
+    this._touch = null
+    if (t.mode === 'v') return
+    var path = 'groups[' + t.gi + '].items[' + t.ii + ']'
+    this.setData({
+      [path + '.offset']: 0,
+      [path + '.transition']: 'all 0.25s ease'
+    })
+    if (this.openedId === t.id) this.openedId = 0
   }
 })

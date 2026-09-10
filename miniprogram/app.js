@@ -2,13 +2,29 @@
 const api = require('./utils/api')
 const util = require('./utils/util')
 
+// 按运行环境切换 baseURL（小程序无 process.env，用 envVersion 区分）
+// develop = 本地开发；trial = 体验版；release = 正式版
+const ENV_CONFIG = {
+  develop: 'http://192.168.1.18:8080/api/v1',
+  trial: 'http://192.168.1.18:8080/api/v1',   // TODO: 填体验版后端地址
+  release: 'https://api.example.com/api/v1'      // TODO: 填正式版后端地址
+}
+const envVersion = (() => {
+  try {
+    return wx.getAccountInfoSync().miniProgram.envVersion
+  } catch (e) {
+    return 'develop'
+  }
+})()
+const baseURL = ENV_CONFIG[envVersion] || ENV_CONFIG.develop
+
 App({
   globalData: {
     token: '',
     userID: 0,
     nickname: '',
     avatarURL: '',
-    baseURL: 'http://127.0.0.1:8080/api/v1',
+    baseURL,
     needProfile: false,
     // 守卫拦下的目标页（如分享入台/牌台），登录+完善资料后自动回去
     pendingRoute: ''

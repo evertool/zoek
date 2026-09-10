@@ -32,7 +32,7 @@
   <!-- ===== 已登录但缺头像/昵称：强制完善资料页 ===== -->
   <view class="profile-gate" style="padding-top: {{navPadding}}px;" wx:elif="{{needProfile}}">
     <view class="gate-hero">
-      <view class="gate-logo"><image class="gate-logo-icon" src="/assets/icons/app-icon-hongzhong.png" mode="aspectFit" /></view>
+      <view class="gate-logo"><image class="gate-logo-icon" src="/assets/icons/app-icon-hongzhong.svg" mode="aspectFit" /></view>
       <view class="gate-title">得闲开台</view>
       <view class="gate-subtitle">开台之前，先俾雀友认得你</view>
     </view>
@@ -75,12 +75,12 @@
             <view class="create-desc">无需复杂设置 · 扫码秒速入座</view>
           </view>
           <view class="create-icon">
-            <image class="create-icon-img" src="/assets/icons/table-settle.png" mode="aspectFit" />
+            <image class="create-icon-img" src="/assets/icons/table-settle.svg" mode="aspectFit" />
           </view>
         </view>
         <view class="create-btn-wrap">
           <view class="create-btn">
-            <image class="create-btn-icon" src="/assets/icons/stepper-plus.png" mode="aspectFit" />
+            <image class="create-btn-icon" src="/assets/icons/stepper-plus.svg" mode="aspectFit" />
             <text class="create-btn-text">即刻开台</text>
           </view>
         </view>
@@ -106,28 +106,29 @@
               <text class="game-card-time">{{item.durationText}}</text>
             </view>
             <view class="seat-grid">
-              <view class="seat-cell" wx:for="{{item.players}}" wx:for-item="player" wx:key="player_id" wx:if="{{item.players}}">
-                <view class="seat-avatar-wrap">
-                  <image class="seat-avatar" src="{{player.avatar_url}}" mode="aspectFill" wx:if="{{player.avatar_url}}" />
-                  <view class="seat-avatar seat-avatar-placeholder" wx:else>{{player.nickname[0]}}</view>
-                  <image class="seat-wind-svg seat-wind-{{player.windClass}}" src="/assets/icons/seat-wind-{{player.windClass}}.png" mode="aspectFit" />
-                </view>
-                <text class="seat-name">{{player.nickname}}</text>
-                <view class="seat-score seat-score-{{player.scoreClass}}">{{player.scoreText}}</view>
-              </view>
-              <block wx:if="{{!item.players || item.players.length < 4}}">
-                <view class="seat-cell seat-empty" wx:for="{{[0,1]}}" wx:for-item="seat" wx:key="*this" wx:if="{{item.players.length + seat < 4}}">
+              <view class="seat-cell" wx:for="{{item.seatPlayers}}" wx:for-item="player" wx:key="seat">
+                <block wx:if="{{!player.empty}}">
                   <view class="seat-avatar-wrap">
-                    <view class="seat-avatar seat-avatar-empty"><image class="seat-empty-icon" src="/assets/icons/table-seat-empty-add.png" mode="aspectFit" /></view>
+                    <image class="seat-avatar" src="{{player.avatar_url}}" mode="aspectFill" wx:if="{{player.avatar_url}}" />
+                    <view class="seat-avatar seat-avatar-placeholder" wx:else>{{player.nickname[0]}}</view>
+                    <image class="seat-wind-svg seat-wind-{{player.windClass}}" src="/assets/icons/seat-wind-{{player.windClass}}.svg" mode="aspectFit" wx:if="{{player.windClass}}" />
+                  </view>
+                  <text class="seat-name">{{player.nickname}}</text>
+                  <view class="seat-score seat-score-{{player.scoreClass}}">{{player.scoreText}}</view>
+                </block>
+                <block wx:else>
+                  <view class="seat-avatar-wrap">
+                    <view class="seat-avatar seat-avatar-empty"><image class="seat-empty-icon" src="/assets/icons/table-seat-empty-add.svg" mode="aspectFit" /></view>
+                    <image class="seat-wind-svg seat-wind-{{player.windClass}}" src="/assets/icons/seat-wind-{{player.windClass}}.svg" mode="aspectFit" wx:if="{{player.windClass}}" />
                   </view>
                   <text class="seat-name text-secondary">虚位以待</text>
                   <view class="seat-score seat-score-pending">待加入</view>
-                </view>
-              </block>
+                </block>
+              </view>
             </view>
             <view class="game-card-actions" wx:if="{{item.canInvite}}">
               <button class="game-action-btn game-action-secondary game-action-share" open-type="share" catchtap="onCardInvite" data-id="{{item.game_id}}">
-                <image class="game-action-icon" src="/assets/icons/share-wechat.png" mode="aspectFit" /><text>邀请雀友</text>
+                <image class="game-action-icon" src="/assets/icons/share-wechat.svg" mode="aspectFit" /><text>邀请雀友</text>
               </button>
             </view>
           </view>
@@ -150,7 +151,7 @@
           <block wx:for="{{recent}}" wx:for-item="rec" wx:key="game_id">
             <view class="recent-divider" wx:if="{{index > 0}}"></view>
             <view class="recent-item" bindtap="goRecentDetail" data-id="{{rec.game_id}}">
-              <view class="recent-item-icon {{rec.my_score >= 0 ? 'recent-item-icon-win' : 'recent-item-icon-loss'}}"><image src="{{rec.my_rank === 1 ? '/assets/icons/rank-1-god-crown.png' : '/assets/icons/rank-4-facai.png'}}" mode="aspectFit" /></view>
+              <view class="recent-item-icon {{rec.my_score >= 0 ? 'recent-item-icon-win' : 'recent-item-icon-loss'}}"><image src="{{rec.my_rank === 1 ? '/assets/icons/rank-1-god-crown.svg' : '/assets/icons/rank-4-facai.svg'}}" mode="aspectFit" /></view>
               <view class="recent-item-info">
                 <text class="recent-item-name">{{rec.name}}</text>
                 <text class="recent-item-sub">{{rec.timeText}} · 对局: {{rec.playersText}}</text>

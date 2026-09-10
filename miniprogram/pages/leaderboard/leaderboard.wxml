@@ -18,7 +18,7 @@
             <text class="lb-subtitle">{{days === 0 ? "全部" : "近" + days + "日"}}雀叙·同台切磋</text>
           </view>
           <view class="lb-eco-tag">
-            <image class="lb-eco-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+            <image class="lb-eco-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" />
             <text class="lb-eco-text">休闲计分</text>
           </view>
         </view>
@@ -110,7 +110,7 @@
           <view class="rank-item-main">
             <view class="rank-item-left">
               <view class="rank-item-num-wrap" wx:if="{{item.displayRank === 1}}">
-                <image class="rank-item-trophy" src="/assets/icons/rank-1-god-crown.png" mode="aspectFit" />
+                <image class="rank-item-trophy" src="/assets/icons/rank-1-god-crown.svg" mode="aspectFit" />
               </view>
               <view class="rank-item-num-wrap" wx:else>
                 <text class="rank-item-num rank-item-num-{{item.displayRank <= 3 ? item.displayRank : 'rest'}}">{{item.displayRank}}</text>
@@ -136,7 +136,7 @@
             <view class="rank-item-right">
               <text class="rank-item-score {{item.total_score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.total_score >= 0 ? '+' : ''}}{{item.total_score}}</text>
               <view class="rank-item-action" wx:if="{{!item.is_self}}">
-                <image class="rank-action-icon" src="/assets/icons/share-wechat.png" mode="aspectFit" />
+                <image class="rank-action-icon" src="/assets/icons/share-wechat.svg" mode="aspectFit" />
                 <text class="rank-action-text">约开台</text>
                 <button class="rank-action-hit" open-type="share" bindtap="onInviteTap"></button>
               </view>
@@ -163,7 +163,7 @@
       <!-- 底部签名 -->
       <view class="lb-footer">
         <view class="lb-footer-line"></view>
-        <image class="lb-footer-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+        <image class="lb-footer-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" />
         <view class="lb-footer-line"></view>
       </view>
       <text class="lb-footer-text">打麻雀啫，开心最紧要 · 同分并列</text>
@@ -173,7 +173,7 @@
 
   <!-- Toast -->
   <view class="toast {{showToast ? 'toast-show' : ''}}">
-    <image class="toast-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+    <image class="toast-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" />
     <text>{{toastMsg}}</text>
   </view>
 </view>

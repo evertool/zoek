@@ -57,3 +57,14 @@ func (h *LeaderboardHandler) GetUserStats(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, stats)
 }
+
+// GetUserBadges handles GET /api/v1/user/badges（PRD §3.6.6 v1.3）。
+func (h *LeaderboardHandler) GetUserBadges(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	badges, err := h.Store.GetUserBadges(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+		return
+	}
+	c.JSON(http.StatusOK, badges)
+}

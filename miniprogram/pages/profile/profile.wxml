@@ -13,7 +13,7 @@
     <view class="main-content" style="padding-top: {{navPadding}}px;">
       <!-- Toast -->
       <view class="pf-toast {{showToast ? 'pf-toast-show' : ''}}">
-        <image class="pf-toast-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+        <image class="pf-toast-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" />
         <text>{{toastMsg}}</text>
       </view>
 
@@ -28,11 +28,11 @@
           <view class="pf-profile-info">
             <view class="pf-name-row">
               <text class="pf-name">{{nickname}}</text>
-              <view class="pf-rank-tag" bindtap="goRank"><image class="pf-rank-icon" src="/assets/icons/rank-1-god-crown.png" mode="aspectFit" /><text>{{rankTier || '九品 · 初'}}</text></view>
+              <view class="pf-rank-tag" bindtap="goRank"><image class="pf-rank-icon" src="/assets/icons/rank-1-god-crown.svg" mode="aspectFit" /><text>{{rankTier || '九品 · 初'}}</text></view>
             </view>
             <view class="pf-mahjong-id-row">
               <text class="pf-mahjong-id" id="mahjong-id">雀友号: {{userId}}</text>
-              <view class="pf-copy-btn" bindtap="copyUserId"><image src="/assets/icons/action-copy.png" mode="aspectFit" /></view>
+              <view class="pf-copy-btn" bindtap="copyUserId"><image src="/assets/icons/action-copy.svg" mode="aspectFit" /></view>
             </view>
             <text class="pf-motto" wx:if="{{motto}}">{{motto}}</text>
           </view>
@@ -96,35 +96,30 @@
             <view class="pf-section-bar"></view>
             <text class="pf-section-title">雀友成就徽章</text>
           </view>
-          <view class="pf-badge-more">
-            <text>累计点亮 {{badges.length}}/7 个</text>
+          <view class="pf-badge-more" bindtap="openBadgePanel">
+            <text>累计点亮 {{unlockedCount || 0}}/{{badges.length || 7}} 个</text>
             <text class="pf-more-arrow">›</text>
           </view>
         </view>
-        <scroll-view class="pf-badge-scroll" scroll-x="true">
+        <scroll-view class="pf-badge-scroll" scroll-x="true" wx:if="{{unlockedCount > 0}}">
           <view class="pf-badge-track">
-            <view class="pf-badge-card {{badge.locked ? 'pf-badge-locked' : ''}}" wx:for="{{badges}}" wx:key="id">
+            <view class="pf-badge-card" wx:for="{{badges}}" wx:key="id" wx:if="{{!badge.locked}}">
               <view class="pf-badge-icon-wrap pf-badge-icon-{{badge.style}}">
-                <text class="pf-badge-icon">{{badge.icon}}</text>
+                <image wx:if="{{badge.iconURL}}" class="pf-badge-icon-img" src="{{badge.iconURL}}" mode="aspectFit" />
+                <text wx:else class="pf-badge-icon">{{badge.icon}}</text>
               </view>
               <text class="pf-badge-name">{{badge.name}}</text>
               <text class="pf-badge-desc">{{badge.desc}}</text>
-              <view class="pf-badge-status" wx:if="{{!badge.locked}}">
+              <view class="pf-badge-status">
                 <view class="pf-badge-dot"></view>
-                <text class="pf-badge-status-text">{{badge.status}}</text>
-              </view>
-              <view class="pf-badge-progress" wx:if="{{badge.locked}}">
-                <view class="pf-progress-bar">
-                  <view class="pf-progress-fill" style="width: {{badge.progress}}%;"></view>
-                </view>
-                <view class="pf-progress-row">
-                  <text class="pf-progress-label">进度</text>
-                  <text class="pf-progress-val">{{badge.current}}/{{badge.target}}</text>
-                </view>
+                <text class="pf-badge-status-text">已点亮</text>
               </view>
             </view>
           </view>
         </scroll-view>
+        <view class="pf-badge-empty" wx:else bindtap="openBadgePanel">
+          <text class="pf-badge-empty-text">仲未点亮任何徽章 · 点此查看全部徽章同达成条件</text>
+        </view>
       </view>
 
       <!-- 个性化与体验 -->
@@ -133,7 +128,7 @@
         <view class="pf-menu-card">
           <view class="pf-menu-item" bindtap="toggleVibrate">
             <view class="pf-menu-left">
-              <view class="pf-menu-icon pf-menu-icon-primary"><image src="/assets/icons/sys-preferences-slider.png" mode="aspectFit" /></view>
+              <view class="pf-menu-icon pf-menu-icon-primary"><image src="/assets/icons/sys-preferences-slider.svg" mode="aspectFit" /></view>
               <view class="pf-menu-info">
                 <text class="pf-menu-label">牌局偏好设置</text>
                 <text class="pf-menu-sub">默认提醒、得分播放</text>
@@ -146,7 +141,7 @@
           <view class="pf-menu-divider"></view>
           <view class="pf-menu-item" bindtap="showBlacklist">
             <view class="pf-menu-left">
-              <view class="pf-menu-icon pf-menu-icon-secondary"><image src="/assets/icons/sys-blacklist-slash.png" mode="aspectFit" /></view>
+              <view class="pf-menu-icon pf-menu-icon-secondary"><image src="/assets/icons/sys-blacklist-slash.svg" mode="aspectFit" /></view>
               <view class="pf-menu-info">
                 <text class="pf-menu-label">雀友黑名单与隐藏</text>
                 <text class="pf-menu-sub">管理不想同台或隐藏战绩的牌友</text>
@@ -160,7 +155,7 @@
           <view class="pf-menu-divider"></view>
           <view class="pf-menu-item" bindtap="showSound">
             <view class="pf-menu-left">
-              <view class="pf-menu-icon pf-menu-icon-primary"><image src="/assets/icons/sys-speaker-voice.png" mode="aspectFit" /></view>
+              <view class="pf-menu-icon pf-menu-icon-primary"><image src="/assets/icons/sys-speaker-voice.svg" mode="aspectFit" /></view>
               <view class="pf-menu-info">
                 <text class="pf-menu-label">动画音效与特效</text>
                 <text class="pf-menu-sub">正宗粤语报牌、糊牌全屏欢庆</text>
@@ -180,7 +175,7 @@
         <view class="pf-menu-card">
           <view class="pf-menu-item" bindtap="showSafety">
             <view class="pf-menu-left">
-              <view class="pf-menu-icon pf-menu-icon-tertiary"><image src="/assets/icons/sys-shield-security.png" mode="aspectFit" /></view>
+              <view class="pf-menu-icon pf-menu-icon-tertiary"><image src="/assets/icons/sys-shield-security.svg" mode="aspectFit" /></view>
               <view class="pf-menu-info">
                 <text class="pf-menu-label">微信安全隐私与守则</text>
                 <text class="pf-menu-sub">绿色健康娱乐、纯积分免责声明</text>
@@ -191,7 +186,7 @@
           <view class="pf-menu-divider"></view>
           <view class="pf-menu-item" bindtap="showAbout">
             <view class="pf-menu-left">
-              <view class="pf-menu-icon pf-menu-icon-neutral"><image src="/assets/icons/score-statement-history.png" mode="aspectFit" /></view>
+              <view class="pf-menu-icon pf-menu-icon-neutral"><image src="/assets/icons/score-statement-history.svg" mode="aspectFit" /></view>
               <view class="pf-menu-info">
                 <text class="pf-menu-label">关于得闲开台</text>
                 <text class="pf-menu-sub">传承岭南茶台闲趣，无争无扰</text>
@@ -212,9 +207,53 @@
 
       <!-- 底部签名 -->
       <view class="pf-footer">
-        <image class="pf-footer-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+        <image class="pf-footer-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" />
         <text class="pf-footer-text">佛山数匠科技·得闲饮茶·开台大吉</text>
       </view>
     </view>
   </block>
+
+  <!-- 徽章总览面板 -->
+  <view class="pf-bp-overlay {{showBadgePanel ? 'pf-bp-show' : ''}}" bindtap="closeBadgePanel">
+    <view class="pf-bp-panel" catchtap="stopPropagation">
+      <view class="pf-bp-grabber"></view>
+      <view class="pf-bp-header">
+        <view class="pf-bp-header-main">
+          <text class="pf-bp-title">雀友成就徽章</text>
+          <text class="pf-bp-sub">已点亮 {{unlockedCount || 0}}/{{badges.length || 7}}</text>
+        </view>
+        <view class="pf-bp-info-btn" catchtap="toggleBadgeRules">
+          <text class="pf-bp-info-icon">ⓘ</text>
+        </view>
+        <view class="pf-bp-close" bindtap="closeBadgePanel"><text>✕</text></view>
+      </view>
+      <view class="pf-bp-rules" wx:if="{{badgeRules}}">
+        <text class="pf-bp-rules-title">规则说明</text>
+        <text class="pf-bp-rules-text">徽章由真实对局数据自动计算，规则透明可解释：胜场、连胜、逐局流水时间线、期间峰值积分、终局记分、参与场次。数据不足时不会点亮，亦不会随机生成；同一场牌局可获多个徽章。</text>
+      </view>
+      <scroll-view class="pf-bp-scroll" scroll-y="true">
+        <view class="pf-bp-grid">
+          <view class="pf-bp-card {{badge.locked ? 'pf-bp-card-locked' : ''}}" wx:for="{{badges}}" wx:key="id">
+            <view class="pf-bp-card-top">
+              <view class="pf-badge-icon-wrap pf-badge-icon-{{badge.style}}">
+                <image wx:if="{{badge.iconURL}}" class="pf-badge-icon-img" src="{{badge.iconURL}}" mode="aspectFit" />
+                <text wx:else class="pf-badge-icon">{{badge.icon}}</text>
+              </view>
+              <view class="pf-bp-lit-chip" wx:if="{{!badge.locked}}"><text>✓ 已点亮</text></view>
+              <view class="pf-bp-unlit-chip" wx:else><text>未点亮</text></view>
+            </view>
+            <text class="pf-bp-name">{{badge.name}}</text>
+            <text class="pf-bp-desc">{{badge.desc}}</text>
+            <view class="pf-bp-progress-wrap" wx:if="{{badge.locked}}">
+              <view class="pf-bp-progress-track">
+                <view class="pf-bp-progress-fill" style="width: {{badge.progress}}%;"></view>
+              </view>
+              <text class="pf-bp-progress-val" wx:if="{{badge.target > 1}}">{{badge.current}}/{{badge.target}} · 仲差 {{badge.target - badge.current}}</text>
+              <text class="pf-bp-progress-val" wx:else>仲未达成，继续努力</text>
+            </view>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+  </view>
 </view>

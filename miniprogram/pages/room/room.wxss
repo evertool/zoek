@@ -2,15 +2,25 @@
 .page { min-height: 100vh; background: var(--background); }
 .main-content { padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: 200rpx; display: flex; flex-direction: column; gap: var(--space-md); }
 
-/* 状态栏 */
-.room-status-bar { display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-sm); margin-bottom: var(--space-xs); }
+/* 自定义导航栏：仅容纳返回按钮，与胶囊同水平 */
+.top-bar { padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: 8rpx; }
+/* 状态栏（保持原位置，不随胶囊顶高） */
+.room-status-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0; }
+/* 加载中 / 加载失败 兜底状态（避免 game 为 null 时整页空白） */
+.room-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24rpx; padding: 140rpx 0; }
+.room-state-spinner { width: 56rpx; height: 56rpx; border: 6rpx solid var(--surface-container-high); border-top-color: var(--primary); border-radius: 50%; animation: room-spin 0.8s linear infinite; }
+.room-state-text { font-size: 28rpx; color: var(--on-surface-variant); }
+.room-state-btn { margin-top: 8rpx; padding: 16rpx 48rpx; border-radius: var(--radius-full); background: var(--primary); color: var(--on-primary); font-size: 28rpx; }
+@keyframes room-spin { to { transform: rotate(360deg); } }
 .status-pill { display: flex; align-items: center; gap: 12rpx; padding: 8rpx 24rpx; border-radius: var(--radius-full); background: var(--primary-fixed); color: var(--on-primary-fixed); font-size: 24rpx; font-weight: 500; }
 .status-dot { width: 8rpx; height: 8rpx; border-radius: 50%; background: var(--primary); }
 .status-dot-active { animation: pulse 2s ease-in-out infinite; }
 .qr-show-btn { display: flex; align-items: center; gap: 8rpx; background: var(--surface-container-lowest); padding: 12rpx 24rpx; border-radius: var(--radius-full); box-shadow: var(--shadow-card); }
 .qr-show-icon { width: 28rpx; height: 28rpx; }
 .qr-show-text { font-size: 24rpx; color: var(--primary); font-weight: 500; }
-.room-status-left { display: flex; align-items: center; gap: 12rpx; }
+/* 台主「结束散台」：复用台码按钮外观，转为告警配色以区别于台码入口 */
+.qr-show-btn-end { background: var(--error-container); }
+.qr-show-text-end { color: var(--on-error-container); }
 .nav-back-btn { width: 68rpx; height: 68rpx; border-radius: 50%; background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .nav-back-icon { font-size: 40rpx; color: var(--on-surface); line-height: 1; }
 
@@ -21,12 +31,12 @@
 .btn-plain-danger-icon { width: 32rpx; height: 32rpx; }
 
 /* 2×2 座位 */
-.seat-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gutter-grid); }
-.seat-card-2x2 { background: var(--surface-container-lowest); border-radius: var(--radius-lg); padding: var(--space-md); box-shadow: var(--shadow-card); display: flex; flex-direction: column; gap: var(--space-sm); }
+.seat-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gutter-grid); width: 100%; }
+.seat-card-2x2 { background: var(--surface-container-lowest); border-radius: var(--radius-lg); padding: var(--space-sm); box-shadow: var(--shadow-card); display: flex; flex-direction: column; gap: var(--space-xs); min-width: 0; }
 .seat-card-top { display: flex; align-items: center; justify-content: space-between; }
 .seat-wind-badge-img { width: 48rpx; height: 48rpx; }
 .seat-player-row { display: flex; align-items: center; gap: 16rpx; }
-.seat-player-avatar { width: 80rpx; height: 80rpx; border-radius: 50%; background: var(--surface-container); flex-shrink: 0; }
+.seat-player-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; background: var(--surface-container); flex-shrink: 0; }
 .seat-player-placeholder { display: flex; align-items: center; justify-content: center; font-size: 32rpx; font-weight: 600; color: var(--on-surface); }
 .seat-player-empty { background: var(--surface-container); display: flex; align-items: center; justify-content: center; }
 .seat-empty-icon-large { width: 40rpx; height: 40rpx; }
@@ -35,11 +45,24 @@
 .seat-score-row { display: flex; align-items: baseline; justify-content: space-between; }
 .seat-score-label { font-size: 24rpx; color: var(--on-surface-variant); }
 .seat-score-val { font-size: 44rpx; font-weight: 700; }
-.seat-action { padding-top: 8rpx; }
-.seat-action-btn { height: 72rpx; border-radius: var(--radius-md); background: var(--surface-container-low); color: var(--primary); display: flex; align-items: center; justify-content: center; gap: 8rpx; font-size: 24rpx; font-weight: 500; }
+.seat-action { padding-top: 8rpx; overflow: hidden; }
+.seat-action-btn { height: 64rpx; border-radius: var(--radius-md); background: var(--surface-container-low); color: var(--primary); display: flex; align-items: center; justify-content: center; gap: 8rpx; font-size: 24rpx; font-weight: 500; }
 .seat-action-btn:active { background: var(--primary); color: var(--on-primary); }
-.seat-action-invite { background: var(--primary); color: var(--on-primary); }
+/* 呼叫雀友：视觉层复用 .seat-action-btn，透明 button 命中层负责 open-type=share */
+.seat-action-btn { position: relative; }
+.seat-action-share-hit { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; margin: 0; padding: 0; border: none; border-radius: var(--radius-md); }
+.seat-action-share-hit::after { display: none; }
+.seat-action-btn-active { background: var(--primary); color: var(--on-primary); }
 .seat-action-icon { width: 28rpx; height: 28rpx; }
+
+/* 长按换座 Lottie 动画覆盖层（透明浮层，不置灰全屏，visibility 控制保证 canvas 可取尺寸） */
+.swap-anim-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: opacity 0.2s ease; pointer-events: none; }
+.swap-anim-overlay.swap-anim-show { opacity: 1; visibility: visible; }
+.swap-anim-canvas { width: 320rpx; height: 320rpx; }
+
+/* 公告：本局总分核对提醒 */
+.round-notice { margin-bottom: var(--space-sm); padding: 20rpx 24rpx; border-radius: var(--radius-md); background: var(--error-container, #FBE9E7); }
+.round-notice text { font-size: 24rpx; line-height: 1.5; color: var(--error); }
 
 /* 流水账单 */
 .ledger-card { background: var(--surface-container-lowest); border-radius: var(--radius-lg); padding: var(--space-md); box-shadow: var(--shadow-card); display: flex; flex-direction: column; gap: var(--space-sm); }
@@ -47,7 +70,11 @@
 .ledger-icon { width: 32rpx; height: 32rpx; }
 .ledger-title { font-size: 36rpx; font-weight: 600; color: var(--on-surface); flex: 1; margin-left: 8rpx; }
 .ledger-count { font-size: 20rpx; color: var(--outline); }
-.ledger-list { display: flex; flex-direction: column; gap: var(--space-xs); }
+.ledger-next-btn { margin-left: auto; padding: 8rpx 20rpx; border-radius: var(--radius-full); border: 2rpx solid var(--primary); }
+.ledger-next-btn text { font-size: 22rpx; color: var(--primary); font-weight: 500; }
+.ledger-empty { padding: 32rpx 0; text-align: center; font-size: 24rpx; color: var(--outline); }
+.ledger-more { padding-top: 16rpx; border-top: 2rpx solid var(--surface-container); text-align: center; }
+.ledger-more text { font-size: 24rpx; color: var(--primary); font-weight: 500; }
 .ledger-item { display: flex; align-items: center; justify-content: space-between; padding: 16rpx 0; }
 .ledger-item-left { display: flex; align-items: center; gap: 16rpx; flex: 1; min-width: 0; }
 .ledger-wind { width: 40rpx; height: 40rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22rpx; font-weight: 700; background: var(--secondary-container); color: var(--on-secondary-container); flex-shrink: 0; }
@@ -110,6 +137,4 @@
 .toast.toast-show { opacity: 1; }
 
 /* 底部操作栏 */
-.room-footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 20rpx var(--margin-screen) calc(env(safe-area-inset-bottom) + 20rpx); background: rgba(248, 249, 255, 0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1rpx solid var(--outline-variant); z-index: 50; display: flex; flex-direction: column; gap: 16rpx; }
-.room-actions { display: flex; gap: var(--space-sm); }
-.room-actions .btn-primary, .room-actions .btn-secondary { flex: 1; }
+.room-footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 20rpx var(--margin-screen) calc(env(safe-area-inset-bottom) + 20rpx); background: rgba(248, 249, 255, 0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 50; display: flex; flex-direction: column; gap: 16rpx; }

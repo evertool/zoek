@@ -131,12 +131,39 @@ Page({
   loadGames() {
     return api.get('/games/active').then(res => {
     const games = (res.games || []).map(g => {
-      const players = (g.players || []).map((p, i) => ({
-        ...p,
-        wind: p.wind || WINDS[i] || '',
-        windClass: p.windClass || WIND_CLASSES[i] || 'east',
-        avatar_url: util.resolveAvatarURL(p.avatar_url || '')
-      }))
+      // 风位必须按真实 seat 推导（后端只返回 wind 文字 + seat，无 windClass）；
+      // 按数组下标分配会在座位不连续时与房间页东南西北错位
+      const players = (g.players || []).map(p => {
+        const sIdx = (p.seat || 0) - 1
+        const wIdx = (sIdx >= 0 && sIdx < 4) ? sIdx : -1
+        return {
+          ...p,
+          wind: wIdx >= 0 ? WINDS[wIdx] : (p.wind || ''),
+          windClass: wIdx >= 0 ? WIND_CLASSES[wIdx] : '',
+          avatar_url: util.resolveAvatarURL(p.avatar_url || '')
+        }
+      })
+      // 按 seat 落位成 4 格，空位留占位，与房间页座位布局一致
+      const seatPlayers = [null, null, null, null]
+      let anySeated = false
+      players.forEach(p => {
+        const sIdx = (p.seat || 0) - 1
+        if (sIdx >= 0 && sIdx < 4) {
+          seatPlayers[sIdx] = { ...p, empty: false }
+          anySeated = true
+        }
+      })
+      // 兜底：后端未返回任何 seat 时按下标铺排，避免玩家消失
+      if (!anySeated) {
+        players.slice(0, 4).forEach((p, i) => { seatPlayers[i] = { ...p, empty: false } })
+      }
+      const slots = seatPlayers.map((p, i) => p || {
+        seat: i + 1,
+        seatIdx: i,
+        empty: true,
+        wind: WINDS[i],
+        windClass: WIND_CLASSES[i]
+      })
       var durationText = ''
       if (g.duration_minutes > 0) {
         durationText = g.duration_minutes >= 60
@@ -148,6 +175,7 @@ Page({
       return {
         ...g,
         players,
+        seatPlayers: slots,
         statusText: util.statusText(g.status),
         statusClass: util.statusClass(g.status),
         roundInfo: g.current_round_number

@@ -39,11 +39,11 @@
         <view class="hs-overview-glow"></view>
         <view class="hs-overview-header">
           <view class="hs-overview-left">
-            <view class="hs-overview-icon-wrap"><image class="hs-overview-icon" src="/assets/icons/table-balance-zero-sum.png" mode="aspectFit" /></view>
+            <view class="hs-overview-icon-wrap"><image class="hs-overview-icon" src="/assets/icons/table-balance-zero-sum.svg" mode="aspectFit" /></view>
             <text class="hs-overview-title">{{overviewLabel}}</text>
           </view>
           <view class="hs-overview-sync">
-            <image class="hs-sync-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+            <image class="hs-sync-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" />
             <text class="hs-sync-text">已同步{{overview.games}}场实录</text>
           </view>
         </view>
@@ -105,12 +105,17 @@
             <text class="hs-group-sub">{{group.subText}}</text>
           </view>
 
-          <view class="hs-record-card" wx:for="{{group.items}}" wx:for-item="item" wx:key="game_id" bindtap="goDetail" data-id="{{item.game_id}}">
+          <view class="hs-record-card-wrap" wx:for="{{group.items}}" wx:for-item="item" wx:key="game_id"
+                data-id="{{item.game_id}}"
+                bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd" bindtouchcancel="onTouchCancel">
+            <view class="hs-record-card {{item.offset < 0 ? 'open' : ''}}"
+                  style="transform: translateX({{item.offset}}px); transition: {{item.transition}};"
+                  bindtap="goDetail" data-id="{{item.game_id}}">
             <view class="hs-card-top">
               <view class="hs-card-info">
                 <view class="hs-card-time-row">
                   <text class="hs-card-time">{{item.timeText}}</text>
-                  <view class="hs-card-status"><image class="hs-status-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" /><text>{{item.statusText}}</text></view>
+                  <view class="hs-card-status"><image class="hs-status-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" /><text>{{item.statusText}}</text></view>
                   <view class="hs-rank-badge" wx:if="{{item.is_ranked}}">排位</view>
                 </view>
                 <view class="hs-card-meta">
@@ -121,29 +126,31 @@
               </view>
               <view class="hs-card-score">
                 <text class="hs-score-val {{item.my_score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.my_score >= 0 ? '+' : ''}}{{item.my_score}}</text>
-                <view class="hs-score-tag hs-score-tag-win" wx:if="{{item.my_rank === 1}}"><image class="hs-score-tag-icon" src="/assets/icons/rank-1-god-crown.png" mode="aspectFit" /><text>本台冠军</text></view>
+                <view class="hs-score-tag hs-score-tag-win" wx:if="{{item.my_rank === 1}}"><image class="hs-score-tag-icon" src="/assets/icons/rank-1-god-crown.svg" mode="aspectFit" /><text>本台冠军</text></view>
                 <view class="hs-score-tag hs-score-tag-normal" wx:else><text>第 {{item.my_rank}} 名 · {{item.resultText}}</text></view>
               </view>
             </view>
             <view class="hs-card-footer">
               <view class="hs-card-status-text {{item.has_adjustment ? 'hs-status-adjustment' : ''}}">
-                <text class="hs-status-text-icon" wx:if="{{item.has_adjustment}}"><image src="/assets/icons/score-compensate-out.png" mode="aspectFit" /></text>
-                <text class="hs-status-text-icon" wx:else><image src="/assets/icons/sys-shield-security.png" mode="aspectFit" /></text>
+                <text class="hs-status-text-icon" wx:if="{{item.has_adjustment}}"><image src="/assets/icons/score-compensate-out.svg" mode="aspectFit" /></text>
+                <text class="hs-status-text-icon" wx:else><image src="/assets/icons/sys-shield-security.svg" mode="aspectFit" /></text>
                 <text>{{item.footerText}}</text>
               </view>
-              <view class="hs-card-detail" catchtap="goLedger" data-id="{{item.game_id}}">
-                <text>{{item.detailText}}</text>
-                <text class="hs-card-arrow">›</text>
-              </view>
-            </view>
-          </view>
-        </view>
+      <view class="hs-card-detail" catchtap="goLedger" data-id="{{item.game_id}}">
+        <text>{{item.detailText}}</text>
+        <text class="hs-card-arrow">›</text>
+      </view>
+    </view>
+  </view>
+  <view class="hs-record-delete" catchtap="doHide" data-id="{{item.game_id}}">删除</view>
+  </view>
+</view>
       </view>
 
       <!-- 底部签名 -->
       <view class="hs-footer">
         <view class="hs-footer-line"></view>
-        <image class="hs-footer-icon" src="/assets/icons/status-check-success.png" mode="aspectFit" />
+        <image class="hs-footer-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" />
         <view class="hs-footer-line"></view>
       </view>
       <text class="hs-footer-text">只记录现场积分 · 不设金钱交易</text>

@@ -460,6 +460,81 @@ func (h *RoundHandler) LockRound(c *gin.Context) {
 	})
 }
 
+// ManualNextRound handles POST /api/v1/games/:game_id/rounds/manual-next
+// 手动「开下一局」：任何在桌玩家可触发，结束当前局并开新局（免锁定的局边界标记）。
+// 台间转分恒为 0 和，局边界只能由人标记；旧版逐人提交未配平时拒绝切局。
+func (h *RoundHandler) ManualNextRound(c *gin.Context) {
+	gameID, err := strconv.ParseInt(c.Param("game_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
+		return
+	}
+	userID := middleware.GetUserID(c)
+
+	game, err := h.Store.GetGame(gameID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, errs.ErrNotFound)
+		return
+	}
+	if game.Status != "active" {
+		c.JSON(http.StatusBadRequest, errs.ErrGameNotActive)
+		return
+	}
+	if _, pErr := h.requireGamePlayer(gameID, userID); pErr != nil {
+		c.JSON(http.StatusForbidden, pErr)
+		return
+	}
+
+	round, err := h.Store.GetCurrentRound(gameID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+		return
+	}
+	if round == nil {
+		// 尚无任何局：直接开第 1 局
+		created, cErr := h.Store.CreateRound(gameID, 1)
+		if cErr != nil {
+			c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"round_id": created.ID, "round_number": created.RoundNumber, "message": "已开始第 1 局"})
+		return
+	}
+
+	switch round.Status {
+	case "open", "review":
+		subs, _ := h.Store.GetSubmissions(round.ID)
+		var sum int64
+		for _, sb := range subs {
+			sum += int64(sb.Score)
+		}
+		if len(subs) > 0 && sum != 0 {
+			c.JSON(http.StatusBadRequest, errs.New("ROUND_INCOMPLETE", "本局总分不为 0，请核对补记后再开下一局", errs.ActionRefreshGame))
+			return
+		}
+		if _, uErr := h.Store.UpdateRoundStatus(round.ID, round.Status, "ready_for_next"); uErr != nil {
+			c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+			return
+		}
+	case "ready_for_next", "locked":
+		// 已收尾，直接开下一局
+	default:
+		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
+		return
+	}
+
+	next, err := h.Store.CreateRound(gameID, round.RoundNumber+1)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"round_id":      next.ID,
+		"round_number":  next.RoundNumber,
+		"message":       fmt.Sprintf("已开始第 %d 局", next.RoundNumber),
+	})
+}
+
 // GetRoundDetail handles GET /api/v1/games/:game_id/rounds/:round_id
 func (h *RoundHandler) GetRoundDetail(c *gin.Context) {
 	gameID, err := strconv.ParseInt(c.Param("game_id"), 10, 64)

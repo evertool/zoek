@@ -80,6 +80,7 @@ func (s *Store) AutoMigrate() error {
 		&model.ScoreAdjustment{},
 		&model.GameHidden{},
 		&model.RankSettlement{},
+		&model.SeatSwapRequest{},
 	); err != nil {
 		return err
 	}
@@ -639,6 +640,107 @@ func (s *Store) SwapToEmptySeat(gameID, userID int64, targetSeat int) (*model.Ga
 	return s.GetGamePlayer(gameID, userID)
 }
 
+// CreateSwapRequest creates a pending seat swap request.
+func (s *Store) CreateSwapRequest(req *model.SeatSwapRequest) error {
+	return s.DB.Create(req).Error
+}
+
+// GetSwapRequest retrieves a swap request by ID.
+func (s *Store) GetSwapRequest(id int64) (*model.SeatSwapRequest, error) {
+	var req model.SeatSwapRequest
+	if err := s.DB.First(&req, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errs.ErrNotFound
+		}
+		return nil, err
+	}
+	return &req, nil
+}
+
+// GetPendingSwapRequestForUser returns the pending, unexpired swap request that
+// targets the given user in the given game (nil when there is none).
+func (s *Store) GetPendingSwapRequestForUser(gameID, userID int64) (*model.SeatSwapRequest, error) {
+	var req model.SeatSwapRequest
+	err := s.DB.
+		Where("game_id = ? AND to_player_id IN (SELECT id FROM game_players WHERE game_id = ? AND user_id = ?)",
+			gameID, gameID, userID).
+		Where("status = ? AND expires_at > ?", "pending", time.Now()).
+		Order("id DESC").First(&req).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &req, nil
+}
+
+// GetLatestSwapRequestFrom returns the newest swap request created by the given
+// player in this game (any status), so the proposer can learn the outcome.
+func (s *Store) GetLatestSwapRequestFrom(gameID, fromPlayerID int64) (*model.SeatSwapRequest, error) {
+	var req model.SeatSwapRequest
+	err := s.DB.Where("game_id = ? AND from_player_id = ?", gameID, fromPlayerID).
+		Order("id DESC").First(&req).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &req, nil
+}
+
+// HasPendingSwapRequestFrom reports whether the player already has a pending
+// (unexpired) swap request in this game, avoiding duplicate spam.
+func (s *Store) HasPendingSwapRequestFrom(gameID, fromPlayerID int64) (bool, error) {
+	var count int64
+	err := s.DB.Model(&model.SeatSwapRequest{}).
+		Where("game_id = ? AND from_player_id = ? AND status = ? AND expires_at > ?",
+			gameID, fromPlayerID, "pending", time.Now()).
+		Count(&count).Error
+	return count > 0, err
+}
+
+// ResolveSwapRequest transitions a pending swap request to a final state.
+func (s *Store) ResolveSwapRequest(id int64, expectedStatus, newStatus string) (*model.SeatSwapRequest, error) {
+	req, err := s.GetSwapRequest(id)
+	if err != nil {
+		return nil, err
+	}
+	if req.Status != expectedStatus {
+		return nil, errs.ErrSwapResolved
+	}
+	if time.Now().After(req.ExpiresAt) && newStatus != "expired" {
+		return nil, errs.ErrSwapExpired
+	}
+	now := time.Now()
+	updates := map[string]interface{}{"status": newStatus, "resolved_at": now}
+	if err := s.DB.Model(&model.SeatSwapRequest{}).Where("id = ? AND status = ?", id, expectedStatus).
+		Updates(updates).Error; err != nil {
+		return nil, err
+	}
+	req.Status = newStatus
+	req.ResolvedAt = &now
+	return req, nil
+}
+
+// SwapSeats exchanges the seats of two players in the same game (transaction).
+func (s *Store) SwapSeats(gameID, fromPlayerID, toPlayerID int64) error {
+	return s.Transaction(func(tx *gorm.DB) error {
+		var from, to model.GamePlayer
+		if err := tx.Where("id = ? AND game_id = ?", fromPlayerID, gameID).First(&from).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("id = ? AND game_id = ?", toPlayerID, gameID).First(&to).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&model.GamePlayer{}).Where("id = ?", from.ID).Update("seat", to.Seat).Error; err != nil {
+			return err
+		}
+		return tx.Model(&model.GamePlayer{}).Where("id = ?", to.ID).Update("seat", from.Seat).Error
+	})
+}
+
 // UpdateGameStatus updates a game's status with optimistic locking.
 func (s *Store) UpdateGameStatus(gameID int64, expectedStatus, newStatus string) (*model.Game, error) {
 	var game model.Game
@@ -812,6 +914,9 @@ func (s *Store) GetCurrentRound(gameID int64) (*model.Round, error) {
 	}
 	return &round, nil
 }
+
+// roundManualSplit：局边界由玩家手动「开下一局」标记，不做时间/总和自动推断
+// （转分恒为 0 和、延迟补记都属同一局，数据无法还原意图）。
 
 // GetRoundsByGameID returns all rounds for a game, ordered by round number.
 func (s *Store) GetRoundsByGameID(gameID int64) ([]model.Round, error) {
@@ -1115,26 +1220,26 @@ func sortPlayerTotals(result []PlayerTotal) {
 // LeaderboardEntry is one user's aggregate performance inside the viewer's
 // 雀友圈（同过台的玩家）.
 type LeaderboardEntry struct {
-	UserID      int64    `json:"user_id"`
-	Nickname    string   `json:"nickname"`
-	AvatarURL   string   `json:"avatar_url"`
-	Games       int      `json:"games"`
-	Wins        int      `json:"wins"`
-	Top3        int      `json:"top3"`
-	TotalScore  int64    `json:"total_score"` // 窗口内净胜分
-	WinRate     float64  `json:"win_rate"`
-	Top3Rate    float64  `json:"top3_rate"`
-	AvgRank     float64  `json:"avg_rank"`
-	BestStreak  int      `json:"best_streak"` // 窗口内最高连胜（连续第1名）
-	BestScore   int      `json:"best_score"`  // 窗口内单场最高分
-	Tags        []string `json:"tags"`        // 规则标签：连胜王/今晚手气王/稳如泰山/大翻盘赢家/常客/铁脚/雀神
-	IsSelf      bool     `json:"is_self"`
-	Qualified   bool     `json:"qualified"` // 完成局数达到门槛，进入正式榜单
-	TierName    string   `json:"tier_name"` // 排位段位全名
-	TierShort   string   `json:"tier_short"`
-	Grade       string   `json:"grade"`
-	Stars       int      `json:"stars"` // 段内星级
-	RankStars   int      `json:"rank_stars"` // 排位累计星（排位榜排序用）
+	UserID     int64    `json:"user_id"`
+	Nickname   string   `json:"nickname"`
+	AvatarURL  string   `json:"avatar_url"`
+	Games      int      `json:"games"`
+	Wins       int      `json:"wins"`
+	Top3       int      `json:"top3"`
+	TotalScore int64    `json:"total_score"` // 窗口内净胜分
+	WinRate    float64  `json:"win_rate"`
+	Top3Rate   float64  `json:"top3_rate"`
+	AvgRank    float64  `json:"avg_rank"`
+	BestStreak int      `json:"best_streak"` // 窗口内最高连胜（连续第1名）
+	BestScore  int      `json:"best_score"`  // 窗口内单场最高分
+	Tags       []string `json:"tags"`        // 规则标签：连胜王/今晚手气王/稳如泰山/大翻盘赢家/常客/铁脚/雀神
+	IsSelf     bool     `json:"is_self"`
+	Qualified  bool     `json:"qualified"` // 完成局数达到门槛，进入正式榜单
+	TierName   string   `json:"tier_name"` // 排位段位全名
+	TierShort  string   `json:"tier_short"`
+	Grade      string   `json:"grade"`
+	Stars      int      `json:"stars"`      // 段内星级
+	RankStars  int      `json:"rank_stars"` // 排位累计星（排位榜排序用）
 }
 
 // TrendPoint is one ended game's final score for the personal trend chart.
@@ -1160,12 +1265,12 @@ type UserStats struct {
 
 // GetLeaderboard aggregates ended games in the last `days` days across the
 // viewer's co-play games（days<=0 表示不限时间）。同台切磋满 minGames 场才可入榜，
-// 最多返回 20 人。标签规则：
-//   - 连胜王：窗口内最高连胜 ≥ 3；       - 雀神：≥30 场且胜率 ≥ 60%；
-//   - 常客：≥10 场；                     - 铁脚：≥50 场；
-//   - 稳如泰山：≥5 场且场均 |得分| ≤ 10；
-//   - 今晚手气王：今日单场最高分 ≥ 20；
-//   - 大翻盘赢家：单场从最深落后翻回（终局-最低点 ≥ 30 且终局为正）。
+// 最多返回 20 人。标签规则（PRD §3.6.6 v1.3）：
+//   - 雀神：累计胜场 ≥ 100；           - 连胜王：最高连胜 ≥ 4；
+//   - 大翻盘赢家：单场流水 ≥2/3 时点为负且终局为正；
+//   - 今晚手气王：单场期间最高积分记录 ≥ 300；
+//   - 稳如泰山：任一单场终局记分为 0；
+//   - 常客：≥ 20 场；                   - 铁脚：≥ 200 场。
 func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardEntry, error) {
 	query := s.DB.Where(
 		"status = 'ended' AND ended_at IS NOT NULL AND id IN "+
@@ -1184,15 +1289,14 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 		games, wins, top3, rankSum int
 		netSum                     int64
 		bestStreak, curStreak      int
-		bestScore, todayBest       int
-		sumAbs                     int64
-		comeback                   bool
+		bestScore                  int
+		inGameMax                  int
+		anyFinalZero, comeback     bool
 		nick, avatar               string
 	}
 	accs := map[int64]*acc{}
 	nick := map[int64]string{}
 	gpUser := map[int64]int64{} // game_player_id -> user_id（逐场更新）
-	today := time.Now().Format("2006-01-02")
 
 	for _, g := range games {
 		totals, _, err := s.AggregateSettlement(g.ID)
@@ -1220,15 +1324,16 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 			if int(pt.TotalScore) > a.bestScore {
 				a.bestScore = int(pt.TotalScore)
 			}
-			a.sumAbs += absI64(pt.TotalScore)
-			if g.EndedAt != nil && g.EndedAt.Format("2006-01-02") == today && int(pt.TotalScore) > a.todayBest {
-				a.todayBest = int(pt.TotalScore)
+			if pt.TotalScore == 0 {
+				a.anyFinalZero = true
 			}
 			nick[pt.UserID] = pt.Nickname
 			gpUser[pt.PlayerID] = pt.UserID
 		}
 
-		// 大翻盘：单场逐局累计，最深落后翻回 ≥ 30 分且终局为正
+		// 逐局累计时间线（PRD §3.6.6 v1.3）：
+		//   大翻盘赢家：≥ 2/3 时点累计为负且终局记分为正
+		//   今晚手气王：单场期间最高积分记录 ≥ 300
 		cums, err := s.GetGameRoundScores(g.ID)
 		if err == nil {
 			for gpID, seq := range cums {
@@ -1236,14 +1341,22 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 				if !ok || len(seq) == 0 {
 					continue
 				}
-				minV, finalV := seq[0], seq[len(seq)-1]
+				a := accs[uid]
+				finalV := seq[len(seq)-1]
+				neg, maxV := 0, seq[0]
 				for _, v := range seq {
-					if v < minV {
-						minV = v
+					if v < 0 {
+						neg++
+					}
+					if v > maxV {
+						maxV = v
 					}
 				}
-				if minV < 0 && finalV > 0 && finalV-minV >= 30 {
-					accs[uid].comeback = true
+				if int(maxV) > a.inGameMax {
+					a.inGameMax = int(maxV)
+				}
+				if finalV > 0 && neg*3 >= len(seq)*2 {
+					a.comeback = true
 				}
 			}
 		}
@@ -1282,26 +1395,26 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 		e.BestScore = a.bestScore
 		e.TotalScore = a.netSum
 
-		// 标签规则
+		// 标签规则（PRD §3.6.6 v1.3，与成就徽章同口径）
 		tags := []string{}
-		if a.bestStreak >= 3 {
+		if a.bestStreak >= 4 {
 			tags = append(tags, "连胜王")
 		}
-		if a.todayBest >= 20 {
+		if a.inGameMax >= 300 {
 			tags = append(tags, "今晚手气王")
 		}
-		if a.games >= 5 && float64(a.sumAbs)/float64(a.games) <= 10 {
+		if a.anyFinalZero {
 			tags = append(tags, "稳如泰山")
 		}
 		if a.comeback {
 			tags = append(tags, "大翻盘赢家")
 		}
-		if a.games >= 50 {
+		if a.games >= 200 {
 			tags = append(tags, "铁脚")
-		} else if a.games >= 10 {
+		} else if a.games >= 20 {
 			tags = append(tags, "常客")
 		}
-		if a.games >= 30 && e.WinRate >= 60 {
+		if a.wins >= 100 {
 			tags = append(tags, "雀神")
 		}
 		e.Tags = tags
@@ -1362,6 +1475,126 @@ func absI64(v int64) int64 {
 		return -v
 	}
 	return v
+}
+
+// ---------- 成就徽章（PRD §3.6.6 v1.3） ----------
+
+// 徽章阈值
+const (
+	badgeGodWins      = 100 // 雀神：累计胜场
+	badgeStreakWins   = 4   // 连胜王：最高连胜
+	badgeLuckyPeak    = 300 // 今晚手气王：单场期间最高积分记录
+	badgeRegularGames = 20  // 常客：累计参与
+	badgeIronLegGames = 200 // 铁脚：累计参与
+)
+
+// BadgeInfo 是一枚成就徽章的计算结果。
+type BadgeInfo struct {
+	Code     string `json:"code"`     // 标识：mahjong_god / streak_fire / big_comeback / lucky_king / stable_mountain / regular / iron_leg
+	Name     string `json:"name"`     // 展示名
+	Desc     string `json:"desc"`     // 达成条件说明
+	Unlocked bool   `json:"unlocked"` // 是否已点亮
+	Current  int    `json:"current"`  // 当前进度
+	Target   int    `json:"target"`   // 目标值
+}
+
+// UserBadges 是用户全部成就徽章汇总。
+type UserBadges struct {
+	Badges        []BadgeInfo `json:"badges"`
+	UnlockedCount int         `json:"unlocked_count"`
+	Total         int         `json:"total"`
+}
+
+// GetUserBadges 基于全部已结束牌局计算用户的 7 枚成就徽章。
+// 规则必须可解释（PRD）：数据不足时徽章保持未点亮并返回进度。
+func (s *Store) GetUserBadges(userID int64) (*UserBadges, error) {
+	var games []model.Game
+	err := s.DB.Where(
+		"status = 'ended' AND ended_at IS NOT NULL AND id IN "+
+			"(SELECT game_id FROM game_players WHERE user_id = ?)", userID).
+		Order("ended_at ASC").Find(&games).Error
+	if err != nil {
+		return nil, err
+	}
+
+	wins, bestStreak, curStreak, gamesCount := 0, 0, 0, 0
+	comeback, lucky, steady := false, false, false
+
+	for _, g := range games {
+		totals, _, err := s.AggregateSettlement(g.ID)
+		if err != nil {
+			continue
+		}
+		var mine *PlayerTotal
+		for i := range totals {
+			if totals[i].UserID == userID {
+				mine = &totals[i]
+			}
+		}
+		if mine == nil {
+			continue
+		}
+		gamesCount++
+		if mine.Rank == 1 {
+			wins++
+			curStreak++
+			if curStreak > bestStreak {
+				bestStreak = curStreak
+			}
+		} else {
+			curStreak = 0
+		}
+		// 稳如泰山：单场结束时记分为 0
+		if mine.TotalScore == 0 {
+			steady = true
+		}
+		// 逐局流水时间线：大翻盘赢家 / 今晚手气王
+		if cums, err := s.GetGameRoundScores(g.ID); err == nil {
+			if seq := cums[mine.PlayerID]; len(seq) > 0 {
+				neg, maxV := 0, seq[0]
+				for _, v := range seq {
+					if v < 0 {
+						neg++
+					}
+					if v > maxV {
+						maxV = v
+					}
+				}
+				// 大翻盘赢家：≥ 2/3 时点为负且终局记分为正（终局以含补退分的结算总分为准）
+				if mine.TotalScore > 0 && neg*3 >= len(seq)*2 {
+					comeback = true
+				}
+				// 今晚手气王：期间最高积分记录 ≥ 300
+				if maxV >= badgeLuckyPeak {
+					lucky = true
+				}
+			}
+		}
+	}
+
+	badges := []BadgeInfo{
+		{Code: "mahjong_god", Name: "雀神", Desc: "累计胜场 ≥ 100 场", Unlocked: wins >= badgeGodWins, Current: wins, Target: badgeGodWins},
+		{Code: "streak_fire", Name: "连胜王", Desc: "连胜 ≥ 4 场", Unlocked: bestStreak >= badgeStreakWins, Current: bestStreak, Target: badgeStreakWins},
+		{Code: "big_comeback", Name: "大翻盘赢家", Desc: "单场 ≥ 2/3 时间负分且终局记分为正", Unlocked: comeback, Current: boolToInt(comeback), Target: 1},
+		{Code: "lucky_king", Name: "今晚手气王", Desc: "单场期间最高积分记录 ≥ 300 分", Unlocked: lucky, Current: boolToInt(lucky), Target: 1},
+		{Code: "stable_mountain", Name: "稳如泰山", Desc: "单场结束时记分为 0 分", Unlocked: steady, Current: boolToInt(steady), Target: 1},
+		{Code: "regular", Name: "常客", Desc: "累计参与 ≥ 20 场", Unlocked: gamesCount >= badgeRegularGames, Current: gamesCount, Target: badgeRegularGames},
+		{Code: "iron_leg", Name: "铁脚", Desc: "累计参与 ≥ 200 场", Unlocked: gamesCount >= badgeIronLegGames, Current: gamesCount, Target: badgeIronLegGames},
+	}
+	unlocked := 0
+	for _, b := range badges {
+		if b.Unlocked {
+			unlocked++
+		}
+	}
+	return &UserBadges{Badges: badges, UnlockedCount: unlocked, Total: len(badges)}, nil
+}
+
+func boolToInt(b bool) int {
+	if b {
+		return 1
+	}
+	return 0
 }
 
 // GetUserStats summarizes the user's ended games (all time) with a trend of

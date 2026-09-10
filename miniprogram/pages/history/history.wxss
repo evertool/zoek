@@ -58,8 +58,12 @@
 .hs-group-sub { font-size: 20rpx; color: var(--on-surface-variant); }
 
 /* 记录卡 */
-.hs-record-card { position: relative; border-radius: var(--radius-lg); background: var(--surface-container-lowest); padding: var(--space-md); box-shadow: var(--shadow-card); overflow: hidden; transition: all 0.2s cubic-bezier(0,0,0.2,1); }
-.hs-record-card:active { transform: scale(0.99); }
+.hs-record-card { position: relative; z-index: 2; border-radius: var(--radius-lg); background: var(--surface-container-lowest); padding: var(--space-md); box-shadow: var(--shadow-card); overflow: hidden; transition: all 0.2s cubic-bezier(0,0,0.2,1); }
+
+/* 左滑容器 + 删除按钮 */
+.hs-record-card-wrap { position: relative; }
+.hs-record-delete { position: absolute; top: 0; right: 0; bottom: 0; width: 168rpx; z-index: 1; display: flex; align-items: center; justify-content: center; background: #B33A3A; color: #FFFFFF; font-size: 28rpx; font-weight: 600; border-radius: 0 var(--radius-lg) var(--radius-lg) 0; letter-spacing: 4rpx; }
+.hs-record-delete:active { opacity: 0.88; }
 .hs-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-xs); }
 .hs-card-info { flex: 1; min-width: 0; }
 .hs-card-time-row { display: flex; align-items: center; gap: 16rpx; flex-wrap: wrap; }

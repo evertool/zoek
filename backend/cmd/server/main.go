@@ -96,6 +96,7 @@ func main() {
 	gameHandler := handler.NewGameHandler(s, jwtManager, wxClient)
 	roundHandler := handler.NewRoundHandler(s)
 	adjHandler := handler.NewAdjustmentHandler(s)
+	swapHandler := handler.NewSwapHandler(s)
 	settlementHandler := handler.NewSettlementHandler(s)
 	rankHandler := handler.NewRankHandler(s)
 	leaderboardHandler := handler.NewLeaderboardHandler(s)
@@ -128,12 +129,18 @@ func main() {
 			auth.POST("/games/:game_id/hide", gameHandler.HideGame)
 			auth.POST("/games/:game_id/swap_seat", gameHandler.SwapSeat)
 
+			// 换位申请（长按他人座位，需对方确认）
+			auth.POST("/games/:game_id/swap_requests", swapHandler.CreateSwapRequest)
+			auth.GET("/games/:game_id/swap_requests/pending", swapHandler.GetPendingSwapRequest)
+			auth.POST("/games/:game_id/swap_requests/:id/:action", swapHandler.ResolveSwapRequest)
+
 			// Rounds
 			auth.POST("/games/:game_id/rounds", roundHandler.CreateNextRound)
 			auth.GET("/games/:game_id/rounds/current", roundHandler.GetCurrentRound)
 			auth.PUT("/games/:game_id/rounds/:round_id/submission", roundHandler.SubmitScore)
 			auth.POST("/games/:game_id/rounds/:round_id/lock", roundHandler.LockRound)
 			auth.POST("/games/:game_id/rounds/:round_id/next", roundHandler.CreateNextRound)
+			auth.POST("/games/:game_id/rounds/manual-next", roundHandler.ManualNextRound)
 			auth.GET("/games/:game_id/rounds/:round_id", roundHandler.GetRoundDetail)
 
 			// Adjustments
@@ -153,6 +160,7 @@ func main() {
 			// 雀友榜和个人数据
 			auth.GET("/leaderboard", leaderboardHandler.GetLeaderboard)
 			auth.GET("/user/stats", leaderboardHandler.GetUserStats)
+			auth.GET("/user/badges", leaderboardHandler.GetUserBadges)
 		}
 	}
 

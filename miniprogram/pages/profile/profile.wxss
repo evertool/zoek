@@ -69,6 +69,7 @@
 .pf-badge-icon-green { background: var(--primary-fixed); }
 .pf-badge-icon-neutral { background: var(--surface-container-high); }
 .pf-badge-icon { font-size: 40rpx; }
+.pf-badge-icon-img { width: 56rpx; height: 56rpx; }
 .pf-badge-name { font-size: 28rpx; font-weight: 600; color: var(--on-surface); margin-top: 20rpx; }
 .pf-badge-desc { font-size: 22rpx; color: var(--on-surface-variant); margin-top: 8rpx; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .pf-badge-status { display: flex; align-items: center; gap: 8rpx; margin-top: 24rpx; }
@@ -118,3 +119,43 @@
 .pf-footer { margin-top: 64rpx; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8rpx; }
 .pf-footer-icon { width: 28rpx; height: 28rpx; }
 .pf-footer-text { font-size: 20rpx; color: var(--outline); }
+
+/* 徽章：横滑条空态 */
+.pf-badge-empty { margin: 8rpx var(--margin-screen) 16rpx; padding: 28rpx; border-radius: var(--radius-lg); background: var(--surface-container-lowest); box-shadow: var(--shadow-card); }
+.pf-badge-empty-text { font-size: 24rpx; color: var(--on-surface-variant); }
+
+/* 徽章总览面板 */
+.pf-bp-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s; z-index: 1000; }
+.pf-bp-overlay.pf-bp-show { opacity: 1; visibility: visible; }
+.pf-bp-panel { position: absolute; left: 0; right: 0; bottom: 0; max-height: 78vh; display: flex; flex-direction: column; background: var(--surface-container); border-radius: 32rpx 32rpx 0 0; padding-bottom: env(safe-area-inset-bottom); transform: translateY(100%); transition: transform 0.3s ease; }
+.pf-bp-overlay.pf-bp-show .pf-bp-panel { transform: translateY(0); }
+.pf-bp-grabber { width: 72rpx; height: 8rpx; border-radius: 4rpx; background: var(--outline-variant); margin: 16rpx auto 8rpx; }
+.pf-bp-header { display: flex; align-items: center; padding: 8rpx 32rpx 16rpx; }
+.pf-bp-header-main { flex: 1; display: flex; flex-direction: column; }
+.pf-bp-title { font-size: 32rpx; font-weight: 700; color: var(--on-surface); }
+.pf-bp-sub { font-size: 22rpx; color: var(--on-surface-variant); margin-top: 4rpx; }
+.pf-bp-info-btn { width: 56rpx; height: 56rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface-container-high); margin-right: 16rpx; }
+.pf-bp-info-icon { font-size: 30rpx; color: var(--primary); font-weight: 700; }
+.pf-bp-close { width: 56rpx; height: 56rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface-container-high); }
+.pf-bp-close text { font-size: 26rpx; color: var(--on-surface-variant); }
+.pf-bp-rules { margin: 0 32rpx 16rpx; padding: 20rpx 24rpx; border-radius: var(--radius-md); background: var(--secondary-fixed); display: flex; flex-direction: column; gap: 8rpx; }
+.pf-bp-rules-title { font-size: 24rpx; font-weight: 700; color: var(--on-surface); }
+.pf-bp-rules-text { font-size: 22rpx; line-height: 1.6; color: var(--on-surface-variant); }
+.pf-bp-scroll { flex: 1; min-height: 0; max-height: 56vh; }
+.pf-bp-grid { display: flex; flex-wrap: wrap; gap: 20rpx; padding: 8rpx 32rpx 40rpx; }
+.pf-bp-card { width: calc((100% - 20rpx) / 2); box-sizing: border-box; padding: 24rpx; border-radius: var(--radius-lg); background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; flex-direction: column; }
+.pf-bp-card-locked { opacity: 0.75; }
+.pf-bp-card-top { display: flex; align-items: center; justify-content: space-between; }
+.pf-bp-lit-chip { padding: 6rpx 14rpx; border-radius: 999rpx; background: var(--primary-fixed); }
+.pf-bp-lit-chip text { font-size: 20rpx; font-weight: 700; color: var(--on-primary-fixed); }
+.pf-bp-unlit-chip { padding: 6rpx 14rpx; border-radius: 999rpx; background: var(--surface-container-high); }
+.pf-bp-unlit-chip text { font-size: 20rpx; color: var(--outline); }
+.pf-bp-name { font-size: 28rpx; font-weight: 700; color: var(--on-surface); margin-top: 20rpx; }
+.pf-bp-desc { font-size: 22rpx; line-height: 1.5; color: var(--on-surface-variant); margin-top: 8rpx; }
+.pf-bp-progress-wrap { margin-top: 20rpx; display: flex; flex-direction: column; gap: 8rpx; }
+.pf-bp-progress-track { height: 12rpx; border-radius: 6rpx; background: var(--surface-container-high); overflow: hidden; }
+.pf-bp-progress-fill { height: 100%; border-radius: 6rpx; background: var(--primary); }
+.pf-bp-progress-val { font-size: 20rpx; color: var(--on-surface-variant); }
+
+/* 徽章图标底色补齐（手气王） */
+.pf-badge-icon-amber { background: #f6eedc; }

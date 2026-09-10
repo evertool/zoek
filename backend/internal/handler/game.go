@@ -66,15 +66,28 @@ type GameDetailResponse struct {
 	EndedAt            *time.Time   `json:"ended_at,omitempty"`
 	CreatedAt          time.Time    `json:"created_at"`
 	Players            []PlayerInfo `json:"players"`
+	// 台间免锁定：局边界由玩家手动「开下一局」标记；need_fix 仅遗留逐人提交未配平时出现
+	RoundNeedFix bool  `json:"round_need_fix"`
+	RoundSum     int64 `json:"round_sum"`
+	// 全部局（id + 局号），供流水账单标注「第 N 局」
+	Rounds []RoundBrief `json:"rounds"`
+}
+
+// RoundBrief 流水账单标注局号所需的最小局信息。
+type RoundBrief struct {
+	RoundID     int64 `json:"round_id"`
+	RoundNumber int   `json:"round_number"`
 }
 
 type PlayerInfo struct {
-	PlayerID  int64     `json:"player_id"`
-	UserID    int64     `json:"user_id"`
-	Nickname  string    `json:"nickname"`
-	AvatarURL string    `json:"avatar_url"`
-	Role      string    `json:"role"`
-	JoinedAt  time.Time `json:"joined_at"`
+	PlayerID   int64     `json:"player_id"`
+	UserID     int64     `json:"user_id"`
+	Nickname   string    `json:"nickname"`
+	AvatarURL  string    `json:"avatar_url"`
+	Role       string    `json:"role"`
+	Seat       int       `json:"seat"`
+	TotalScore int       `json:"total_score"`
+	JoinedAt   time.Time `json:"joined_at"`
 }
 
 type StartGameRequest struct {
@@ -388,13 +401,38 @@ func (h *GameHandler) GetGame(c *gin.Context) {
 	}
 
 	players, _ := h.Store.GetGamePlayers(gameID)
+
 	round, _ := h.Store.GetCurrentRound(gameID)
 	var roundNum *int
-	if round != nil {
+	// 公告仅用于遗留逐人提交流未配平的极端情况（转分恒为 0 和，不会触发）
+	roundNeedFix := false
+	var roundSum int64
+	if round != nil && round.Status == "open" {
 		n := round.RoundNumber
 		roundNum = &n
+		if subs, sErr := h.Store.GetSubmissions(round.ID); sErr == nil {
+			for _, sb := range subs {
+				roundSum += int64(sb.Score)
+			}
+			roundNeedFix = len(subs) > 0 && roundSum != 0
+		}
 	}
 	completed, _ := h.Store.CountLockedRounds(gameID)
+
+	roundBriefs := make([]RoundBrief, 0, 8)
+	if allRounds, rErr := h.Store.GetRoundsByGameID(gameID); rErr == nil {
+		for _, r := range allRounds {
+			roundBriefs = append(roundBriefs, RoundBrief{RoundID: r.ID, RoundNumber: r.RoundNumber})
+		}
+	}
+
+	// 实时战绩：已锁定局的记分 + 已生效的转分（用于房间页座位卡展示）
+	totalByPlayer := map[int64]int{}
+	if totals, _, aggErr := h.Store.AggregateSettlement(gameID); aggErr == nil {
+		for _, t := range totals {
+			totalByPlayer[t.PlayerID] = int(t.TotalScore)
+		}
+	}
 
 	playerInfos := make([]PlayerInfo, 0, len(players))
 	// 批量获取用户信息以填充头像
@@ -412,12 +450,14 @@ func (h *GameHandler) GetGame(c *gin.Context) {
 			avatarURL = user.AvatarURL
 		}
 		playerInfos = append(playerInfos, PlayerInfo{
-			PlayerID:  p.ID,
-			UserID:    p.UserID,
-			Nickname:  p.NicknameSnapshot,
-			AvatarURL: avatarURL,
-			Role:      p.Role,
-			JoinedAt:  p.JoinedAt,
+			PlayerID:   p.ID,
+			UserID:     p.UserID,
+			Nickname:   p.NicknameSnapshot,
+			AvatarURL:  avatarURL,
+			Role:       p.Role,
+			Seat:       p.Seat,
+			TotalScore: totalByPlayer[p.ID],
+			JoinedAt:   p.JoinedAt,
 		})
 	}
 
@@ -431,6 +471,9 @@ func (h *GameHandler) GetGame(c *gin.Context) {
 		MembersLocked:      game.MembersLocked,
 		CurrentRoundNumber: roundNum,
 		CompletedRounds:    completed,
+		RoundNeedFix:       roundNeedFix,
+		RoundSum:           roundSum,
+		Rounds:             roundBriefs,
 		StartedAt:          game.StartedAt,
 		EndedAt:            game.EndedAt,
 		CreatedAt:          game.CreatedAt,
@@ -729,21 +772,35 @@ func (h *GameHandler) EndGame(c *gin.Context) {
 		return
 	}
 
-	// Check no open/review rounds
+	// 当前局若仍 open：有记账且总分为 0 先收尾入账；总分不为 0 则要求核对后再散台；空局不处理
 	round, err := h.Store.GetCurrentRound(gameID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 		return
 	}
-	if round != nil && (round.Status == "open" || round.Status == "review") {
-		c.JSON(http.StatusBadRequest, errs.New("ROUND_INCOMPLETE", "还有未完成的局，完成后才能结束", errs.ActionRefreshGame))
-		return
+	if round != nil && round.Status == "open" {
+		subs, _ := h.Store.GetSubmissions(round.ID)
+		var openSum int64
+		for _, sb := range subs {
+			openSum += int64(sb.Score)
+		}
+		if len(subs) > 0 {
+			if openSum != 0 {
+				c.JSON(http.StatusBadRequest, errs.New("ROUND_INCOMPLETE", "本局总分不为 0，请核对补记后再散台", errs.ActionRefreshGame))
+				return
+			}
+			if _, uErr := h.Store.UpdateRoundStatus(round.ID, "open", "ready_for_next"); uErr != nil {
+				c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+				return
+			}
+		}
 	}
 
-	// Check at least 1 completed round
+	// 有记分记录（锁定局或转分）即可结算
 	completed, _ := h.Store.CountLockedRounds(gameID)
-	if completed == 0 {
-		c.JSON(http.StatusBadRequest, errs.New("NO_COMPLETED_ROUNDS", "没有已完成的局，无法结算", errs.ActionRetry))
+	acceptedAdjs, _ := h.Store.GetAcceptedAdjustments(gameID)
+	if completed == 0 && len(acceptedAdjs) == 0 {
+		c.JSON(http.StatusBadRequest, errs.New("NO_SCORE_RECORDS", "没有记分记录，无法结算", errs.ActionRetry))
 		return
 	}
 

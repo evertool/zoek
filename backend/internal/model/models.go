@@ -137,3 +137,20 @@ type GameHidden struct {
 }
 
 func (GameHidden) TableName() string { return "game_hiddens" }
+
+// SeatSwapRequest 记录一次「两个已入座玩家互换座位」的申请（PRD §8.7）。
+// 长按空位是即时换座（走 swap_seat），长按他人座位才需要对方确认，落在本表。
+type SeatSwapRequest struct {
+	ID           int64      `gorm:"primaryKey;autoIncrement" json:"id"`
+	GameID       int64      `gorm:"not null;index:idx_swap_game" json:"game_id"`
+	FromPlayerID int64      `gorm:"not null" json:"from_player_id"`
+	ToPlayerID   int64      `gorm:"not null;index:idx_swap_to" json:"to_player_id"`
+	FromSeat     int        `gorm:"not null" json:"from_seat"`
+	ToSeat       int        `gorm:"not null" json:"to_seat"`
+	Status       string     `gorm:"type:varchar(16);not null;default:pending" json:"status"` // pending/accepted/rejected/cancelled/expired
+	ExpiresAt    time.Time  `gorm:"not null" json:"expires_at"`
+	CreatedAt    time.Time  `json:"created_at"`
+	ResolvedAt   *time.Time `json:"resolved_at,omitempty"`
+}
+
+func (SeatSwapRequest) TableName() string { return "seat_swap_requests" }

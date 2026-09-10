@@ -44,6 +44,7 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 	))
 	roundH := NewRoundHandler(s)
 	adjH := NewAdjustmentHandler(s)
+	swapH := NewSwapHandler(s)
 	settleH := NewSettlementHandler(s)
 	lbH := NewLeaderboardHandler(s)
 
@@ -66,6 +67,9 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 			auth.POST("/games/:game_id/end", gameH.EndGame)
 			auth.POST("/games/:game_id/hide", gameH.HideGame)
 			auth.POST("/games/:game_id/swap_seat", gameH.SwapSeat)
+			auth.POST("/games/:game_id/swap_requests", swapH.CreateSwapRequest)
+			auth.GET("/games/:game_id/swap_requests/pending", swapH.GetPendingSwapRequest)
+			auth.POST("/games/:game_id/swap_requests/:id/:action", swapH.ResolveSwapRequest)
 			auth.GET("/rank/me", NewRankHandler(s).GetMyRank)
 
 			auth.POST("/games/:game_id/rounds", roundH.CreateNextRound)
@@ -73,6 +77,7 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 			auth.PUT("/games/:game_id/rounds/:round_id/submission", roundH.SubmitScore)
 			auth.POST("/games/:game_id/rounds/:round_id/lock", roundH.LockRound)
 			auth.POST("/games/:game_id/rounds/:round_id/next", roundH.CreateNextRound)
+			auth.POST("/games/:game_id/rounds/manual-next", roundH.ManualNextRound)
 			auth.GET("/games/:game_id/rounds/:round_id", roundH.GetRoundDetail)
 
 			auth.POST("/games/:game_id/rounds/:round_id/adjustments", adjH.CreateAdjustment)
@@ -364,6 +369,175 @@ func TestSwapSeat(t *testing.T) {
 	}
 	if first := players[0].(map[string]interface{}); first["nickname"] != "玩家creator" {
 		t.Fatalf("first player = %v, want 玩家creator", first["nickname"])
+	}
+}
+
+// TestSeatSwapRequest 覆盖「长按他人座位 → 申请 → 对方待处理 → 同意 → 座位互换」。
+func TestSeatSwapRequest(t *testing.T) {
+	r, _, _ := testSetup(t)
+	creator := loginAndAuth(t, r, "creator")
+	joiner := loginAndAuth(t, r, "joiner")
+
+	w := doRequest(t, r, "POST", "/api/v1/games", creator, map[string]string{"request_id": "r1"})
+	assertStatus(t, w, http.StatusCreated)
+	inviteToken := parseJSON(t, w)["invite_token"].(string)
+	w = doRequest(t, r, "POST", "/api/v1/games/join", joiner, map[string]string{"invite_token": inviteToken, "request_id": "r2"})
+	assertStatus(t, w, http.StatusCreated)
+	gameID := int64(parseJSON(t, w)["game_id"].(float64))
+
+	// joiner（2位）申请与 creator（1位）互换
+	base := fmt.Sprintf("/api/v1/games/%d/swap_requests", gameID)
+	w = doRequest(t, r, "POST", base, joiner, map[string]int{"target_seat": 1})
+	assertStatus(t, w, http.StatusCreated)
+	reqID := int64(parseJSON(t, w)["request"].(map[string]interface{})["id"].(float64))
+
+	// 重复申请应被拒
+	w = doRequest(t, r, "POST", base, joiner, map[string]int{"target_seat": 1})
+	assertStatus(t, w, http.StatusBadRequest)
+	if m := parseJSON(t, w); m["code"] != "SWAP_PENDING" {
+		t.Fatalf("code = %v, want SWAP_PENDING", m["code"])
+	}
+
+	// 目标座位为空：提示直接换座
+	w = doRequest(t, r, "POST", base, joiner, map[string]int{"target_seat": 3})
+	assertStatus(t, w, http.StatusBadRequest)
+	if m := parseJSON(t, w); m["code"] != "SEAT_EMPTY" {
+		t.Fatalf("code = %v, want SEAT_EMPTY", m["code"])
+	}
+
+	// 接收方（creator）轮询到待处理申请
+	w = doRequest(t, r, "GET", base+"/pending", creator, nil)
+	assertStatus(t, w, http.StatusOK)
+	pending := parseJSON(t, w)["request"].(map[string]interface{})
+	if int64(pending["id"].(float64)) != reqID {
+		t.Fatalf("pending id = %v, want %d", pending["id"], reqID)
+	}
+	if pending["from_nickname"] != "玩家joiner" {
+		t.Fatalf("from_nickname = %v, want 玩家joiner", pending["from_nickname"])
+	}
+
+	// 非接收方不能越权同意
+	w = doRequest(t, r, "POST", fmt.Sprintf("%s/%d/accept", base, reqID), joiner, map[string]string{})
+	assertStatus(t, w, http.StatusForbidden)
+
+	// creator 同意 → 双方座位互换
+	w = doRequest(t, r, "POST", fmt.Sprintf("%s/%d/accept", base, reqID), creator, map[string]string{})
+	assertStatus(t, w, http.StatusOK)
+
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), creator, nil)
+	assertStatus(t, w, http.StatusOK)
+	players := parseJSON(t, w)["players"].([]interface{})
+	if players[0].(map[string]interface{})["nickname"] != "玩家joiner" {
+		t.Fatalf("seat1 = %v, want 玩家joiner", players[0].(map[string]interface{})["nickname"])
+	}
+
+	// 处理后不应再有待处理申请
+	w = doRequest(t, r, "GET", base+"/pending", creator, nil)
+	assertStatus(t, w, http.StatusOK)
+	if parseJSON(t, w)["request"] != nil {
+		t.Fatal("pending request should be nil after accepted")
+	}
+
+	// 发起人（joiner）能查到自己那条申请的最终结果 + 对方昵称
+	w = doRequest(t, r, "GET", base+"/pending", joiner, nil)
+	assertStatus(t, w, http.StatusOK)
+	out := parseJSON(t, w)["outgoing"].(map[string]interface{})
+	if out["status"] != "accepted" {
+		t.Fatalf("outgoing status = %v, want accepted", out["status"])
+	}
+	if out["to_nickname"] != "玩家creator" {
+		t.Fatalf("to_nickname = %v, want 玩家creator", out["to_nickname"])
+	}
+
+	// 拒绝流程：joiner 再申请一次（此时在 1 位），creator 拒绝
+	w = doRequest(t, r, "POST", base, joiner, map[string]int{"target_seat": 2})
+	assertStatus(t, w, http.StatusCreated)
+	reqID2 := int64(parseJSON(t, w)["request"].(map[string]interface{})["id"].(float64))
+	w = doRequest(t, r, "POST", fmt.Sprintf("%s/%d/reject", base, reqID2), creator, map[string]string{})
+	assertStatus(t, w, http.StatusOK)
+	w = doRequest(t, r, "GET", base+"/pending", joiner, nil)
+	assertStatus(t, w, http.StatusOK)
+	if out2 := parseJSON(t, w)["outgoing"].(map[string]interface{}); out2["status"] != "rejected" {
+		t.Fatalf("outgoing status = %v, want rejected", out2["status"])
+	}
+}
+
+// TestListAdjustmentsVisibleToAllPlayers：流水账单对全桌可见，不能只有台主看得到。
+func TestListAdjustmentsVisibleToAllPlayers(t *testing.T) {
+	r, _, _ := testSetup(t)
+	creator := loginAndAuth(t, r, "creator")
+	joiner := loginAndAuth(t, r, "joiner")
+
+	w := doRequest(t, r, "POST", "/api/v1/games", creator, map[string]string{"request_id": "r1"})
+	assertStatus(t, w, http.StatusCreated)
+	inviteToken := parseJSON(t, w)["invite_token"].(string)
+	w = doRequest(t, r, "POST", "/api/v1/games/join", joiner, map[string]string{"invite_token": inviteToken, "request_id": "r2"})
+	assertStatus(t, w, http.StatusCreated)
+	gameID := int64(parseJSON(t, w)["game_id"].(float64))
+
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), creator, nil)
+	assertStatus(t, w, http.StatusOK)
+	roundID := int64(parseJSON(t, w)["round_id"].(float64))
+
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), creator, nil)
+	assertStatus(t, w, http.StatusOK)
+	var toPlayerID int64
+	for _, p := range parseJSON(t, w)["players"].([]interface{}) {
+		pm := p.(map[string]interface{})
+		if pm["nickname"] == "玩家joiner" {
+			toPlayerID = int64(pm["player_id"].(float64))
+		}
+	}
+	if toPlayerID == 0 {
+		t.Fatal("joiner player_id not found")
+	}
+
+	// 台主转分给 joiner（auto_accept 立即生效）
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/adjustments", gameID, roundID), creator,
+		map[string]interface{}{
+			"to_player_id":    toPlayerID,
+			"adjustment_type": "supplement",
+			"amount":          4,
+			"auto_accept":     true,
+			"request_id":      "adj-auto",
+		})
+	assertStatus(t, w, http.StatusCreated)
+
+	// 非台主（joiner）必须能看到这笔记录
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/adjustments", gameID), joiner, nil)
+	assertStatus(t, w, http.StatusOK)
+	adjs := parseJSON(t, w)["adjustments"].([]interface{})
+	if len(adjs) != 1 {
+		t.Fatalf("joiner adjustments = %d, want 1", len(adjs))
+	}
+}
+
+// TestManualNextRound：手动开下一局（免锁定的局边界由人标记）。
+func TestManualNextRound(t *testing.T) {
+	r, _, _ := testSetup(t)
+	gameID, auth1, _ := createGameAndStart(t, r)
+
+	// 直接手动切局：当前局无旧版提交（纯转分流），允许收尾并开新局
+	path := fmt.Sprintf("/api/v1/games/%d/rounds/manual-next", gameID)
+	w := doRequest(t, r, "POST", path, auth1, map[string]string{})
+	assertStatus(t, w, http.StatusOK)
+	m := parseJSON(t, w)
+	if m["round_number"].(float64) != 2 {
+		t.Fatalf("round_number = %v, want 2", m["round_number"])
+	}
+
+	// 新局可正常记账
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	roundID := int64(parseJSON(t, w)["round_id"].(float64))
+
+	// 旧版提交未配平时拒绝切局
+	_ = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth1,
+		map[string]interface{}{"score": 10, "request_id": "s1"})
+	w = doRequest(t, r, "POST", path, auth1, map[string]string{})
+	assertStatus(t, w, http.StatusBadRequest)
+	if m := parseJSON(t, w); m["code"] != "ROUND_INCOMPLETE" {
+		t.Fatalf("code = %v, want ROUND_INCOMPLETE", m["code"])
 	}
 }
 
@@ -1091,14 +1265,11 @@ func TestLeaderboardAndUserStats(t *testing.T) {
 		t.Fatalf("leaderboard[0] best_score = %v, want 16", first["best_score"])
 	}
 	tags := first["tags"].([]interface{})
-	foundStreakKing := false
+	// v1.3 规则：连胜王需最高连胜 ≥ 4，本场景 3 连胜不应点亮
 	for _, tag := range tags {
 		if tag == "连胜王" {
-			foundStreakKing = true
+			t.Fatalf("leaderboard[0] tags = %v, 连胜王 requires best_streak >= 4 (got %v)", tags, first["best_streak"])
 		}
-	}
-	if !foundStreakKing {
-		t.Fatalf("leaderboard[0] tags = %v, want 连胜王", tags)
 	}
 
 	// 时间筛选：近 7 天命中

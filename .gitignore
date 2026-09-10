@@ -39,3 +39,6 @@ backend/seed
 
 # Runtime user uploads (avatars)
 backend/uploads/
+
+# WorkBuddy 本地助手数据
+.workbuddy/

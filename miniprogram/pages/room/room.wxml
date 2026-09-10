@@ -1,21 +1,29 @@
 <!--pages/room/room.wxml — 台间页 v6 Stitch 100% 还原-->
-<view class="page" wx:if="{{game}}">
+<view class="page">
+  <!-- 返回按钮：仅占位 top-bar，与右上角胶囊同一水平（不带动下方状态栏）；始终可见，保证加载/报错时可退出 -->
+  <view class="top-bar" style="padding-top: {{capsuleTop}}px;">
+    <view class="nav-back-btn" style="width: {{capsuleHeight}}px; height: {{capsuleHeight}}px;" bindtap="goBack">
+      <text class="nav-back-icon">‹</text>
+    </view>
+  </view>
+
   <!-- 主内容 -->
-  <view class="main-content" style="padding-top: {{navPadding}}px;">
-    <!-- 顶部状态栏 -->
+  <view class="main-content" style="padding-top: 16rpx;" wx:if="{{game}}">
+
+    <!-- 顶部状态栏（保持原位置，不随胶囊顶高） -->
     <view class="room-status-bar">
-      <view class="room-status-left">
-        <view class="nav-back-btn" bindtap="goBack">
-          <text class="nav-back-icon">‹</text>
-        </view>
-        <view class="status-pill">
-          <view class="status-dot {{game.status === 'forming' ? 'status-dot-active' : ''}}"></view>
-          <text>{{game.statusText}} ({{players.length}}/4人)</text>
-        </view>
+      <view class="status-pill">
+        <view class="status-dot {{game.status === 'forming' ? 'status-dot-active' : ''}}"></view>
+        <text>{{game.statusText}} ({{players.length}}/4人)</text>
       </view>
-      <view class="qr-show-btn" bindtap="toggleQrModal">
-        <image class="qr-show-icon" src="/assets/icons/table-lock-private.png" mode="aspectFit" />
+      <!-- 右上角动作：未记分时出示台码（拉人入台）；已记分后不再可加入 → 台主转为「结束散台」，普通雀友隐藏 -->
+      <view class="qr-show-btn" wx:if="{{!hasScores && game.status !== 'ended'}}" bindtap="toggleQrModal">
+        <image class="qr-show-icon" src="/assets/icons/table-qrcode.svg" mode="aspectFit" />
         <text class="qr-show-text">出示台码</text>
+      </view>
+      <view class="qr-show-btn qr-show-btn-end" wx:elif="{{isOwner && game.status === 'active'}}" bindtap="doEnd">
+        <image class="qr-show-icon" src="/assets/icons/action-exit.svg" mode="aspectFit" />
+        <text class="qr-show-text qr-show-text-end">结束散台</text>
       </view>
     </view>
 
@@ -24,7 +32,7 @@
       <!-- 东位（台主） -->
       <view class="seat-card-2x2" wx:for="{{seats}}" wx:key="seat" data-seat="{{item.seat}}" bindlongpress="onSeatLongPress">
         <view class="seat-card-top">
-          <image class="seat-wind-badge-img" src="/assets/icons/seat-wind-{{item.windClass}}.png" mode="aspectFit" />
+          <image class="seat-wind-badge-img" src="/assets/icons/seat-wind-{{item.windClass}}.svg" mode="aspectFit" />
           <view class="tag tag-forming" wx:if="{{item.isOwner}}">台主</view>
         </view>
         <view class="seat-player-row">
@@ -36,7 +44,7 @@
             </view>
           </block>
           <block wx:else>
-            <view class="seat-player-avatar seat-player-empty"><image class="seat-empty-icon-large" src="/assets/icons/table-seat-empty-add.png" mode="aspectFit" /></view>
+            <view class="seat-player-avatar seat-player-empty"><image class="seat-empty-icon-large" src="/assets/icons/table-seat-empty-add.svg" mode="aspectFit" /></view>
             <view class="seat-player-info">
               <text class="seat-player-name text-secondary">虚位以待</text>
             </view>
@@ -50,28 +58,36 @@
           <text class="seat-score-label text-secondary">计分底数</text>
           <text class="seat-score-val text-secondary">0</text>
         </view>
-        <view class="seat-action" wx:if="{{item.player && !item.isOwner}}">
-          <view class="seat-action-btn" catchtap="openScoringModal" data-seat="{{item.seat}}" data-name="{{item.player.nickname}}">
-            <image class="seat-action-icon" src="/assets/icons/table-balance-zero-sum.png" mode="aspectFit" /><text>比分</text>
+        <view class="seat-action" wx:if="{{item.player && !item.isSelf}}">
+          <view class="seat-action-btn" catchtap="openScoringModal" data-seat="{{item.seat}}" data-name="{{item.player.nickname}}" data-player-id="{{item.player.player_id}}">
+            <image class="seat-action-icon" src="/assets/icons/table-balance-zero-sum.svg" mode="aspectFit" /><text>比分</text>
           </view>
         </view>
         <view class="seat-action" wx:if="{{!item.player}}">
-          <view class="seat-action-btn seat-action-invite" bindtap="toggleQrModal">
-            <image class="seat-action-icon" src="/assets/icons/share-wechat.png" mode="aspectFit" /><text>出示台码入台</text>
+          <!-- 视觉层复用 .seat-action-btn（与比分按钮同款），透明 button 命中层负责拉起分享 -->
+          <view class="seat-action-btn" hover-class="seat-action-btn-active">
+            <image class="seat-action-icon" src="/assets/icons/share-wechat.svg" mode="aspectFit" /><text>呼叫雀友</text>
+            <button class="seat-action-share-hit" open-type="share"></button>
           </view>
         </view>
       </view>
     </view>
 
-    <!-- 即时流水账单 -->
+    <!-- 公告：本局总分不为 0，提醒核对补记（免锁定模式） -->
+    <view class="round-notice" wx:if="{{roundNeedFix}}">
+      <text>本局总分相差 {{roundSumDiff}} 分，请核对补记后再继续</text>
+    </view>
+
+    <!-- 流水账单 -->
     <view class="ledger-card">
       <view class="ledger-header">
-        <image class="ledger-icon" src="/assets/icons/score-statement-history.png" mode="aspectFit" />
-        <text class="ledger-title">即时流水账单</text>
+        <image class="ledger-icon" src="/assets/icons/score-statement-history.svg" mode="aspectFit" />
+        <text class="ledger-title">流水账单</text>
         <text class="ledger-count">共 {{ledger.length}} 笔记录</text>
+        <view class="ledger-next-btn" wx:if="{{game.status === 'active'}}" bindtap="startNextRound"><text>开下一局</text></view>
       </view>
       <view class="ledger-list">
-        <view class="ledger-item" wx:for="{{ledger}}" wx:key="id">
+        <view class="ledger-item" wx:for="{{ledger}}" wx:key="id" wx:if="{{index < ledgerShown}}">
           <view class="ledger-item-left">
             <view class="ledger-wind ledger-wind-{{item.windClass}}">{{item.wind}}</view>
             <view class="ledger-item-info">
@@ -83,12 +99,33 @@
             </view>
           </view>
           <view class="ledger-item-right">
-            <text class="ledger-item-score {{item.score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.score >= 0 ? '+' : ''}}{{item.score}}</text>
-            <text class="ledger-item-status">已入账</text>
+            <text class="ledger-item-score {{item.score >= 0 ? 'text-positive' : 'text-negative'}}" wx:if="{{item.mine}}">{{item.score >= 0 ? '+' : ''}}{{item.score}}</text>
+            <text class="ledger-item-score text-secondary" wx:else>{{item.amount}}</text>
+            <text class="ledger-item-status">{{item.statusText}}</text>
           </view>
         </view>
+        <view class="ledger-empty" wx:if="{{ledger.length === 0}}">
+          <text>暂无转分记录</text>
+        </view>
+      </view>
+      <!-- 分页：加载更多 / 收起 -->
+      <view class="ledger-more" wx:if="{{ledger.length > ledgerPageSize}}">
+        <text wx:if="{{ledger.length > ledgerShown}}" bindtap="loadMoreLedger">加载更多（还有 {{ledger.length - ledgerShown}} 笔）</text>
+        <text wx:else bindtap="collapseLedger">收起</text>
       </view>
     </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="room-state" wx:elif="{{loading}}">
+    <view class="room-state-spinner"></view>
+    <text class="room-state-text">加载中...</text>
+  </view>
+
+  <!-- 加载失败 -->
+  <view class="room-state" wx:else>
+    <text class="room-state-text">牌局加载失败</text>
+    <view class="room-state-btn" bindtap="loadGame"><text>重试</text></view>
   </view>
 
   <!-- 模态层 1: QR 台码弹窗 -->
@@ -132,14 +169,14 @@
           <view class="stepper-btn" bindtap="adjustScore" data-delta="2"><text>+</text></view>
         </view>
       </view>
-      <view class="score-submit-btn" bindtap="submitScore"><text>确认记入本局流水</text></view>
+      <view class="score-submit-btn" bindtap="submitScore"><text>确认转记</text></view>
     </view>
   </view>
 
   <!-- 模态层 3: 换位确认 -->
   <view class="modal-overlay {{showSwapModal ? 'modal-show' : ''}}" bindtap="closeSwapModal">
     <view class="swap-modal-card" catchtap="stopPropagation">
-          <view class="swap-modal-icon"><image src="/assets/icons/seat-swap.png" mode="aspectFit" /></view>
+          <view class="swap-modal-icon"><image src="/assets/icons/seat-swap.svg" mode="aspectFit" /></view>
       <text class="swap-modal-title">申请交换座位</text>
       <text class="swap-modal-desc">{{swapTargetText}}</text>
       <view class="swap-modal-tip"><text>对方在手机上点击「同意」后方可互换</text></view>
@@ -150,27 +187,38 @@
     </view>
   </view>
 
+  <!-- 模态层 4: 收到他人的换位申请（同意 / 拒绝） -->
+  <view class="modal-overlay {{showIncomingSwap ? 'modal-show' : ''}}">
+    <view class="swap-modal-card" catchtap="stopPropagation">
+      <view class="swap-modal-icon"><image src="/assets/icons/seat-swap.svg" mode="aspectFit" /></view>
+      <text class="swap-modal-title">收到换位申请</text>
+      <text class="swap-modal-desc">{{incomingSwap.from_nickname}} 想与你互换座位</text>
+      <view class="swap-modal-tip"><text>{{incomingSwap.swapTip}}</text></view>
+      <view class="swap-modal-actions">
+        <view class="swap-cancel-btn" bindtap="rejectIncomingSwap"><text>拒绝</text></view>
+        <view class="swap-confirm-btn" bindtap="acceptIncomingSwap"><text>同意</text></view>
+      </view>
+    </view>
+  </view>
+
   <!-- Toast -->
   <view class="toast {{showToast ? 'toast-show' : ''}}">
     <text>{{toastMsg}}</text>
   </view>
 
+  <!-- 长按换座 Lottie 动画覆盖层 -->
+  <view class="swap-anim-overlay {{showSwapAnim ? 'swap-anim-show' : ''}}">
+    <canvas type="2d" id="lottie-swap" class="swap-anim-canvas"></canvas>
+  </view>
+
   <!-- 底部操作栏 -->
-  <view class="room-footer safe-bottom">
+  <view class="room-footer safe-bottom" wx:if="{{game}}">
     <block wx:if="{{game.status === 'forming'}}">
-      <view class="btn-plain-danger" wx:if="{{isOwner}}" bindtap="doCancel"><text>取消开台</text></view>
+      <view class="btn-plain-danger" wx:if="{{isOwner}}" bindtap="doCancel"><image class="btn-plain-danger-icon" src="/assets/icons/action-exit.svg" mode="aspectFit" /><text>取消开台</text></view>
     </block>
     <block wx:if="{{game.status === 'active'}}">
-      <view class="room-actions">
-        <view class="btn-primary" bindtap="goScore"><text>入分 / 计分</text></view>
-        <view class="btn-secondary" bindtap="goSettlement"><text>查看排名</text></view>
-      </view>
-      <block wx:if="{{isOwner}}">
-        <view class="btn-plain-danger" wx:if="{{!hasScores}}" bindtap="doCancel"><text>取消开台</text></view>
-        <view class="btn-plain-danger btn-plain-danger-row" wx:else bindtap="doEnd">
-          <text>结束散台</text>
-        </view>
-      </block>
+      <!-- 未记分时台主仍可取消开台；已记分的「结束散台」入口移至右上角，避免重复 -->
+      <view class="btn-plain-danger" wx:if="{{isOwner && !hasScores}}" bindtap="doCancel"><image class="btn-plain-danger-icon" src="/assets/icons/action-exit.svg" mode="aspectFit" /><text>取消开台</text></view>
     </block>
     <block wx:if="{{game.status === 'ended'}}">
       <view class="btn-primary" bindtap="goSettlement"><text>查看找数</text></view>

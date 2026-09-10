@@ -1,0 +1,5 @@
+<svg height="40" id="svg-tab-mine-active" viewBox="0 0 64 64" width="40" xmlns="http://www.w3.org/2000/svg">
+<circle cx="32" cy="32" fill="#005235" r="23"/>
+<circle cx="32" cy="24" fill="#a6f3c9" r="7.5"/>
+<path d="M19 47 c0 -6.5 5.5 -11 13 -11 s13 4.5 13 11" fill="#a6f3c9"/>
+</svg>

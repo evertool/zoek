@@ -33,6 +33,8 @@ type CreateAdjustmentRequest struct {
 	Amount         int    `json:"amount"`
 	Reason         string `json:"reason"`
 	RequestID      string `json:"request_id"`
+	// AutoAccept: 台间记分（比分）场景无需对方确认，建单即生效
+	AutoAccept bool `json:"auto_accept"`
 }
 
 type AdjustmentResponse struct {
@@ -150,6 +152,7 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 		requestID = fmt.Sprintf("adj-%d-%d-%d", gameID, req.RoundID, time.Now().UnixNano())
 	}
 
+	now := time.Now()
 	adj := &model.ScoreAdjustment{
 		GameID:         gameID,
 		RoundID:        req.RoundID,
@@ -161,7 +164,14 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 		ProposedBy:     fromPlayer.ID,
 		Status:         "pending",
 		RequestID:      requestID,
-		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		ExpiresAt:      now.Add(24 * time.Hour),
+	}
+	// 台间记分：无需对方确认，直接生效
+	if req.AutoAccept {
+		adj.Status = "accepted"
+		resolvedAt := now
+		adj.ResolvedAt = &resolvedAt
+		adj.ResolvedBy = &userID
 	}
 
 	if err := h.Store.CreateAdjustment(adj); err != nil {
@@ -179,7 +189,9 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 	}
 
 	var message string
-	if req.AdjustmentType == "supplement" {
+	if req.AutoAccept {
+		message = fmt.Sprintf("已转记 %d 分给 %s", req.Amount, toNickname)
+	} else if req.AdjustmentType == "supplement" {
 		message = fmt.Sprintf("补分请求已发送，等待%s确认", toNickname)
 	} else {
 		message = fmt.Sprintf("退分请求已发送，等待%s确认", toNickname)

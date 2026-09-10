@@ -1,0 +1,6 @@
+<svg height="42" id="svg-badge-mountain" viewBox="0 0 48 48" width="42" xmlns="http://www.w3.org/2000/svg">
+<circle cx="24" cy="24" fill="#f0f9ff" r="21" stroke="#0284c7" stroke-width="2"/>
+<path d="M10 35l10-15 6 9 5-7 7 13z" fill="#0284c7"/>
+<path d="M20 20l3 5-3 2z" fill="#bae6fd"/>
+<line stroke="#0369a1" stroke-linecap="round" stroke-width="2.5" x1="8" x2="40" y1="36" y2="36"/>
+</svg>
