@@ -15,7 +15,9 @@ try {
 const POLL_INTERVAL = 4000
 const LEDGER_PAGE_SIZE = 5 // 流水账单每页条数
 const WINDS = ['東', '南', '西', '北']
-const WIND_CLASSES = ['east', 'south', 'west', 'north']
+// 座位 → 桌面方位：与 WINDS 同序（東 南 西 北）→ 左 上 右 下
+// 即 南在上、東在左、西在右、北在下（沿用设计稿的方位，不要按通用罗盘翻成「北在上」）
+const SEAT_POS = ['left', 'top', 'right', 'bottom']
 // 「收齐」成功后随机播一句战报口号（粤语口吻）
 const RECEIPT_SLOGANS = [
   '哩铺我赢晒！再接再厉！',
@@ -44,6 +46,10 @@ Page({
     ledgerShown: LEDGER_PAGE_SIZE,
     ledgerPageSize: LEDGER_PAGE_SIZE,
     canConfirmReceipt: false,
+    roundCollected: false,
+    receiptX: 0,
+    receiptSlideMax: 0,
+    slideFade: 1,
     showSwapModal: false,
     swapTargetSeat: 0,
     showIncomingSwap: false,
@@ -157,8 +163,7 @@ Page({
       var score = player ? (player.total_score || 0) : 0
       seats.push({
         seat: i + 1,
-        wind: WINDS[i],
-        windClass: WIND_CLASSES[i],
+        pos: SEAT_POS[i],
         player: player,
         isOwner: isOwner,
         isSelf: isSelf,
@@ -195,7 +200,7 @@ Page({
     var players = this.data.players || []
     for (var i = 0; i < players.length; i++) {
       var p = players[i]
-      infoByPlayer[p.player_id] = { name: p.nickname, seat: p.seat || 0 }
+      infoByPlayer[p.player_id] = { name: p.nickname, seat: p.seat || 0, avatar: p.avatar_url || '' }
       if (p.user_id === app.globalData.userID) myPlayerID = p.player_id
     }
     var rounds = (this.data.game && this.data.game.rounds) || []
@@ -212,31 +217,29 @@ Page({
         return tb - ta
       })
       var ledger = list.map(function(a, idx) {
-        var from = infoByPlayer[a.from_player_id] || { name: '雀友', seat: 0 }
-        var to = infoByPlayer[a.to_player_id] || { name: '雀友', seat: 0 }
+        var from = infoByPlayer[a.from_player_id] || { name: '雀友', avatar: '' }
+        var to = infoByPlayer[a.to_player_id] || { name: '雀友', avatar: '' }
         var outgoing = a.from_player_id === myPlayerID
         var incoming = a.to_player_id === myPlayerID
         var mine = outgoing || incoming
-        var peerSeat = outgoing ? to.seat : from.seat
-        var windIdx = peerSeat > 0 ? (peerSeat - 1) % 4 : 0
-        var statusText = a.status === 'accepted' ? '已入账'
-          : a.status === 'pending' ? '待确认'
-          : a.status === 'rejected' ? '已拒绝' : '已取消'
-        var desc = outgoing ? ('转给 ' + to.name)
-          : incoming ? (from.name + ' 转给我')
-          : (from.name + ' 转给 ' + to.name)
+        // 头像取「对方」：我的记录显示对手，别人的记录显示出分方
+        var peer = outgoing ? to : from
+        // 文案统一「A → B」，自己显示为「我」
+        var fromName = outgoing ? '我' : from.name
+        var toName = incoming ? '我' : to.name
         var roundNum = infoByRound[a.round_id]
-        var roundLabel = roundNum ? ('第' + roundNum + '局 · ') : ''
+        var subParts = []
+        if (roundNum) subParts.push('第' + roundNum + '局')
+        subParts.push(util.formatTime(a.created_at))
         return {
           id: a.id || idx,
-          wind: WINDS[windIdx],
-          windClass: WIND_CLASSES[windIdx],
-          desc: desc,
-          sub: (roundLabel ? roundLabel : '') + (a.reason ? a.reason + ' · ' : '') + util.formatTime(a.created_at),
+          avatar: peer.avatar || '',
+          peerInitial: (peer.name || '雀')[0],
+          desc: fromName + ' → ' + toName,
+          sub: subParts.join(' · '),
           score: mine ? (outgoing ? -a.amount : a.amount) : 0,
           amount: a.amount,
-          mine: mine,
-          statusText: statusText
+          mine: mine
         }
       })
       // 分页：保留用户已展开的条数，避免轮询刷新后被收起
@@ -247,9 +250,36 @@ Page({
         ledger: ledger,
         ledgerShown: shown,
         hasScores: this.data.hasScores || ledger.length > 0,
-        canConfirmReceipt: this.isTopEarner(list, myPlayerID)
+        canConfirmReceipt: this.isTopEarner(list, myPlayerID),
+        roundCollected: this.hasRoundIncome(list)
+      }, () => {
+        // 滑动条出现后量一次轨道宽度（宽度不随数据变化，量一次即可）
+        if (this.data.canConfirmReceipt && !this._slideMax) this.measureReceiptSlide()
       })
     }).catch(() => {})
+  },
+
+  // 当前局 id（后端只在当前局 open 时返回 current_round_number）
+  currentRoundID() {
+    var game = this.data.game
+    if (!game) return 0
+    var num = game.current_round_number || 0
+    var rounds = game.rounds || []
+    for (var r = 0; r < rounds.length; r++) {
+      if (rounds[r].round_number === num) return rounds[r].round_id
+    }
+    return 0
+  },
+
+  // 本局是否已有入账的转分（账单标题的「已收齐」状态）
+  hasRoundIncome(list) {
+    var curRoundID = this.currentRoundID()
+    if (!curRoundID) return false
+    for (var i = 0; i < list.length; i++) {
+      var adj = list[i]
+      if (adj && adj.status === 'accepted' && adj.round_id === curRoundID) return true
+    }
+    return false
   },
 
   // 「收齐」按钮只给「本局转分收入最高」的雀友看到：
@@ -260,13 +290,7 @@ Page({
     var game = this.data.game
     if (!game || game.status !== 'active') return false
 
-    // 定位当前局（后端只在当前局 open 时返回 current_round_number）
-    var curRoundNum = game.current_round_number || 0
-    var curRoundID = 0
-    var rounds = game.rounds || []
-    for (var r = 0; r < rounds.length; r++) {
-      if (rounds[r].round_number === curRoundNum) { curRoundID = rounds[r].round_id; break }
-    }
+    var curRoundID = this.currentRoundID()
 
     var incomeByPlayer = {}
     for (var i = 0; i < list.length; i++) {
@@ -300,18 +324,56 @@ Page({
     this.setData({ ledgerShown: LEDGER_PAGE_SIZE })
   },
 
+  // ── 「收齐」右滑确认 ──
+  // 轨道宽度渲染后用 SelectorQuery 量一次；行程 = 轨道宽 - 滑块宽（滑块正方形，宽 = 轨道高）
+  measureReceiptSlide() {
+    wx.createSelectorQuery().in(this).select('.receipt-slide').boundingClientRect(rect => {
+      if (!rect) return
+      this._slideMax = Math.max(1, rect.width - rect.height)
+      this.setData({ receiptSlideMax: this._slideMax })
+    }).exec()
+  },
+
+  onSlideStart(e) {
+    this._slideActive = true
+    if (!this._slideMax) this.measureReceiptSlide()
+    this._slideStartX = (e.touches && e.touches[0]) ? e.touches[0].clientX : 0
+  },
+
+  onSlideMove(e) {
+    if (!this._slideActive || !this._slideMax) return
+    var cx = (e.touches && e.touches[0]) ? e.touches[0].clientX : this._slideStartX
+    var dx = cx - this._slideStartX
+    if (dx < 0) dx = 0
+    if (dx > this._slideMax) dx = this._slideMax
+    this.setData({ receiptX: dx, slideFade: Math.max(0, 1 - dx / this._slideMax) })
+  },
+
+  onSlideEnd() {
+    if (!this._slideActive) return
+    this._slideActive = false
+    // 滑到 85% 以上算确认，否则回弹
+    if (this._slideMax > 0 && this.data.receiptX >= this._slideMax * 0.85) {
+      this.confirmReceipt()
+    } else {
+      this.setData({ receiptX: 0, slideFade: 1 })
+    }
+  },
+
   // 收齐：本局转分收入最高的雀友确认收到钱 → 结束当前局并开新一局
-  // 一下点走，不弹二次确认；成功后播一句战报口号
-  // （局边界由人标记，转分恒为 0 和，无法自动推断）
+  // 右滑确认，不弹二次确认；确认后按钮立即消失，并播一句战报口号
   confirmReceipt() {
     if (this._receiptSending) return
     this._receiptSending = true
+    this.setData({ canConfirmReceipt: false, receiptX: 0, slideFade: 1 })
     api.post('/games/' + this.data.gameID + '/rounds/manual-next', {}).then(() => {
       this._receiptSending = false
       this.showToast(RECEIPT_SLOGANS[Math.floor(Math.random() * RECEIPT_SLOGANS.length)])
       this.loadGame()
     }).catch(() => {
+      // 失败时把按钮放回来，免得用户以为已经收齐
       this._receiptSending = false
+      this.loadLedger()
     })
   },
 
