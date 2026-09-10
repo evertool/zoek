@@ -11,11 +11,13 @@
 .hero-aura { position: absolute; top: 50%; left: 50%; width: 320rpx; height: 320rpx; transform: translate(-50%, -50%); background: radial-gradient(circle, rgba(0,82,53,0.08) 0%, transparent 70%); border-radius: 50%; animation: pulse 3s ease-in-out infinite; }
 .rain-tile { position: absolute; width: 100rpx; height: 132rpx; font-size: 48rpx; z-index: 2; }
 .rain-tile-1 { left: 60rpx; top: 180rpx; }
-.rain-tile-2 { left: 140rpx; top: 200rpx; }
+.rain-tile-2 { left: 200rpx; top: 170rpx; }
 .rain-tile-3 { left: 240rpx; top: 190rpx; }
-.rain-tile-4 { left: 80rpx; top: 220rpx; }
+.rain-tile-4 { left: 60rpx; top: 246rpx; }
 .rain-tile-5 { left: 320rpx; top: 210rpx; }
-.rain-tile-6 { left: 200rpx; top: 170rpx; }
+.rain-tile-6 { left: 140rpx; top: 200rpx; }
+/* 主牌（發 / 红中）恒定压在方位牌（南/東/北）之上——方位牌落地更晚，不得盖住主牌 */
+.rain-tile-1, .rain-tile-2 { z-index: 6; }
 
 @keyframes drop-from-top-1 { 0%{transform:translate(0,-400rpx) rotate(-180deg) scale(0.7);opacity:0} 10%{opacity:1} 35%{transform:translate(0,0) rotate(-360deg) scale(1.15,0.8)} 45%{transform:translate(0,-35rpx) rotate(-340deg) scale(0.9,1.1)} 60%{transform:translate(0,0) rotate(-350deg) scale(1.05,0.95)} 75%{transform:translate(0,-12rpx) rotate(-348deg) scale(0.97,1.03)} 90%{transform:translate(0,0) rotate(-350deg) scale(1.02,0.98)} 100%{transform:translate(0,0) rotate(-350deg) scale(1,1)} }
 .anim-drop-1 { animation: drop-from-top-1 2.5s cubic-bezier(0.25,0.1,0.25,1) both; }

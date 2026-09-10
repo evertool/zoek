@@ -62,7 +62,7 @@ Page({
     api.post('/games/join', {
       game_id: gameID,
       request_id: api.genRequestID()
-    }).then(res => {
+    }, { silent: true }).then(res => {
       wx.redirectTo({ url: `/pages/room/room?game_id=${res.game_id}` })
     }).catch(err => this.handleJoinError(err))
   },
@@ -87,12 +87,17 @@ Page({
     }
   },
 
+  // 翻去首页（牌局 tab 页），与 guard 的兜底跳转保持一致
+  goHome() {
+    wx.reLaunch({ url: '/pages/index/index' })
+  },
+
   tryJoin() {
     this.setData({ joining: true })
     api.post('/games/join', {
       invite_token: this.data.inviteToken,
       request_id: api.genRequestID()
-    }).then(res => {
+    }, { silent: true }).then(res => {
       wx.redirectTo({ url: `/pages/room/room?game_id=${res.game_id}` })
     }).catch(err => {
       if (err && err.action === 'BACK_TO_ROOM' && err.game_id) {

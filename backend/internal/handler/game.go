@@ -504,6 +504,11 @@ func (h *GameHandler) JoinGame(c *gin.Context) {
 	}
 	if err != nil {
 		if be, ok := err.(*errs.BizError); ok {
+			// 牌台记录已不存在（散台清理后）→ 统一按「已散台」提示，不再抛技术性错误
+			if be.Code == errs.ErrNotFound.Code {
+				c.JSON(http.StatusBadRequest, errs.ErrGameDissolved)
+				return
+			}
 			c.JSON(http.StatusBadRequest, be)
 			return
 		}
@@ -533,14 +538,27 @@ func (h *GameHandler) JoinGame(c *gin.Context) {
 		return
 	}
 
+	// 已散台 / 已取消 / 已过期：牌台不再可入，提示重新开局
+	if game.Status == "ended" || game.Status == "expired" || game.Status == "cancelled" {
+		c.JSON(http.StatusBadRequest, errs.ErrGameDissolved)
+		return
+	}
+
 	// 可加入状态：组桌中；或已自动开局但还没凑满 4 人（继续凑脚，满 4 后锁定）
 	if game.Status != "forming" && game.Status != "active" {
 		c.JSON(http.StatusBadRequest, errs.ErrMembersLocked)
 		return
 	}
-	if game.Status == "active" && (game.MembersLocked || membersFull(game.ID, h)) {
-		c.JSON(http.StatusBadRequest, errs.ErrMembersLocked)
-		return
+	if game.Status == "active" {
+		// 已凑满 4 人 → 「够晒脚啦！」；仅锁定成员 → 沿用原提示
+		if membersFull(game.ID, h) {
+			c.JSON(http.StatusBadRequest, errs.ErrGameFull)
+			return
+		}
+		if game.MembersLocked {
+			c.JSON(http.StatusBadRequest, errs.ErrMembersLocked)
+			return
+		}
 	}
 
 	// Check join expiry

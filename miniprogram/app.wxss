@@ -260,5 +260,9 @@ page {
 .mj-tile-red { color: #e8442e; }
 .mj-tile-green { color: #1e6b47; }
 .mj-tile-gold { color: #a8851e; }
+.mj-tile-blue { color: #2d5a9d; }
+.mj-tile-ink { color: #2f2f2f; }
+/* 白板 = 内框双线（牌面自身描边保持默认淡色，不参与） */
 .mj-tile-blank { color: transparent; }
-.blank-inner { position: absolute; top: 14%; left: 14%; right: 14%; bottom: 14%; border: 4rpx solid #2d5a9d; border-radius: 8%; }
+.blank-inner { position: absolute; top: 14%; left: 14%; right: 14%; bottom: 14%; border: 3rpx solid #2d5a9d; border-radius: 8%; }
+.blank-inner::after { content: ''; position: absolute; top: 5rpx; left: 5rpx; right: 5rpx; bottom: 5rpx; border: 3rpx solid #2d5a9d; border-radius: 6rpx; }

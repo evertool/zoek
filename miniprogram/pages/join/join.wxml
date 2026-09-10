@@ -4,7 +4,7 @@
   <view class="join-state" wx:if="{{loading && !error}}">
     <view class="join-tiles">
       <view class="join-tile join-tile-b mj-tile mj-tile-green anim-float-slow">發</view>
-      <view class="join-tile join-tile-a mj-tile anim-float">中</view>
+      <view class="join-tile join-tile-a mj-tile mj-tile-red anim-float">中</view>
     </view>
     <view class="join-title">正在入台...</view>
     <view class="text-secondary">正在带您进入牌桌</view>
@@ -13,14 +13,14 @@
   <!-- 入台失败 -->
   <view class="join-state" wx:if="{{error}}">
     <view class="join-tiles">
-      <view class="join-tile join-tile-b mj-tile mj-tile-gold anim-bounce-in">白</view>
-      <view class="join-tile join-tile-a mj-tile anim-bounce-in delay-2">中</view>
+      <view class="join-tile join-tile-b mj-tile mj-tile-blank anim-bounce-in"><view class="blank-inner"></view></view>
+      <view class="join-tile join-tile-a mj-tile mj-tile-red anim-bounce-in delay-2">中</view>
     </view>
-    <view class="join-title anim-fade-up delay-3">入唔到台</view>
+    <view class="join-title anim-fade-up delay-3">入唔到台？</view>
     <view class="join-error card anim-fade-up delay-4">{{error}}</view>
     <view class="join-actions anim-fade-up delay-5">
       <button class="btn-primary" wx:if="{{inGameId}}" bindtap="goMyRoom">去我的牌台</button>
-      <button class="btn-primary" wx:else bindtap="tryJoin" disabled="{{joining}}">重新入台</button>
+      <button class="btn-primary" wx:else bindtap="goHome">翻去首页</button>
     </view>
   </view>
 </view>

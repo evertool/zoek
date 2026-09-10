@@ -37,13 +37,14 @@
   top: 28rpx;
   transform: rotate(-12deg);
   opacity: 0.9;
+  z-index: 3;
 }
 
 .join-tile-a {
   right: 8rpx;
   top: 6rpx;
   transform: rotate(8deg);
-  z-index: 2;
+  z-index: 3;
 }
 
 .join-title {

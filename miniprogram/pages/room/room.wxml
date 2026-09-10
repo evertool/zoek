@@ -84,7 +84,7 @@
         <image class="ledger-icon" src="/assets/icons/score-statement-history.svg" mode="aspectFit" />
         <text class="ledger-title">流水账单</text>
         <text class="ledger-count">共 {{ledger.length}} 笔记录</text>
-        <view class="ledger-next-btn" wx:if="{{game.status === 'active'}}" bindtap="startNextRound"><text>开下一局</text></view>
+        <view class="ledger-next-btn" wx:if="{{game.status === 'active' && canConfirmReceipt}}" bindtap="confirmReceipt"><text>收齐</text></view>
       </view>
       <view class="ledger-list">
         <view class="ledger-item" wx:for="{{ledger}}" wx:key="id" wx:if="{{index < ledgerShown}}">
@@ -93,7 +93,6 @@
             <view class="ledger-item-info">
               <view class="ledger-item-title-row">
                 <text class="ledger-item-title">{{item.desc}}</text>
-                <text class="ledger-item-time">{{item.timeText}}</text>
               </view>
               <text class="ledger-item-sub">{{item.sub}}</text>
             </view>
@@ -152,24 +151,35 @@
   <view class="modal-overlay modal-bottom {{showScoreModal ? 'modal-show' : ''}}">
     <view class="score-sheet" catchtap="stopPropagation">
       <view class="score-sheet-header">
-        <view>
-          <text class="score-sheet-label">快捷台间记分</text>
-          <text class="score-sheet-title">向【{{scoreTargetSeat}}位 · {{scoreTargetName}}】转记分数</text>
+        <view class="score-sheet-icon"><image src="/assets/icons/arrows-split-up-and-left-solid-full.svg" mode="aspectFit" /></view>
+        <view class="score-sheet-heading">
+          <text class="score-sheet-title">比分转入给 <text class="score-sheet-name">{{scoreTargetName}}（{{scoreTargetWind}}位）</text></text>
+          <text class="score-sheet-sub">你扣除对应分数，对方增加对应分数</text>
         </view>
         <view class="modal-close-btn" bindtap="closeScoringModal"><text>✕</text></view>
       </view>
-      <view class="score-quick-grid">
-        <view class="score-quick-btn" wx:for="{{[4, 8, 16, 24]}}" wx:key="*this" data-val="{{item}}" bindtap="setScoreValue"><text>+{{item}}</text></view>
-      </view>
-      <view class="score-stepper">
-        <text class="score-stepper-label">入账积分</text>
-        <view class="score-stepper-control">
-          <view class="stepper-btn" bindtap="adjustScore" data-delta="-2"><text>-</text></view>
-          <text class="stepper-val">{{currentScore}}</text>
-          <view class="stepper-btn" bindtap="adjustScore" data-delta="2"><text>+</text></view>
+
+      <view class="score-amount-box">
+        <view class="score-step-btn" bindtap="adjustScore" data-delta="-1"><text>−</text></view>
+        <view class="score-amount-center">
+          <text class="score-amount-label">本次转入分值</text>
+          <view class="score-amount-value">
+            <input class="score-amount-input" type="number" maxlength="3" value="{{scoreText}}" bindinput="onScoreInput" />
+            <text class="score-amount-unit">分</text>
+          </view>
         </view>
+        <view class="score-step-btn" bindtap="adjustScore" data-delta="1"><text>＋</text></view>
       </view>
-      <view class="score-submit-btn" bindtap="submitScore"><text>确认转记</text></view>
+
+      <text class="score-preset-label">快捷预设分值</text>
+      <view class="score-preset-row">
+        <view class="score-preset-btn {{currentScore === item ? 'score-preset-on' : ''}}" wx:for="{{[5, 10, 20]}}" wx:key="*this" data-val="{{item}}" bindtap="setScoreValue"><text>{{item}} 分</text></view>
+      </view>
+
+      <view class="score-submit-btn {{currentScore <= 0 ? 'score-submit-btn-off' : ''}}" bindtap="submitScore">
+        <image class="score-submit-icon" src="/assets/icons/status-check-on-primary.svg" mode="aspectFit" />
+        <text>确认比分：转出 {{currentScore}} 分</text>
+      </view>
     </view>
   </view>
 

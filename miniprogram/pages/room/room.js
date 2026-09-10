@@ -16,6 +16,14 @@ const POLL_INTERVAL = 4000
 const LEDGER_PAGE_SIZE = 5 // 流水账单每页条数
 const WINDS = ['東', '南', '西', '北']
 const WIND_CLASSES = ['east', 'south', 'west', 'north']
+// 「收齐」成功后随机播一句战报口号（粤语口吻）
+const RECEIPT_SLOGANS = [
+  '哩铺我赢晒！再接再厉！',
+  '收齐钱，下铺再嚟！',
+  '手气咁旺，下铺照旧！',
+  '袋袋平安，继续开台！',
+  '赢到尽，再战一铺！'
+]
 
 Page({
   data: {
@@ -35,13 +43,16 @@ Page({
     showScoreModal: false,
     ledgerShown: LEDGER_PAGE_SIZE,
     ledgerPageSize: LEDGER_PAGE_SIZE,
+    canConfirmReceipt: false,
     showSwapModal: false,
     swapTargetSeat: 0,
     showIncomingSwap: false,
     incomingSwap: null,
     scoreTargetSeat: '',
     scoreTargetName: '',
+    scoreTargetWind: '',
     currentScore: 0,
+    scoreText: '0',
     swapTargetText: '',
     showToast: false,
     toastMsg: '',
@@ -225,8 +236,7 @@ Page({
           score: mine ? (outgoing ? -a.amount : a.amount) : 0,
           amount: a.amount,
           mine: mine,
-          statusText: statusText,
-          timeText: util.formatTime(a.created_at)
+          statusText: statusText
         }
       })
       // 分页：保留用户已展开的条数，避免轮询刷新后被收起
@@ -236,9 +246,48 @@ Page({
       this.setData({
         ledger: ledger,
         ledgerShown: shown,
-        hasScores: this.data.hasScores || ledger.length > 0
+        hasScores: this.data.hasScores || ledger.length > 0,
+        canConfirmReceipt: this.isTopEarner(list, myPlayerID)
       })
     }).catch(() => {})
+  },
+
+  // 「收齐」按钮只给「本局转分收入最高」的雀友看到：
+  // - 只统计本局已入账（accepted）的转分，未入账的不算「收到钱」
+  // - 并列同分时取 player_id 最小者，保证全场有且只有一个按钮
+  isTopEarner(list, myPlayerID) {
+    if (!myPlayerID) return false
+    var game = this.data.game
+    if (!game || game.status !== 'active') return false
+
+    // 定位当前局（后端只在当前局 open 时返回 current_round_number）
+    var curRoundNum = game.current_round_number || 0
+    var curRoundID = 0
+    var rounds = game.rounds || []
+    for (var r = 0; r < rounds.length; r++) {
+      if (rounds[r].round_number === curRoundNum) { curRoundID = rounds[r].round_id; break }
+    }
+
+    var incomeByPlayer = {}
+    for (var i = 0; i < list.length; i++) {
+      var adj = list[i]
+      if (!adj || adj.status !== 'accepted') continue
+      if (curRoundID && adj.round_id !== curRoundID) continue
+      if (!adj.to_player_id) continue
+      incomeByPlayer[adj.to_player_id] = (incomeByPlayer[adj.to_player_id] || 0) + (adj.amount || 0)
+    }
+
+    var topPlayerID = 0
+    var topIncome = 0
+    Object.keys(incomeByPlayer).forEach(function(key) {
+      var pid = Number(key)
+      var income = incomeByPlayer[key]
+      if (income > topIncome || (income === topIncome && topPlayerID && pid < topPlayerID)) {
+        topIncome = income
+        topPlayerID = pid
+      }
+    })
+    return topPlayerID > 0 && topPlayerID === myPlayerID
   },
 
   loadMoreLedger() {
@@ -251,18 +300,18 @@ Page({
     this.setData({ ledgerShown: LEDGER_PAGE_SIZE })
   },
 
-  // 手动「开下一局」：局边界由人标记（转分恒为 0 和，无法自动推断）
-  startNextRound() {
-    wx.showModal({
-      title: '开下一局',
-      content: '结束当前局并开始新一局？',
-      success: (res) => {
-        if (!res.confirm) return
-        api.post('/games/' + this.data.gameID + '/rounds/manual-next', {}).then(res2 => {
-          this.showToast(res2.message || '已开始新一局')
-          this.loadGame()
-        }).catch(() => {})
-      }
+  // 收齐：本局转分收入最高的雀友确认收到钱 → 结束当前局并开新一局
+  // 一下点走，不弹二次确认；成功后播一句战报口号
+  // （局边界由人标记，转分恒为 0 和，无法自动推断）
+  confirmReceipt() {
+    if (this._receiptSending) return
+    this._receiptSending = true
+    api.post('/games/' + this.data.gameID + '/rounds/manual-next', {}).then(() => {
+      this._receiptSending = false
+      this.showToast(RECEIPT_SLOGANS[Math.floor(Math.random() * RECEIPT_SLOGANS.length)])
+      this.loadGame()
+    }).catch(() => {
+      this._receiptSending = false
     })
   },
 
@@ -312,8 +361,11 @@ Page({
       showScoreModal: true,
       scoreTargetSeat: seat,
       scoreTargetName: name,
+      // 座位 → 风向（座位 1-4 依次为 東南西北，与 applyGame 的 seats 构造一致）
+      scoreTargetWind: WINDS[Number(seat) - 1] || '',
       scoreTargetId: playerId,
-      currentScore: 0
+      currentScore: 0,
+      scoreText: '0'
     })
   },
 
@@ -321,14 +373,23 @@ Page({
     this.setData({ showScoreModal: false })
   },
 
+  // 快捷预设：直接「设为」该分值（不是累加）
   setScoreValue(e) {
-    var val = Number(e.currentTarget.dataset.val)
-    this.setData({ currentScore: this.data.currentScore + val })
+    var val = Number(e.currentTarget.dataset.val) || 0
+    this.setData({ currentScore: val, scoreText: String(val) })
   },
 
   adjustScore(e) {
     var delta = Number(e.currentTarget.dataset.delta)
-    this.setData({ currentScore: this.data.currentScore + delta })
+    var next = (this.data.currentScore || 0) + delta
+    if (next < 0) next = 0
+    this.setData({ currentScore: next, scoreText: String(next) })
+  },
+
+  // 直接手输分数：只留数字，空输入按 0 处理
+  onScoreInput(e) {
+    var raw = String(e.detail.value || '').replace(/[^0-9]/g, '')
+    this.setData({ scoreText: raw, currentScore: Number(raw) || 0 })
   },
 
   submitScore() {
@@ -575,7 +636,8 @@ Page({
             request_id: api.genRequestID()
           }).then(() => {
             wx.showToast({ title: '已取消', icon: 'success' })
-            setTimeout(function() { wx.navigateBack() }, 1000)
+            // 取消后牌台已不存在，直接回首页（分享/扫码直接进本页时页面栈只有一层，navigateBack 会失效）
+            setTimeout(function() { wx.reLaunch({ url: '/pages/index/index' }) }, 1000)
           })
         }
       }

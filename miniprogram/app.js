@@ -5,8 +5,8 @@ const util = require('./utils/util')
 // 按运行环境切换 baseURL（小程序无 process.env，用 envVersion 区分）
 // develop = 本地开发；trial = 体验版；release = 正式版
 const ENV_CONFIG = {
-  develop: 'http://192.168.1.18:8080/api/v1',
-  trial: 'http://192.168.1.18:8080/api/v1',   // TODO: 填体验版后端地址
+  develop: 'http://192.168.0.128:8080/api/v1',
+  trial: 'http://192.168.0.128:8080/api/v1',   // TODO: 填体验版后端地址
   release: 'https://api.example.com/api/v1'      // TODO: 填正式版后端地址
 }
 const envVersion = (() => {

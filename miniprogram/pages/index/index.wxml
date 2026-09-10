@@ -12,15 +12,15 @@
         <view class="mj-tile rain-tile rain-tile-2 mj-tile-red anim-drop-2">中</view>
         <view class="mj-tile rain-tile rain-tile-3 mj-tile-blank anim-drop-3"><view class="blank-inner"></view></view>
         <view class="mj-tile rain-tile rain-tile-4 mj-tile-gold anim-drop-4">南</view>
-        <view class="mj-tile rain-tile rain-tile-5 mj-tile-red anim-drop-5">北</view>
-        <view class="mj-tile rain-tile rain-tile-6 mj-tile-green anim-drop-6">東</view>
+        <view class="mj-tile rain-tile rain-tile-5 mj-tile-ink anim-drop-5">北</view>
+        <view class="mj-tile rain-tile rain-tile-6 mj-tile-blue anim-drop-6">東</view>
       </view>
     </view>
     <view class="hero-brand anim-fade-up delay-5">得闲开台</view>
     <view class="hero-slogan anim-fade-up delay-6">粤语麻雀记分神器</view>
-    <view class="hero-sub anim-fade-up delay-7">自己记自己嘅分，零和校验唔使争拗</view>
+    <!-- <view class="hero-sub anim-fade-up delay-7">自己记自己嘅分，零和校验唔使争拗</view> -->
     <view class="login-btn-wrap anim-fade-up delay-8">
-      <button class="btn-primary login-btn" bindtap="doLogin">微信登入</button>
+      <button class="btn-primary login-btn" bindtap="doLogin">微信授权</button>
     </view>
     <view class="hero-footer anim-fade-up delay-8">
       <view class="footer-line"></view>
@@ -80,7 +80,7 @@
         </view>
         <view class="create-btn-wrap">
           <view class="create-btn">
-            <image class="create-btn-icon" src="/assets/icons/stepper-plus.svg" mode="aspectFit" />
+            <image class="create-btn-icon" src="/assets/icons/stepper-plus-on-primary.svg" mode="aspectFit" />
             <text class="create-btn-text">即刻开台</text>
           </view>
         </view>

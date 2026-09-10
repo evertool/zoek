@@ -6,9 +6,10 @@ const app = getApp()
  * @param {string} method — GET / POST / PUT
  * @param {string} path — API 路径（不含 baseURL）
  * @param {object} data — 请求数据
+ * @param {object} opts — 可选：{ silent: true } 不自动弹 toast（页面自行展示错误）
  * @returns {Promise<object>} — 成功时 resolve data 字段
  */
-function request(method, path, data = {}) {
+function request(method, path, data = {}, opts = {}) {
   return new Promise((resolve, reject) => {
     const app = getApp()
     const header = {
@@ -37,12 +38,16 @@ function request(method, path, data = {}) {
           // 业务错误：返回 { code, message, action }
           const err = res.data || {}
           const msg = err.message || '请求失败'
-          wx.showToast({ title: msg, icon: 'none', duration: 2500 })
+          if (!opts.silent) {
+            wx.showToast({ title: msg, icon: 'none', duration: 2500 })
+          }
           reject(err)
         }
       },
       fail: (err) => {
-        wx.showToast({ title: '服务器出咗啲问题', icon: 'none' })
+        if (!opts.silent) {
+          wx.showToast({ title: '服务器出咗啲问题', icon: 'none' })
+        }
         reject(err)
       }
     })
@@ -50,24 +55,24 @@ function request(method, path, data = {}) {
 }
 
 /** GET 请求 */
-function get(path, data = {}) {
+function get(path, data = {}, opts = {}) {
   // 将 data 作为 query 参数
   const query = Object.keys(data)
     .filter(k => data[k] !== undefined && data[k] !== null)
     .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(data[k])}`)
     .join('&')
   const pathWithQuery = query ? `${path}?${query}` : path
-  return request('GET', pathWithQuery)
+  return request('GET', pathWithQuery, {}, opts)
 }
 
 /** POST 请求 */
-function post(path, data = {}) {
-  return request('POST', path, data)
+function post(path, data = {}, opts = {}) {
+  return request('POST', path, data, opts)
 }
 
 /** PUT 请求 */
-function put(path, data = {}) {
-  return request('PUT', path, data)
+function put(path, data = {}, opts = {}) {
+  return request('PUT', path, data, opts)
 }
 
 /**
