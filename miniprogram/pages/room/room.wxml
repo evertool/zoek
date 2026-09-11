@@ -56,7 +56,7 @@
               <text class="seat-empty-text">虚位以待</text>
               <view class="invite-btn" hover-class="invite-btn-active">
                 <image class="invite-icon" src="/assets/icons/table-seat-empty-add.svg" mode="aspectFit" />
-                <text>邀请入座</text>
+                <text>呼叫雀友</text>
                 <button class="invite-hit" open-type="share"></button>
               </view>
             </block>
@@ -65,18 +65,12 @@
       </view>
     </view>
 
-    <!-- 公告：本局总分不为 0，提醒核对补记（免锁定模式） -->
-    <view class="round-notice" wx:if="{{roundNeedFix}}">
-      <text>本局总分相差 {{roundSumDiff}} 分，请核对补记后再继续</text>
-    </view>
-
     <!-- 流水账单 -->
     <view class="ledger-card">
       <view class="ledger-header">
         <image class="ledger-icon" src="/assets/icons/score-statement-history.svg" mode="aspectFit" />
         <text class="ledger-title">流水账单</text>
         <text class="ledger-count">共 {{ledger.length}} 笔记录</text>
-        <view class="ledger-done" wx:if="{{roundCollected}}"><text>已收齐</text><text class="ledger-done-arrow">›</text></view>
       </view>
       <view class="ledger-list">
         <view class="ledger-item" wx:for="{{ledger}}" wx:key="id" wx:if="{{index < ledgerShown}}">
@@ -88,7 +82,6 @@
           </view>
           <text class="ledger-item-score {{item.score >= 0 ? 'text-positive' : 'text-negative'}}" wx:if="{{item.mine}}">{{item.score >= 0 ? '+' : ''}}{{item.score}}</text>
           <text class="ledger-item-score text-secondary" wx:else>{{item.amount}}</text>
-          <text class="ledger-arrow">›</text>
         </view>
         <view class="ledger-empty" wx:if="{{ledger.length === 0}}">
           <text>暂无转分记录</text>
@@ -129,10 +122,14 @@
       <view class="qr-modal-body">
         <image class="qr-modal-img" src="{{qrPath}}" mode="aspectFit" wx:if="{{qrPath}}" />
         <view class="qr-modal-img-placeholder" wx:else><text>QR</text></view>
-        <text class="qr-modal-num">台号 #{{game.game_id}}</text>
         <text class="qr-modal-tip">永久有效 · 仅限本局同台使用</text>
       </view>
-      <view class="qr-modal-btn" bindtap="toggleQrModal"><text>完成</text></view>
+      <!-- 呼叫雀友：透明 button 命中层拉起微信分享（与座位「邀请入座」同款实现） -->
+      <view class="qr-modal-btn" hover-class="qr-modal-btn-active">
+        <image class="qr-modal-btn-icon" src="/assets/icons/share-wechat.svg" mode="aspectFit" />
+        <text>呼叫雀友</text>
+        <button class="qr-modal-btn-hit" open-type="share"></button>
+      </view>
     </view>
   </view>
 
@@ -210,7 +207,7 @@
     <canvas type="2d" id="lottie-swap" class="swap-anim-canvas"></canvas>
   </view>
 
-  <!-- 底部操作栏：左侧软按钮（取消开台 / 结束散台 / 查看找数），右侧「收齐」大按钮 -->
+  <!-- 底部操作栏：左侧软按钮（取消开台 / 结束散台 / 查看找数） -->
   <view class="room-footer safe-bottom" wx:if="{{game}}">
     <view class="foot-soft" wx:if="{{isOwner && game.status === 'forming'}}" bindtap="doCancel">
       <image class="foot-soft-icon" src="/assets/icons/action-exit.svg" mode="aspectFit" /><text>取消开台</text>
@@ -222,20 +219,5 @@
       <image class="foot-soft-icon" src="/assets/icons/action-exit.svg" mode="aspectFit" /><text>结束散台</text>
     </view>
     <view class="foot-soft" wx:elif="{{game.status === 'ended'}}" bindtap="goSettlement"><text>查看找数</text></view>
-
-    <!-- 「收齐」：只给本局转分收入最高者，向右滑到底才确认，确认后按钮消失 -->
-    <!-- 用 catch 而非 bind：截住 touchmove，否则拖滑块时整页会跟着滚 -->
-    <view class="receipt-slide" wx:if="{{canConfirmReceipt}}"
-      catchtouchstart="onSlideStart" catchtouchmove="onSlideMove" catchtouchend="onSlideEnd" catchtouchcancel="onSlideEnd">
-      <view class="receipt-slide-chevrons" style="opacity: {{slideFade}};">
-        <view class="receipt-slide-chevron"></view>
-        <view class="receipt-slide-chevron"></view>
-        <view class="receipt-slide-chevron"></view>
-      </view>
-      <text class="receipt-slide-label" style="opacity: {{slideFade}};">收齐</text>
-      <view class="receipt-slide-thumb" style="transform: translateX({{receiptX}}px);">
-        <view class="receipt-cta-check"><image src="/assets/icons/status-check-success.svg" mode="aspectFit" /></view>
-      </view>
-    </view>
   </view>
 </view>

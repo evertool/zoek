@@ -66,6 +66,20 @@ func main() {
 		log.Warn("清理过期调整失败", logger.ErrorField(err))
 	}
 
+	// 5 小时超时处理：每 10 分钟扫描一次（废弃空台删除 / 有记账的自动散台结算）
+	go func() {
+		ticker := time.NewTicker(10 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			settled, cleaned, err := s.AutoExpireStaleGames()
+			if err != nil {
+				log.Warn("5 小时超时扫描失败", logger.ErrorField(err))
+			} else if settled > 0 || cleaned > 0 {
+				log.Info("5 小时超时处理完成", logger.String("settled", fmt.Sprintf("%d", settled)), logger.String("cleaned", fmt.Sprintf("%d", cleaned)))
+			}
+		}
+	}()
+
 	// JWT
 	jwtManager := middleware.NewJWTManager(cfg.JWT.Secret, cfg.JWT.TokenExpiry)
 
@@ -140,7 +154,6 @@ func main() {
 			auth.PUT("/games/:game_id/rounds/:round_id/submission", roundHandler.SubmitScore)
 			auth.POST("/games/:game_id/rounds/:round_id/lock", roundHandler.LockRound)
 			auth.POST("/games/:game_id/rounds/:round_id/next", roundHandler.CreateNextRound)
-			auth.POST("/games/:game_id/rounds/manual-next", roundHandler.ManualNextRound)
 			auth.GET("/games/:game_id/rounds/:round_id", roundHandler.GetRoundDetail)
 
 			// Adjustments

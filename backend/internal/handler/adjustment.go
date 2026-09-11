@@ -98,12 +98,8 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 		return
 	}
 
-	// Get round_id from URL param (not body)
-	req.RoundID, err = strconv.ParseInt(c.Param("round_id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
-		return
-	}
+	// 局概念已移除：转分不再关联局（RoundID 落 0，兼容旧数据列）
+	req.RoundID = 0
 
 	// Validate adjustment type
 	if req.AdjustmentType != "supplement" && req.AdjustmentType != "refund" {
@@ -133,17 +129,6 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 	}
 	if !toPlayerExists {
 		c.JSON(http.StatusBadRequest, errs.New("PLAYER_NOT_FOUND", "目标玩家不在本桌", errs.ActionRetry))
-		return
-	}
-
-	// Verify round exists and belongs to game
-	round, err := h.Store.GetRound(req.RoundID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errs.New("ROUND_NOT_FOUND", "关联局不存在", errs.ActionRetry))
-		return
-	}
-	if round.GameID != gameID {
-		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
 		return
 	}
 
@@ -177,6 +162,14 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 	if err := h.Store.CreateAdjustment(adj); err != nil {
 		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 		return
+	}
+
+	// 台间记分直接生效且牌局已结束 → 同样触发排位重排
+	if req.AutoAccept && game.Status == "ended" {
+		if err := h.Store.RecalculateGameRank(gameID); err != nil {
+			c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+			return
+		}
 	}
 
 	// Find target player nickname for message
@@ -301,6 +294,11 @@ func (h *AdjustmentHandler) AcceptAdjustment(c *gin.Context) {
 	game, _ := h.Store.GetGame(gameID)
 	if game != nil && game.Status == "ended" {
 		_ = h.Store.UpdateSettlementTime(gameID)
+		// 补退分改变最终分 → 按最新口径重排该局排位（胜负平/星级/净胜分）
+		if err := h.Store.RecalculateGameRank(gameID); err != nil {
+			c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+			return
+		}
 	}
 
 	// Find from player nickname for message

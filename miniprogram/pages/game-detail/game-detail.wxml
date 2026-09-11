@@ -13,11 +13,10 @@
       <view class="gd-hero card anim-fade-up">
         <view class="gd-hero-row">
           <view class="gd-hero-date"><view class="gd-dot"></view><text>{{detail.dateText}} {{detail.timeText}} 结束</text></view>
-          <view class="gd-pill gd-pill-blue">{{detail.completedRounds}}局 · 散台圆满</view>
+          <view class="gd-pill gd-pill-blue">散台圆满</view>
         </view>
         <view class="gd-hero-row gd-hero-row-mid">
           <text class="gd-hero-mylabel">我的净得分</text>
-          <view class="gd-pill gd-pill-blue">{{detail.completedRounds}}局 · 畅打满编</view>
         </view>
         <view class="gd-hero-row gd-hero-row-mid" wx:if="{{detail.isBalanced}}">
           <view class="gd-zero-chip"><text>⚖ 零和已平账</text></view>
@@ -62,22 +61,20 @@
         </view>
       </view>
 
-      <!-- 逐局分值流向流水 -->
+      <!-- 转分流水 -->
       <view class="gd-section anim-fade-up delay-2">
         <view class="gd-section-head">
-          <text class="gd-section-title">逐局分值流向流水</text>
-          <text class="gd-section-sub">共 {{detail.completedRounds}} 局流水</text>
+          <text class="gd-section-title">转分流水</text>
+          <text class="gd-section-sub">共 {{detail.flowCount}} 笔记录</text>
         </view>
         <view class="gd-flow-list">
-          <view class="gd-flow-item {{item.type === 'adjust' ? 'gd-flow-adjust' : ''}}" wx:for="{{flow}}" wx:key="index">
-            <view class="gd-flow-num {{item.type === 'adjust' ? 'gd-flow-num-adjust' : ''}}">
-              <text wx:if="{{item.type === 'adjust'}}">✎</text>
-              <text wx:else>{{item.numCn}}</text>
+          <view class="gd-flow-item" wx:for="{{flow}}" wx:key="id">
+            <view class="gd-flow-num">
+              <text>{{item.fromInitial}}</text>
             </view>
             <view class="gd-flow-info">
               <view class="gd-flow-title-row">
-                <text class="gd-flow-title">{{item.title}}</text>
-                <view class="gd-fix-tag" wx:if="{{item.type === 'adjust'}}">修正</view>
+                <text class="gd-flow-title">{{item.desc}}</text>
               </view>
               <text class="gd-flow-sub">{{item.sub}}</text>
             </view>
@@ -87,11 +84,11 @@
             </view>
           </view>
         </view>
+        <view class="gd-flow-empty" wx:if="{{flow.length === 0}}"><text>暂无转分记录</text></view>
       </view>
 
       <!-- 底部动作 -->
       <view class="gd-actions">
-        <view class="btn-primary" bindtap="goChart"><text>📈 图表走势分析</text></view>
         <button class="btn-secondary gd-share-btn" open-type="share"><text>私密分享给雀友 (生成明细卡)</text></button>
       </view>
     </block>

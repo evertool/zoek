@@ -5,7 +5,7 @@
     <view class="settle-header anim-fade-up">
       <view class="settle-status-pill">
         <view class="settle-status-dot"></view>
-        <text>共完成 {{settlement.completed_rounds}} 局 · 雀叙圆满</text>
+        <text>账目已清 · 雀叙圆满</text>
       </view>
       <text class="settle-title">今晚圆满散台</text>
       <view class="settle-slogan">
@@ -40,7 +40,7 @@
             <text class="winner-name">{{winnerName}}</text>
             <view class="winner-champ-tag">本台冠军</view>
           </view>
-          <text class="winner-sub">进分 5 局 · 结余领跑</text>
+          <text class="winner-sub">全场结余领跑</text>
         </view>
         <view class="winner-score-col">
           <text class="winner-score-val">+{{winnerScore}}</text>
@@ -80,16 +80,16 @@
       </view>
       <view class="stats-grid">
         <view class="stats-cell">
-          <text class="stats-val">{{settlement.completed_rounds}}</text>
-          <text class="stats-label">总局数</text>
+          <text class="stats-val">{{settlement.adjustment_count}}</text>
+          <text class="stats-label">转分笔数</text>
         </view>
         <view class="stats-cell">
-          <text class="stats-val text-positive">+{{settlement.max_round_score || 24}}</text>
-          <text class="stats-label">单局最高</text>
+          <text class="stats-val text-positive">+{{settlement.top_score}}</text>
+          <text class="stats-label">最高净胜</text>
         </view>
         <view class="stats-cell">
-          <text class="stats-val" style="color: var(--secondary);">{{settlement.transfer_count || 16}}次</text>
-          <text class="stats-label">转分流水</text>
+          <text class="stats-val" style="color: var(--secondary);">{{settlement.player_count}}位</text>
+          <text class="stats-label">参与雀友</text>
         </view>
       </view>
     </view>

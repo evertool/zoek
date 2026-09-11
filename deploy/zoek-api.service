@@ -1,0 +1,16 @@
+[Unit]
+Description=Zoek API
+After=network.target mysqld.service
+
+[Service]
+Type=simple
+User=zoek
+WorkingDirectory=/opt/zoek
+ExecStart=/opt/zoek/api
+Restart=on-failure
+RestartSec=3
+# 配置：/opt/zoek/config.yaml（-config 参数由 api 内部默认 ./config.yaml）
+# 也可用环境变量覆盖：ZOEK_DB_* / ZOEK_WECHAT_* 等
+
+[Install]
+WantedBy=multi-user.target

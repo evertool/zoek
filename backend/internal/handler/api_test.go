@@ -77,7 +77,6 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 			auth.PUT("/games/:game_id/rounds/:round_id/submission", roundH.SubmitScore)
 			auth.POST("/games/:game_id/rounds/:round_id/lock", roundH.LockRound)
 			auth.POST("/games/:game_id/rounds/:round_id/next", roundH.CreateNextRound)
-			auth.POST("/games/:game_id/rounds/manual-next", roundH.ManualNextRound)
 			auth.GET("/games/:game_id/rounds/:round_id", roundH.GetRoundDetail)
 
 			auth.POST("/games/:game_id/rounds/:round_id/adjustments", adjH.CreateAdjustment)
@@ -509,35 +508,6 @@ func TestListAdjustmentsVisibleToAllPlayers(t *testing.T) {
 	adjs := parseJSON(t, w)["adjustments"].([]interface{})
 	if len(adjs) != 1 {
 		t.Fatalf("joiner adjustments = %d, want 1", len(adjs))
-	}
-}
-
-// TestManualNextRound：手动开下一局（免锁定的局边界由人标记）。
-func TestManualNextRound(t *testing.T) {
-	r, _, _ := testSetup(t)
-	gameID, auth1, _ := createGameAndStart(t, r)
-
-	// 直接手动切局：当前局无旧版提交（纯转分流），允许收尾并开新局
-	path := fmt.Sprintf("/api/v1/games/%d/rounds/manual-next", gameID)
-	w := doRequest(t, r, "POST", path, auth1, map[string]string{})
-	assertStatus(t, w, http.StatusOK)
-	m := parseJSON(t, w)
-	if m["round_number"].(float64) != 2 {
-		t.Fatalf("round_number = %v, want 2", m["round_number"])
-	}
-
-	// 新局可正常记账
-	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auth1, nil)
-	assertStatus(t, w, http.StatusOK)
-	roundID := int64(parseJSON(t, w)["round_id"].(float64))
-
-	// 旧版提交未配平时拒绝切局
-	_ = doRequest(t, r, "PUT", fmt.Sprintf("/api/v1/games/%d/rounds/%d/submission", gameID, roundID), auth1,
-		map[string]interface{}{"score": 10, "request_id": "s1"})
-	w = doRequest(t, r, "POST", path, auth1, map[string]string{})
-	assertStatus(t, w, http.StatusBadRequest)
-	if m := parseJSON(t, w); m["code"] != "ROUND_INCOMPLETE" {
-		t.Fatalf("code = %v, want ROUND_INCOMPLETE", m["code"])
 	}
 }
 

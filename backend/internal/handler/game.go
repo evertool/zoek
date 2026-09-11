@@ -60,23 +60,12 @@ type GameDetailResponse struct {
 	PlayerCount        int          `json:"player_count"`
 	MaxPlayers         int          `json:"max_players"`
 	MembersLocked      bool         `json:"members_locked"`
-	CurrentRoundNumber *int         `json:"current_round_number"`
-	CompletedRounds    int          `json:"completed_rounds"`
+	CurrentRoundNumber *int         `json:"current_round_number"` // 遗留字段：局概念已移除，新牌局恒为空
+	CompletedRounds    int          `json:"completed_rounds"`     // 遗留字段：仅遗留逐人提交流数据 >0
 	StartedAt          *time.Time   `json:"started_at,omitempty"`
 	EndedAt            *time.Time   `json:"ended_at,omitempty"`
 	CreatedAt          time.Time    `json:"created_at"`
 	Players            []PlayerInfo `json:"players"`
-	// 台间免锁定：局边界由玩家手动「开下一局」标记；need_fix 仅遗留逐人提交未配平时出现
-	RoundNeedFix bool  `json:"round_need_fix"`
-	RoundSum     int64 `json:"round_sum"`
-	// 全部局（id + 局号），供流水账单标注「第 N 局」
-	Rounds []RoundBrief `json:"rounds"`
-}
-
-// RoundBrief 流水账单标注局号所需的最小局信息。
-type RoundBrief struct {
-	RoundID     int64 `json:"round_id"`
-	RoundNumber int   `json:"round_number"`
 }
 
 type PlayerInfo struct {
@@ -400,33 +389,32 @@ func (h *GameHandler) GetGame(c *gin.Context) {
 		return
 	}
 
+	// 5 小时超时处理：空台删除 / 有记账自动散台结算
+	if game.Status == "active" {
+		expired, cleaned, sErr := h.Store.AutoExpireStaleGame(gameID)
+		if sErr != nil {
+			c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+			return
+		}
+		if cleaned {
+			c.JSON(http.StatusNotFound, errs.ErrNotFound)
+			return
+		}
+		if expired {
+			game, err = h.Store.GetGame(gameID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+				return
+			}
+		}
+	}
+
 	players, _ := h.Store.GetGamePlayers(gameID)
 
-	round, _ := h.Store.GetCurrentRound(gameID)
-	var roundNum *int
-	// 公告仅用于遗留逐人提交流未配平的极端情况（转分恒为 0 和，不会触发）
-	roundNeedFix := false
-	var roundSum int64
-	if round != nil && round.Status == "open" {
-		n := round.RoundNumber
-		roundNum = &n
-		if subs, sErr := h.Store.GetSubmissions(round.ID); sErr == nil {
-			for _, sb := range subs {
-				roundSum += int64(sb.Score)
-			}
-			roundNeedFix = len(subs) > 0 && roundSum != 0
-		}
-	}
+	// 局概念已移除：completed_rounds 仅对遗留数据有意义，新牌局为 0
 	completed, _ := h.Store.CountLockedRounds(gameID)
 
-	roundBriefs := make([]RoundBrief, 0, 8)
-	if allRounds, rErr := h.Store.GetRoundsByGameID(gameID); rErr == nil {
-		for _, r := range allRounds {
-			roundBriefs = append(roundBriefs, RoundBrief{RoundID: r.ID, RoundNumber: r.RoundNumber})
-		}
-	}
-
-	// 实时战绩：已锁定局的记分 + 已生效的转分（用于房间页座位卡展示）
+	// 实时战绩：已锁定局的记分（遗留数据）+ 已生效的转分（用于房间页座位卡展示）
 	totalByPlayer := map[int64]int{}
 	if totals, _, aggErr := h.Store.AggregateSettlement(gameID); aggErr == nil {
 		for _, t := range totals {
@@ -469,11 +457,8 @@ func (h *GameHandler) GetGame(c *gin.Context) {
 		PlayerCount:        len(players),
 		MaxPlayers:         4,
 		MembersLocked:      game.MembersLocked,
-		CurrentRoundNumber: roundNum,
+		CurrentRoundNumber: nil, // 局概念已移除
 		CompletedRounds:    completed,
-		RoundNeedFix:       roundNeedFix,
-		RoundSum:           roundSum,
-		Rounds:             roundBriefs,
 		StartedAt:          game.StartedAt,
 		EndedAt:            game.EndedAt,
 		CreatedAt:          game.CreatedAt,

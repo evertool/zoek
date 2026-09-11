@@ -1,0 +1,19 @@
+# Caddy 主配置：只负责全局项 + 引入站点文件，业务路由写在 conf.d/ 里。
+#
+# 服务器安装示例（与 zola 共存时注意：若 zola 已装主 Caddyfile，只需把
+# conf.d/zoek.caddy 拷到服务器 /etc/caddy/conf.d/ 即可，不要覆盖主文件）：
+#   sudo mkdir -p /etc/caddy/conf.d
+#   sudo cp deploy/Caddyfile /etc/caddy/Caddyfile        # 首次安装 Caddy 才需要
+#   sudo cp deploy/caddy/conf.d/*.caddy /etc/caddy/conf.d/
+#   sudo caddy validate --config /etc/caddy/Caddyfile
+#   sudo systemctl reload caddy
+#
+# 改域名 / 路径：编辑 conf.d/zoek.caddy，不要堆在本文件。
+
+{
+	# 全局选项（按需）
+	# email you@example.com
+}
+
+# 引入所有站点配置（相对本 Caddyfile 所在目录）
+import conf.d/*.caddy

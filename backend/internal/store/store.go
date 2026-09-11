@@ -2,6 +2,7 @@ package store
 
 import (
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -356,7 +357,19 @@ func (s *Store) GetGamePlayerTotals(gameID int64) (map[int64]int, error) {
 
 // SettleGameRank 散台后结算排位星级，仅 4 人局参与；重复调用幂等跳过。
 // 在 EndGame 事务外调用（EndGame 先行落库），结算自身用事务保证原子性。
+// 计分口径与结算页/雀友榜一致（AggregateSettlement）：已锁定局流水 + 已生效补退分。
+// 注意：不可直接按 game_player_id 汇总 round_submissions——既漏掉补退分，
+// 也未按 game_id 过滤，旧局残留提交会串进本局结算。
 func (s *Store) SettleGameRank(gameID int64) error {
+	agg, _, err := s.AggregateSettlement(gameID)
+	if err != nil {
+		return err
+	}
+	finalScores := make(map[int64]int, len(agg))
+	for _, pt := range agg {
+		finalScores[pt.PlayerID] = int(pt.TotalScore)
+	}
+
 	return s.Transaction(func(tx *gorm.DB) error {
 		// 幂等：此局已结算过
 		var settled int64
@@ -375,28 +388,11 @@ func (s *Store) SettleGameRank(gameID int64) error {
 			return nil // 排位规定：只有 4 人局参与排位
 		}
 
-		gpIDs := make([]int64, 0, len(players))
-		playerByGP := make(map[int64]*model.GamePlayer, len(players))
-		for i := range players {
-			gpIDs = append(gpIDs, players[i].ID)
-			playerByGP[players[i].ID] = &players[i]
-		}
-
-		var rows []GamePlayerTotal
-		if err := tx.Table("round_submissions rs").
-			Select("rs.game_player_id AS game_player_id, COALESCE(SUM(rs.score), 0) AS total").
-			Joins("JOIN rounds r ON r.id = rs.round_id").
-			Where("rs.game_player_id IN ? AND r.status IN ('ready_for_next', 'locked')", gpIDs).
-			Group("rs.game_player_id").
-			Scan(&rows).Error; err != nil {
-			return err
-		}
 		scores := make(map[int64]int, len(players))
-		for _, gp := range players {
-			scores[gp.ID] = 0
-		}
-		for _, row := range rows {
-			scores[row.GamePlayerID] = row.Total
+		playerByID := make(map[int64]*model.GamePlayer, len(players))
+		for i := range players {
+			scores[players[i].ID] = finalScores[players[i].ID]
+			playerByID[players[i].ID] = &players[i]
 		}
 
 		// 取玩家当前排位数据
@@ -420,8 +416,7 @@ func (s *Store) SettleGameRank(gameID int64) error {
 
 		outcomes := rank.Settle(scores, streaks)
 		for gpID, o := range outcomes {
-			gp := playerByGP[gpID]
-			u := userByID[gp.UserID]
+			u := userByID[playerByID[gpID].UserID]
 
 			newStars := u.RankStars + o.StarsDelta
 			if newStars < 0 {
@@ -459,6 +454,164 @@ func (s *Store) RankBestScore(userID int64) (int, error) {
 	var best int
 	err := s.DB.Raw("SELECT COALESCE(MAX(score), 0) FROM rank_settlements WHERE user_id = ?", userID).Scan(&best).Error
 	return best, err
+}
+
+// RecalculateGameRank 已结束牌局的补退分生效后重排排位（PRD §3.2：散台后 24h 内
+// 补退分仍可生效，生效即按最新口径重算胜负平/星级/净胜分）。
+// 流程：回滚旧结算 → 按当前 AggregateSettlement 重新结算。
+// streak 重建取该玩家本场之前最后一笔结算的 streak_after；若本场之后该玩家还有
+// 更新的排位结算，则不动其当前 streak/best（只修胜负平/星/分），避免连锁重算。
+func (s *Store) RecalculateGameRank(gameID int64) error {
+	var settled int64
+	if err := s.DB.Model(&model.RankSettlement{}).Where("game_id = ?", gameID).Count(&settled).Error; err != nil {
+		return err
+	}
+	if settled == 0 {
+		return s.SettleGameRank(gameID) // 尚未结算过 → 直接结一次
+	}
+
+	agg, _, err := s.AggregateSettlement(gameID)
+	if err != nil {
+		return err
+	}
+	finalScores := make(map[int64]int, len(agg))
+	for _, pt := range agg {
+		finalScores[pt.PlayerID] = int(pt.TotalScore)
+	}
+
+	return s.Transaction(func(tx *gorm.DB) error {
+		var olds []model.RankSettlement
+		if err := tx.Where("game_id = ?", gameID).Find(&olds).Error; err != nil {
+			return err
+		}
+		if len(olds) == 0 {
+			return nil // 并发下已被重排
+		}
+
+		var players []model.GamePlayer
+		if err := tx.Where("game_id = ?", gameID).Order("seat ASC").Find(&players).Error; err != nil {
+			return err
+		}
+		if len(players) != 4 {
+			return nil
+		}
+		playerByID := make(map[int64]*model.GamePlayer, len(players))
+		for i := range players {
+			playerByID[players[i].ID] = &players[i]
+		}
+
+		oldByUser := make(map[int64]*model.RankSettlement, len(olds))
+		minIDByUser := make(map[int64]int64, len(olds))
+		for i := range olds {
+			o := &olds[i]
+			oldByUser[o.UserID] = o
+			if id, ok := minIDByUser[o.UserID]; !ok || o.ID < id {
+				minIDByUser[o.UserID] = o.ID
+			}
+		}
+
+		// 取玩家当前排位数据
+		userIDs := make([]int64, 0, len(players))
+		for _, gp := range players {
+			userIDs = append(userIDs, gp.UserID)
+		}
+		var users []model.User
+		if err := tx.Where("id IN ?", userIDs).Find(&users).Error; err != nil {
+			return err
+		}
+		userByID := make(map[int64]*model.User, len(users))
+		for i := range users {
+			userByID[users[i].ID] = &users[i]
+		}
+
+		// 基准值 = 当前值回滚旧结算（内存计算，最终一次性写库，避免双写累计错）
+		type userBase struct{ wins, draws, losses, stars, points int }
+		base := make(map[int64]*userBase, len(players))
+		for uid, old := range oldByUser {
+			u := userByID[uid]
+			if u == nil {
+				continue
+			}
+			base[uid] = &userBase{
+				wins:   u.RankWins - boolInt(old.Result == "win"),
+				draws:  u.RankDraws - boolInt(old.Result == "draw"),
+				losses: u.RankLosses - boolInt(old.Result == "lose"),
+				stars:  maxInt(0, u.RankStars-old.StarsDelta),
+				points: u.RankPoints - old.Score,
+			}
+		}
+
+		// streak 重建：本场前最后一笔结算的 streak_after；本场后无更新结算才回写 streak
+		streakBefore := make(map[int64]int, len(players))
+		hasLater := make(map[int64]bool, len(players))
+		for _, gp := range players {
+			uid := gp.UserID
+			old, ok := oldByUser[uid]
+			if !ok {
+				continue
+			}
+			var prev model.RankSettlement
+			if err := tx.Where("user_id = ? AND game_id != ? AND id < ?", uid, gameID, old.ID).
+				Order("id DESC").First(&prev).Error; err == nil {
+				streakBefore[gp.ID] = prev.StreakAfter
+			} else {
+				streakBefore[gp.ID] = 0
+			}
+			var later int64
+			if err := tx.Model(&model.RankSettlement{}).
+				Where("user_id = ? AND game_id != ? AND id > ?", uid, gameID, old.ID).
+				Count(&later).Error; err != nil {
+				return err
+			}
+			hasLater[uid] = later > 0
+		}
+
+		scores := make(map[int64]int, len(players))
+		for _, gp := range players {
+			scores[gp.ID] = finalScores[gp.ID]
+		}
+		outcomes := rank.Settle(scores, streakBefore)
+		for gpID, o := range outcomes {
+			gp := playerByID[gpID]
+			b := base[gp.UserID]
+			old := oldByUser[gp.UserID]
+			if b == nil || old == nil {
+				continue
+			}
+
+			newStars := b.stars + o.StarsDelta
+			if newStars < 0 {
+				newStars = 0 // 九品保底：0 星不再扣
+			}
+			updates := map[string]interface{}{
+				"rank_stars":       newStars,
+				"rank_wins":        b.wins + boolInt(o.Result == "win"),
+				"rank_draws":       b.draws + boolInt(o.Result == "draw"),
+				"rank_losses":      b.losses + boolInt(o.Result == "lose"),
+				"rank_points":      b.points + scores[gpID],
+				"rank_streak":      o.StreakAfter,
+				"rank_best_streak": maxInt(userByID[gp.UserID].RankBestStreak, o.StreakAfter),
+			}
+			if hasLater[gp.UserID] {
+				// 本场后还有更新结算：streak 链归后续场次，保持现状
+				delete(updates, "rank_streak")
+				delete(updates, "rank_best_streak")
+			}
+			if err := tx.Model(&model.User{}).Where("id = ?", gp.UserID).Updates(updates).Error; err != nil {
+				return err
+			}
+			if err := tx.Model(&model.RankSettlement{}).Where("id = ?", old.ID).Updates(map[string]interface{}{
+				"result":       o.Result,
+				"score":        scores[gpID],
+				"stars_delta":  newStars - b.stars, // 钳制后的实际变动
+				"bonus_stars":  o.BonusStars,
+				"streak_after": o.StreakAfter,
+			}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 // GetRankSettlements 一场牌局的排位结算记录。
@@ -919,6 +1072,105 @@ func (s *Store) GetCurrentRound(gameID int64) (*model.Round, error) {
 // （转分恒为 0 和、延迟补记都属同一局，数据无法还原意图）。
 
 // GetRoundsByGameID returns all rounds for a game, ordered by round number.
+
+// gameAutoCleanAfter：进行中牌局的 5 小时超时阈值（两类情况共用）
+const gameAutoCleanAfter = 5 * time.Hour
+
+// AutoExpireStaleGame 进行中牌局的 5 小时超时处理：
+//   1) 没记过账的废弃空台 → 物理删除（同取消开台语义），以开局/创建时间起算
+//   2) 有记账 → 以**最新记账时间**起算，5 小时后自动散台结算（数据保留，进入结算页）
+// 返回 (expired bool, cleaned bool, err)。
+func (s *Store) AutoExpireStaleGame(gameID int64) (bool, bool, error) {
+	game, err := s.GetGame(gameID)
+	if err != nil || game.Status != "active" {
+		return false, false, err
+	}
+
+	// 最新记账时间：转分 created_at / 逐局提交 updated_at（联表）取最大值
+	var adjLast, subLast sql.NullTime
+	if err := s.DB.Model(&model.ScoreAdjustment{}).Where("game_id = ?", game.ID).
+		Select("MAX(created_at)").Row().Scan(&adjLast); err != nil {
+		return false, false, err
+	}
+	if err := s.DB.Raw("SELECT MAX(rs.updated_at) FROM round_submissions rs JOIN rounds r ON rs.round_id = r.id WHERE r.game_id = ?", game.ID).
+		Row().Scan(&subLast); err != nil {
+		return false, false, err
+	}
+	var lastEntry time.Time
+	if adjLast.Valid && adjLast.Time.After(lastEntry) {
+		lastEntry = adjLast.Time
+	}
+	if subLast.Valid && subLast.Time.After(lastEntry) {
+		lastEntry = subLast.Time
+	}
+
+	var adjCount, subCount int64
+	if err := s.DB.Model(&model.ScoreAdjustment{}).Where("game_id = ?", game.ID).Count(&adjCount).Error; err != nil {
+		return false, false, err
+	}
+	if err := s.DB.Raw("SELECT COUNT(*) FROM round_submissions rs JOIN rounds r ON rs.round_id = r.id WHERE r.game_id = ?", game.ID).
+		Row().Scan(&subCount); err != nil {
+		return false, false, err
+	}
+
+	if adjCount == 0 && subCount == 0 {
+		// 情况 1：废弃空台 → 物理删除（同取消开台语义），以开局/创建时间起算
+		last := game.CreatedAt
+		if game.StartedAt != nil && game.StartedAt.After(last) {
+			last = *game.StartedAt
+		}
+		if time.Since(last) < gameAutoCleanAfter {
+			return false, false, nil
+		}
+		if err := s.DeleteGame(gameID); err != nil {
+			return false, false, err
+		}
+		return true, true, nil
+	}
+
+	// 情况 2：有记账 → 最新记账时间起算 5 小时 → 自动散台结算
+	last := game.CreatedAt
+	if lastEntry.After(last) {
+		last = lastEntry
+	}
+	if time.Since(last) < gameAutoCleanAfter {
+		return false, false, nil
+	}
+	now := time.Now()
+	res := s.DB.Model(&model.Game{}).Where("id = ? AND status = ?", gameID, "active").
+		Updates(map[string]interface{}{"status": "ended", "ended_at": now, "settlement_updated_at": now})
+	if res.Error != nil {
+		return false, false, res.Error
+	}
+	if res.RowsAffected == 0 {
+		return false, false, nil // 已被其他请求结算
+	}
+	_ = s.InvalidateJoinExpiresAt(gameID)
+	_ = s.SettleGameRank(gameID)
+	return true, false, nil
+}
+
+// AutoExpireStaleGames 扫描全部进行中牌局执行 5 小时超时处理，返回 (自动结算数, 清理删除数)
+func (s *Store) AutoExpireStaleGames() (int, int, error) {
+	var ids []int64
+	if err := s.DB.Model(&model.Game{}).Where("status = ?", "active").Pluck("id", &ids).Error; err != nil {
+		return 0, 0, err
+	}
+	settled, cleaned := 0, 0
+	for _, id := range ids {
+		expired, wasCleaned, err := s.AutoExpireStaleGame(id)
+		if err != nil {
+			return settled, cleaned, err
+		}
+		if expired && wasCleaned {
+			cleaned++
+		} else if expired {
+			settled++
+		}
+	}
+	return settled, cleaned, nil
+}
+
 func (s *Store) GetRoundsByGameID(gameID int64) ([]model.Round, error) {
 	var rounds []model.Round
 	if err := s.DB.Where("game_id = ?", gameID).Order("round_number ASC").Find(&rounds).Error; err != nil {

@@ -80,20 +80,12 @@
 .swap-anim-overlay.swap-anim-show { opacity: 1; visibility: visible; }
 .swap-anim-canvas { width: 320rpx; height: 320rpx; }
 
-/* 公告：本局总分核对提醒 */
-.round-notice { margin-bottom: var(--space-sm); padding: 20rpx 24rpx; border-radius: var(--radius-md); background: var(--error-container, #FBE9E7); }
-.round-notice text { font-size: 24rpx; line-height: 1.5; color: var(--error); }
-
 /* 流水账单 */
 .ledger-card { background: var(--surface-container-lowest); border-radius: var(--radius-lg); padding: var(--space-md); box-shadow: var(--shadow-card); display: flex; flex-direction: column; gap: var(--space-xs); }
 .ledger-header { display: flex; align-items: center; gap: 10rpx; }
 .ledger-icon { width: 34rpx; height: 34rpx; flex-shrink: 0; }
 .ledger-title { font-size: 34rpx; font-weight: 700; color: var(--on-surface); flex: 1; }
 .ledger-count { font-size: 20rpx; color: var(--outline); flex-shrink: 0; }
-/* 「已收齐」状态胶囊 */
-.ledger-done { display: flex; align-items: center; gap: 2rpx; padding: 6rpx 10rpx 6rpx 18rpx; border-radius: var(--radius-full); background: rgba(0,82,53,0.10); color: var(--primary); flex-shrink: 0; }
-.ledger-done text { font-size: 21rpx; font-weight: 600; }
-.ledger-done-arrow { font-size: 24rpx; }
 .ledger-item { display: flex; align-items: center; gap: 16rpx; padding: 14rpx 0; }
 .ledger-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; background: var(--surface-container); flex-shrink: 0; }
 .ledger-avatar-ph { display: flex; align-items: center; justify-content: center; font-size: 30rpx; font-weight: 600; color: var(--on-surface); }
@@ -122,9 +114,12 @@
 .qr-modal-body { display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--surface-container-low); border-radius: var(--radius-lg); padding: var(--space-lg); margin: var(--space-md) 0; }
 .qr-modal-img { width: 384rpx; height: 384rpx; border-radius: var(--radius-default); background: var(--surface-container-lowest); padding: 16rpx; box-shadow: var(--shadow-card); }
 .qr-modal-img-placeholder { width: 384rpx; height: 384rpx; border-radius: var(--radius-default); background: var(--surface-container-lowest); display: flex; align-items: center; justify-content: center; font-size: 48rpx; color: var(--outline); }
-.qr-modal-num { margin-top: 24rpx; font-size: 28rpx; font-weight: 600; color: var(--primary); }
-.qr-modal-tip { font-size: 20rpx; color: var(--outline); }
-.qr-modal-btn { height: 88rpx; border-radius: var(--radius-md); background: var(--primary); color: var(--on-primary); display: flex; align-items: center; justify-content: center; font-size: 28rpx; font-weight: 600; }
+.qr-modal-tip { margin-top: 20rpx; font-size: 20rpx; color: var(--outline); }
+.qr-modal-btn { position: relative; height: 88rpx; border-radius: var(--radius-md); background: var(--primary); color: var(--on-primary); display: flex; align-items: center; justify-content: center; gap: 12rpx; font-size: 28rpx; font-weight: 600; }
+.qr-modal-btn-icon { width: 48rpx; height: 48rpx; padding: 6rpx; background: #ffffff; border-radius: 50%; box-sizing: border-box; }
+.qr-modal-btn-active { opacity: 0.85; }
+.qr-modal-btn-hit { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; margin: 0; padding: 0; border: none; border-radius: var(--radius-md); }
+.qr-modal-btn-hit::after { display: none; }
 
 /* 比分抽屉 */
 .score-sheet { background: var(--surface-container-lowest); border-top-left-radius: var(--radius-xl); border-top-right-radius: var(--radius-xl); width: 100%; max-width: 960rpx; padding: var(--space-lg); box-shadow: var(--shadow-modal); }
@@ -170,17 +165,9 @@
 .toast { position: fixed; top: 160rpx; left: 50%; transform: translateX(-50%); z-index: 200; background: rgba(33, 49, 69, 0.9); color: var(--inverse-on-surface); padding: 16rpx 32rpx; border-radius: var(--radius-full); font-size: 24rpx; box-shadow: var(--shadow-modal); opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
 .toast.toast-show { opacity: 1; }
 
-/* 底部操作栏：左侧软按钮 + 右侧「收齐」大 CTA */
+/* 底部操作栏：左侧软按钮 */
 .room-footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 20rpx var(--margin-screen) calc(env(safe-area-inset-bottom) + 20rpx); background: rgba(248, 249, 255, 0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 50; display: flex; align-items: center; gap: 20rpx; }
 .foot-soft { display: flex; align-items: center; justify-content: center; gap: 10rpx; height: 88rpx; padding: 0 28rpx; border-radius: var(--radius-full); background: var(--surface-container-lowest); box-shadow: var(--shadow-card); flex-shrink: 0; box-sizing: border-box; }
 .foot-soft text { font-size: 26rpx; font-weight: 600; color: var(--on-surface-variant); }
 .foot-soft-icon { width: 30rpx; height: 30rpx; }
 .foot-soft:active { background: var(--surface-container-low); }
-/* 「收齐」= 右滑确认条：拖到最右才触发 */
-.receipt-slide { position: relative; flex: 1; height: 88rpx; border-radius: var(--radius-full); background: var(--primary); overflow: hidden; box-shadow: 0 10rpx 24rpx -10rpx rgba(0,82,53,0.6); }
-.receipt-slide-chevrons { position: absolute; left: 30rpx; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 6rpx; transition: opacity 0.15s linear; }
-.receipt-slide-chevron { width: 0; height: 0; border-top: 9rpx solid transparent; border-bottom: 9rpx solid transparent; border-left: 12rpx solid rgba(255,255,255,0.45); }
-.receipt-slide-label { position: absolute; right: 46rpx; top: 50%; transform: translateY(-50%); font-size: 30rpx; font-weight: 700; color: var(--on-primary); letter-spacing: 2rpx; transition: opacity 0.15s linear; }
-.receipt-slide-thumb { position: absolute; left: 0; top: 0; width: 88rpx; height: 88rpx; display: flex; align-items: center; justify-content: center; }
-.receipt-cta-check { width: 68rpx; height: 68rpx; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4rpx 10rpx -4rpx rgba(11,28,48,0.3); }
-.receipt-cta-check image { width: 40rpx; height: 40rpx; }

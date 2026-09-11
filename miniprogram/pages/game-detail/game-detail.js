@@ -1,10 +1,8 @@
-// pages/game-detail/game-detail.js — 每局详情页（全场收支总览 + 逐局分值流向流水）
+// pages/game-detail/game-detail.js — 牌局详情页（全场收支总览 + 转分流水，局概念已移除）
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
 const guard = require('../../utils/guard')
-
-const CN_NUMS = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
 
 Page({
   data: {
@@ -32,7 +30,7 @@ Page({
   loadDetail() {
     this.setData({ loading: true })
     api.get(`/games/${this.data.gameID}/history`).then(res => {
-      const userID = app.globalData.userID
+      var myID = Number(app.globalData.userID)
       var players = (res.players || []).map(p => ({
         ...p,
         avatar_url: util.resolveAvatarURL(p.avatar_url || ''),
@@ -40,74 +38,48 @@ Page({
         scoreClass: p.total_score > 0 ? 'text-positive' : (p.total_score < 0 ? 'text-negative' : ''),
         scoreText: (p.total_score > 0 ? '+' : '') + p.total_score
       }))
-      var me = players.filter(function(p) { return p.user_id === userID })[0] || null
+      var me = players.filter(function(p) { return Number(p.user_id) === myID })[0] || null
+      var infoByPlayer = {}
+      players.forEach(function(p) { infoByPlayer[Number(p.player_id)] = p })
 
-      // 逐局分值流向流水（新→旧），含改分修正，右侧展示我的净流向
-      var events = []
-      ;(res.rounds || []).forEach(r => {
-        var subs = r.submissions || []
-        var mySub = subs.filter(function(s) { return s.user_id === userID })[0]
-        var myScore = mySub ? mySub.score : 0
-        if (!subs.length) {
-          events.push({
-            type: 'round', time: r.locked_at || r.created_at || '',
-            numCn: CN_NUMS[r.round_number - 1] || r.round_number,
-            title: '第 ' + r.round_number + ' 局 · 未开局', sub: '—',
-            score: 0, timeText: this.formatHM(r.locked_at || r.created_at)
-          })
-          return
-        }
-        var winner = subs.slice().sort(function(a, b) { return b.score - a.score })[0]
-        var zero = subs.every(function(s) { return s.score === 0 })
-        var sub
-        if (zero) {
-          sub = '流局 · 全家无得失'
-        } else {
-          var losers = subs.filter(function(s) { return s.score < 0 })
-          sub = losers.length === 1
-            ? (losers[0].nickname + ' 付 · ' + winner.nickname + ' 收')
-            : (winner.nickname + ' 收 · ' + losers.length + '家各付 ' + Math.abs(losers[0] ? losers[0].score : 0))
-        }
-        events.push({
-          type: 'round',
-          time: r.locked_at || r.created_at || '',
-          numCn: CN_NUMS[r.round_number - 1] || r.round_number,
-          title: '第 ' + r.round_number + ' 局 · ' + (zero ? '流局荒庄' : winner.nickname + (losers.length === 1 ? '胡' : '自摸')),
-          sub: sub,
-          score: myScore,
-          timeText: this.formatHM(r.locked_at || r.created_at)
-        })
-      }, this)
-      ;(res.adjustments || []).forEach(a => {
-        if (a.status !== 'accepted') return
-        var fromName = this.nameOf(players, a.from_user_id)
-        var toName = this.nameOf(players, a.to_user_id)
-        var myDelta = 0
-        if (a.to_user_id === userID) myDelta = a.amount
-        else if (a.from_user_id === userID) myDelta = -a.amount
-        events.push({
-          type: 'adjust',
-          time: a.created_at || '',
-          numCn: CN_NUMS[(a.round_number || 1) - 1] || '',
-          title: '第' + (a.round_number || '-') + '局 补分结算',
-          sub: fromName + ' 补偿转入 ' + toName + (a.reason ? ' · ' + a.reason : ''),
-          score: myDelta,
-          timeText: this.formatHM(a.created_at)
-        })
+      // 转分流水（新→旧）：「A → B」，头像取出分方，右侧我的净流向
+      var list = (res.adjustments || []).filter(function(a) { return a.status === 'accepted' })
+      list.sort(function(a, b) {
+        var ta = new Date(a.created_at || 0).getTime()
+        var tb = new Date(b.created_at || 0).getTime()
+        return tb - ta
       })
-      events.sort(function(a, b) { return (b.time || '') < (a.time || '') ? -1 : 1 })
-      var flow = events.map(ev => ({
-        ...ev,
-        scoreClass: ev.score > 0 ? 'text-positive' : (ev.score < 0 ? 'text-negative' : 'text-secondary'),
-        scoreText: ev.score > 0 ? '+' + ev.score : '' + ev.score
-      }))
+      var flow = list.map(function(a) {
+        var fromId = Number(a.from_player_id)
+        var toId = Number(a.to_player_id)
+        var from = infoByPlayer[fromId] || { nickname: '雀友', avatarColor: '', avatar_url: '' }
+        var to = infoByPlayer[toId] || { nickname: '雀友' }
+        var outgoing = fromId === Number(me ? me.player_id : 0)
+        var incoming = toId === Number(me ? me.player_id : 0)
+        var mine = outgoing || incoming
+        var fromName = outgoing ? '我' : from.nickname
+        var toName = incoming ? '我' : to.nickname
+        var score = mine ? (outgoing ? -a.amount : a.amount) : 0
+        return {
+          id: a.id,
+          fromName: from.nickname,
+          fromInitial: (from.nickname || '雀')[0],
+          fromColor: from.avatarColor,
+          fromAvatar: from.avatar_url || '',
+          desc: fromName + ' → ' + toName,
+          sub: (a.reason ? a.reason + ' · ' : '') + this.formatHM(a.created_at),
+          score: score,
+          scoreClass: score > 0 ? 'text-positive' : (score < 0 ? 'text-negative' : 'text-secondary'),
+          scoreText: score > 0 ? '+' + score : '' + score,
+          timeText: this.formatHM(a.created_at)
+        }
+      }, this)
 
       var endedAt = util.toDate(res.ended_at)
       this.setData({
         detail: {
           gameName: res.game_name,
           status: res.status,
-          completedRounds: res.completed_rounds || 0,
           dateText: endedAt ? (endedAt.getMonth() + 1) + '月' + endedAt.getDate() + '日' : '',
           timeText: endedAt ? this.formatHM(res.ended_at) : '',
           myScore: me ? me.total_score : 0,
@@ -115,6 +87,7 @@ Page({
           myScoreClass: me && me.total_score > 0 ? 'text-positive' : (me && me.total_score < 0 ? 'text-negative' : ''),
           isChampion: me ? me.rank === 1 : false,
           isBalanced: players.length === 4 && players.reduce(function(s, p) { return s + p.total_score }, 0) === 0,
+          flowCount: flow.length,
           playersText: players.map(function(p) { return p.nickname }).join(' / '),
           players: players
         },
@@ -124,11 +97,6 @@ Page({
     }).catch(() => {
       this.setData({ loading: false })
     })
-  },
-
-  nameOf(players, userID) {
-    var p = players.filter(function(x) { return x.user_id === userID })[0]
-    return p ? p.nickname : '雀友'
   },
 
   formatHM(ts) {
@@ -141,14 +109,6 @@ Page({
     var pages = getCurrentPages()
     if (pages.length > 1) wx.navigateBack()
     else wx.reLaunch({ url: '/pages/history/history' })
-  },
-
-  goChart() {
-    wx.navigateTo({ url: '/pages/game-chart/game-chart?game_id=' + this.data.gameID })
-  },
-
-  goLedger() {
-    wx.navigateTo({ url: '/pages/game-ledger/game-ledger?game_id=' + this.data.gameID })
   },
 
   onShareAppMessage() {

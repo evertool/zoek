@@ -22,8 +22,8 @@ func NewLeaderboardHandler(s *store.Store) *LeaderboardHandler {
 // leaderboardWindowDays 统计最近 N 天（PRD P1：默认统计最近 30 天）
 const leaderboardWindowDays = 30
 
-// minQualifiedGames 进入正式榜单的最少完成局数（PRD P1：至少完成 3 局）
-const minQualifiedGames = 3
+// minQualifiedGames 进入正式榜单的最少完成局数（无门槛：打完 1 局即上榜）
+const minQualifiedGames = 1
 
 // maxTrendPoints 个人折线图最多展示最近 N 场
 const maxTrendPoints = 20

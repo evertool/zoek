@@ -56,12 +56,14 @@ Page({
       })
 
       var winner = sorted[0] || null
+      var topScore = 0
+      sorted.forEach(function(p) { if (p.score > topScore) topScore = p.score })
       var settlement = {
         ...res,
         players: sorted,
-        completed_rounds: res.completed_rounds || 0,
-        max_round_score: res.max_round_score || 0,
-        transfer_count: res.transfer_count || 0
+        adjustment_count: res.adjustment_count || 0,
+        top_score: topScore,
+        player_count: sorted.length
       }
 
       this.setData({

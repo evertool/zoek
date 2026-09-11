@@ -42,3 +42,7 @@ backend/uploads/
 
 # WorkBuddy 本地助手数据
 .workbuddy/
+
+# 部署配置（含服务器敏感信息）
+deploy/release.env
+backend/bin/

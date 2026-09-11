@@ -101,7 +101,7 @@
             <view class="game-card-header">
               <view class="game-card-title-row">
                 <view class="game-card-dot"></view>
-                <text class="game-card-name">{{item.name || '未命名牌局'}} (第{{item.current_round_number || item.completed_rounds}}局)</text>
+                <text class="game-card-name">{{item.name || '未命名牌局'}}</text>
               </view>
               <text class="game-card-time">{{item.durationText}}</text>
             </view>
@@ -137,7 +137,7 @@
         <view class="empty-card anim-fade-up delay-4" wx:if="{{games.length === 0 && !loading}}">
           <view class="empty-icon-wrap"><text class="empty-icon-symbol">闲</text></view>
           <view class="empty-text">未有进行中嘅牌局</view>
-          <view class="text-secondary" style="margin-top: 8rpx;">点击上方开台开始新一局</view>
+          <view class="text-secondary" style="margin-top: 8rpx;">点击上方开台开始新的牌局</view>
         </view>
       </block>
 

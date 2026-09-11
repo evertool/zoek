@@ -36,7 +36,7 @@
         </view>
         <view class="lb-period-footer">
           <view class="lb-period-info">
-            <text class="lb-info-text">同台切磋 ≥ {{minGames}} 局方可入榜</text>
+            <text class="lb-info-text">同台切磋 1 局即可上榜</text>
           </view>
           <text class="lb-disclaimer">纯积分不涉金钱</text>
         </view>

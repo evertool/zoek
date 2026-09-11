@@ -3,7 +3,7 @@
 # Makefile 提供统一验证入口 (PRD §10.2)
 # =============================================================================
 
-.PHONY: verify backend-test backend-build backend-vet backend-fmt backend-tidy backend-run clean
+.PHONY: verify backend-test backend-build backend-vet backend-fmt backend-tidy backend-run release release-build clean
 
 ## verify: 执行全量验证流程（PRD §10.2）
 verify:
@@ -48,3 +48,11 @@ clean:
 # 生成 JWT secret，复制到 configs/config.yaml 的 jwt.secret
 jwt-secret:
 	@openssl rand -base64 32
+
+## release: 构建并部署后端到服务器（读取 deploy/release.env）
+release:
+	@bash scripts/release.sh backend
+
+## release-build: 仅构建发版产物，不上传
+release-build:
+	@bash scripts/release.sh --build-only backend

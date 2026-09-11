@@ -18,14 +18,6 @@ const WINDS = ['東', '南', '西', '北']
 // 座位 → 桌面方位：与 WINDS 同序（東 南 西 北）→ 左 上 右 下
 // 即 南在上、東在左、西在右、北在下（沿用设计稿的方位，不要按通用罗盘翻成「北在上」）
 const SEAT_POS = ['left', 'top', 'right', 'bottom']
-// 「收齐」成功后随机播一句战报口号（粤语口吻）
-const RECEIPT_SLOGANS = [
-  '哩铺我赢晒！再接再厉！',
-  '收齐钱，下铺再嚟！',
-  '手气咁旺，下铺照旧！',
-  '袋袋平安，继续开台！',
-  '赢到尽，再战一铺！'
-]
 
 Page({
   data: {
@@ -45,11 +37,6 @@ Page({
     showScoreModal: false,
     ledgerShown: LEDGER_PAGE_SIZE,
     ledgerPageSize: LEDGER_PAGE_SIZE,
-    canConfirmReceipt: false,
-    roundCollected: false,
-    receiptX: 0,
-    receiptSlideMax: 0,
-    slideFade: 1,
     showSwapModal: false,
     swapTargetSeat: 0,
     showIncomingSwap: false,
@@ -80,7 +67,36 @@ Page({
       return
     }
     wx.showShareMenu({ menus: ['shareAppMessage'] })
-    this.loadGame()
+    if (this.data.inviteToken) {
+      // 邀请链接进入：先入台再加载。GET /games/:id 仅局内玩家可读，
+      // 受邀者未入台直接加载会 403「没有权限执行此操作」（join 幂等，已在局内直接返回成功）
+      this.joinThenLoad()
+    } else {
+      this.loadGame()
+    }
+  },
+
+  // 邀请链接进入的入台流程
+  joinThenLoad() {
+    api.post('/games/join', {
+      invite_token: this.data.inviteToken,
+      request_id: api.genRequestID()
+    }, { silent: true }).then(() => {
+      this.loadGame()
+    }).catch(err => {
+      // 房间互斥：已在别的牌台 → 跳去那局
+      var inGameID = err && err.game_id
+      if (inGameID && Number(inGameID) !== Number(this.data.gameID)) {
+        this.setData({ gameID: Number(inGameID) })
+        wx.redirectTo({ url: '/pages/room/room?game_id=' + inGameID })
+        return
+      }
+      // 已散台/已满员等原因加入失败：提示具体原因，再尝试加载（非玩家会显示加载失败）
+      if (err && err.message) {
+        wx.showToast({ title: err.message, icon: 'none' })
+      }
+      this.loadGame()
+    })
   },
 
   onShow() {
@@ -131,11 +147,13 @@ Page({
   },
 
   applyGame(res, poll) {
+    // userID 统一转数字比较：本地缓存可能恢复出字符串类型，=== 会永远不相等
+    var myID = Number(app.globalData.userID) || 0
     var players = (res.players || []).map(function(p) {
       return {
         ...p,
         isOwner: p.role === 'owner',
-        isSelf: p.user_id === app.globalData.userID,
+        isSelf: Number(p.user_id) === myID,
         avatarColor: util.avatarColor(p.nickname),
         avatar_url: util.resolveAvatarURL(p.avatar_url || '')
       }
@@ -180,32 +198,31 @@ Page({
       game: game,
       players: players,
       seats: seats,
-      isOwner: res.creator_id === app.globalData.userID,
+      isOwner: Number(res.creator_id) === myID,
       hasScores: (res.completed_rounds || 0) > 0 || this.data.ledger.length > 0,
-      roundNeedFix: !!res.round_need_fix,
-      roundSumDiff: Math.abs(res.round_sum || 0),
       loading: false,
       loadError: false
     }, () => {
       // 账单对所有雀友实时可见：每次数据刷新都拉一次（台主/雀友一致）
       this.loadLedger()
+      // 牌局进行中突然变为结束（非本机操作）→ 5 小时无新账自动结算
+      if (this._prevStatus === 'active' && res.status === 'ended') {
+        this.showToast('超过 5 小时无新账，牌局已自动结算')
+      }
+      this._prevStatus = res.status
     })
   },
 
-  // 流水账单：取自转分（adjustment）记录，展示"我转给谁 / 谁转给我"，按局标注
+  // 流水账单：取自转分（adjustment）记录，展示"我转给谁 / 谁转给我"（局概念已移除，按时间自然排列）
   loadLedger() {
+    // ID 统一转数字：避免缓存恢复出字符串导致「我」识别失败、头像取错人
     var myPlayerID = 0
     var infoByPlayer = {}
-    var infoByRound = {}
     var players = this.data.players || []
     for (var i = 0; i < players.length; i++) {
       var p = players[i]
-      infoByPlayer[p.player_id] = { name: p.nickname, seat: p.seat || 0, avatar: p.avatar_url || '' }
-      if (p.user_id === app.globalData.userID) myPlayerID = p.player_id
-    }
-    var rounds = (this.data.game && this.data.game.rounds) || []
-    for (var j = 0; j < rounds.length; j++) {
-      infoByRound[rounds[j].round_id] = rounds[j].round_number
+      infoByPlayer[Number(p.player_id)] = { name: p.nickname, seat: p.seat || 0, avatar: p.avatar_url || '' }
+      if (Number(p.user_id) === Number(app.globalData.userID)) myPlayerID = Number(p.player_id)
     }
 
     api.get('/games/' + this.data.gameID + '/adjustments').then(res => {
@@ -217,26 +234,24 @@ Page({
         return tb - ta
       })
       var ledger = list.map(function(a, idx) {
-        var from = infoByPlayer[a.from_player_id] || { name: '雀友', avatar: '' }
-        var to = infoByPlayer[a.to_player_id] || { name: '雀友', avatar: '' }
-        var outgoing = a.from_player_id === myPlayerID
-        var incoming = a.to_player_id === myPlayerID
+        var fromId = Number(a.from_player_id)
+        var toId = Number(a.to_player_id)
+        var from = infoByPlayer[fromId] || { name: '雀友', avatar: '' }
+        var to = infoByPlayer[toId] || { name: '雀友', avatar: '' }
+        var outgoing = fromId === myPlayerID
+        var incoming = toId === myPlayerID
         var mine = outgoing || incoming
-        // 头像取「对方」：我的记录显示对手，别人的记录显示出分方
-        var peer = outgoing ? to : from
+        // 头像取「→ 左边的人」（出分方）：如「我 → B」显示我的头像
+        var peer = from
         // 文案统一「A → B」，自己显示为「我」
         var fromName = outgoing ? '我' : from.name
         var toName = incoming ? '我' : to.name
-        var roundNum = infoByRound[a.round_id]
-        var subParts = []
-        if (roundNum) subParts.push('第' + roundNum + '局')
-        subParts.push(util.formatTime(a.created_at))
         return {
           id: a.id || idx,
           avatar: peer.avatar || '',
           peerInitial: (peer.name || '雀')[0],
           desc: fromName + ' → ' + toName,
-          sub: subParts.join(' · '),
+          sub: (a.reason ? a.reason + ' · ' : '') + util.formatTime(a.created_at),
           score: mine ? (outgoing ? -a.amount : a.amount) : 0,
           amount: a.amount,
           mine: mine
@@ -249,69 +264,9 @@ Page({
       this.setData({
         ledger: ledger,
         ledgerShown: shown,
-        hasScores: this.data.hasScores || ledger.length > 0,
-        canConfirmReceipt: this.isTopEarner(list, myPlayerID),
-        roundCollected: this.hasRoundIncome(list)
-      }, () => {
-        // 滑动条出现后量一次轨道宽度（宽度不随数据变化，量一次即可）
-        if (this.data.canConfirmReceipt && !this._slideMax) this.measureReceiptSlide()
+        hasScores: this.data.hasScores || ledger.length > 0
       })
     }).catch(() => {})
-  },
-
-  // 当前局 id（后端只在当前局 open 时返回 current_round_number）
-  currentRoundID() {
-    var game = this.data.game
-    if (!game) return 0
-    var num = game.current_round_number || 0
-    var rounds = game.rounds || []
-    for (var r = 0; r < rounds.length; r++) {
-      if (rounds[r].round_number === num) return rounds[r].round_id
-    }
-    return 0
-  },
-
-  // 本局是否已有入账的转分（账单标题的「已收齐」状态）
-  hasRoundIncome(list) {
-    var curRoundID = this.currentRoundID()
-    if (!curRoundID) return false
-    for (var i = 0; i < list.length; i++) {
-      var adj = list[i]
-      if (adj && adj.status === 'accepted' && adj.round_id === curRoundID) return true
-    }
-    return false
-  },
-
-  // 「收齐」按钮只给「本局转分收入最高」的雀友看到：
-  // - 只统计本局已入账（accepted）的转分，未入账的不算「收到钱」
-  // - 并列同分时取 player_id 最小者，保证全场有且只有一个按钮
-  isTopEarner(list, myPlayerID) {
-    if (!myPlayerID) return false
-    var game = this.data.game
-    if (!game || game.status !== 'active') return false
-
-    var curRoundID = this.currentRoundID()
-
-    var incomeByPlayer = {}
-    for (var i = 0; i < list.length; i++) {
-      var adj = list[i]
-      if (!adj || adj.status !== 'accepted') continue
-      if (curRoundID && adj.round_id !== curRoundID) continue
-      if (!adj.to_player_id) continue
-      incomeByPlayer[adj.to_player_id] = (incomeByPlayer[adj.to_player_id] || 0) + (adj.amount || 0)
-    }
-
-    var topPlayerID = 0
-    var topIncome = 0
-    Object.keys(incomeByPlayer).forEach(function(key) {
-      var pid = Number(key)
-      var income = incomeByPlayer[key]
-      if (income > topIncome || (income === topIncome && topPlayerID && pid < topPlayerID)) {
-        topIncome = income
-        topPlayerID = pid
-      }
-    })
-    return topPlayerID > 0 && topPlayerID === myPlayerID
   },
 
   loadMoreLedger() {
@@ -324,91 +279,7 @@ Page({
     this.setData({ ledgerShown: LEDGER_PAGE_SIZE })
   },
 
-  // ── 「收齐」右滑确认 ──
-  // 轨道宽度渲染后用 SelectorQuery 量一次；行程 = 轨道宽 - 滑块宽（滑块正方形，宽 = 轨道高）
-  measureReceiptSlide() {
-    wx.createSelectorQuery().in(this).select('.receipt-slide').boundingClientRect(rect => {
-      if (!rect) return
-      this._slideMax = Math.max(1, rect.width - rect.height)
-      this.setData({ receiptSlideMax: this._slideMax })
-    }).exec()
-  },
-
-  onSlideStart(e) {
-    this._slideActive = true
-    if (!this._slideMax) this.measureReceiptSlide()
-    this._slideStartX = (e.touches && e.touches[0]) ? e.touches[0].clientX : 0
-  },
-
-  onSlideMove(e) {
-    if (!this._slideActive || !this._slideMax) return
-    var cx = (e.touches && e.touches[0]) ? e.touches[0].clientX : this._slideStartX
-    var dx = cx - this._slideStartX
-    if (dx < 0) dx = 0
-    if (dx > this._slideMax) dx = this._slideMax
-    this.setData({ receiptX: dx, slideFade: Math.max(0, 1 - dx / this._slideMax) })
-  },
-
-  onSlideEnd() {
-    if (!this._slideActive) return
-    this._slideActive = false
-    // 滑到 85% 以上算确认，否则回弹
-    if (this._slideMax > 0 && this.data.receiptX >= this._slideMax * 0.85) {
-      this.confirmReceipt()
-    } else {
-      this.setData({ receiptX: 0, slideFade: 1 })
-    }
-  },
-
-  // 收齐：本局转分收入最高的雀友确认收到钱 → 结束当前局并开新一局
-  // 右滑确认，不弹二次确认；确认后按钮立即消失，并播一句战报口号
-  confirmReceipt() {
-    if (this._receiptSending) return
-    this._receiptSending = true
-    this.setData({ canConfirmReceipt: false, receiptX: 0, slideFade: 1 })
-    api.post('/games/' + this.data.gameID + '/rounds/manual-next', {}).then(() => {
-      this._receiptSending = false
-      this.showToast(RECEIPT_SLOGANS[Math.floor(Math.random() * RECEIPT_SLOGANS.length)])
-      this.loadGame()
-    }).catch(() => {
-      // 失败时把按钮放回来，免得用户以为已经收齐
-      this._receiptSending = false
-      this.loadLedger()
-    })
-  },
-
-  loadQRCode() {
-    this.setData({ qrLoading: true })
-    wx.request({
-      url: app.globalData.baseURL + '/games/' + this.data.gameID + '/qrcode',
-      method: 'GET',
-      header: {
-        'Authorization': 'Bearer ' + app.globalData.token
-      },
-      responseType: 'arraybuffer',
-      success: (res) => {
-        if (res.statusCode === 200) {
-          var fs = wx.getFileSystemManager()
-          var filePath = wx.env.USER_DATA_PATH + '/qrcode_' + this.data.gameID + '.png'
-          try {
-            fs.writeFileSync(filePath, res.data, 'binary')
-            this.setData({ qrPath: filePath, qrLoading: false })
-          } catch (e) {
-            var base64 = wx.arrayBufferToBase64(res.data)
-            this.setData({ qrPath: 'data:image/png;base64,' + base64, qrLoading: false })
-          }
-        } else {
-          this.setData({ qrLoading: false })
-        }
-      },
-      fail: () => {
-        this.setData({ qrLoading: false })
-      }
-    })
-  },
-
-  toggleQrModal() {
-    var opening = !this.data.showQrModal
+  toggleQrModal(opening) {
     this.setData({ showQrModal: opening })
     if (opening && !this.data.qrPath && !this.data.qrLoading) {
       this.loadQRCode()

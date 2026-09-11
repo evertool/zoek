@@ -13,7 +13,7 @@ Page({
     boardTab: 'score', // score=积分榜 / rank=段位榜（按段位星级排序）
     days: 30,
     currentPeriod: 30,
-    minGames: 3,
+    minGames: 1,
     nickname: '',
     avatarURL: '',
     showToast: false,
@@ -154,7 +154,7 @@ Page({
 
       this.setData({
         days: lb.days || 0,
-        minGames: lb.min_games || 3,
+        minGames: lb.min_games || 1,
         loading: false
       })
       this.applyBoard(this.data.boardTab)

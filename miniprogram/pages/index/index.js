@@ -178,9 +178,6 @@ Page({
         seatPlayers: slots,
         statusText: util.statusText(g.status),
         statusClass: util.statusClass(g.status),
-        roundInfo: g.current_round_number
-          ? `第${g.current_round_number}局 · 已完成${g.completed_rounds}局`
-          : `已完成${g.completed_rounds}局`,
         durationText: durationText,
         canInvite: (g.player_count || 0) < 4 && (g.completed_rounds || 0) === 0
       }

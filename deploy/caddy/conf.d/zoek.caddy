@@ -1,0 +1,38 @@
+# 雀友记（zoek）站点：单域名反代（小程序后端）
+# 安装到：/etc/caddy/conf.d/zoek.caddy
+#
+#   https://zoek.246891.xyz/api/*     → 后端     127.0.0.1:8090
+#   https://zoek.246891.xyz/uploads/* → 头像等   127.0.0.1:8090
+#   https://zoek.246891.xyz/health    → 健康检查 127.0.0.1:8090
+#
+# 换域名：改下面站点块第一行即可。小程序 request 合法域名需在微信公众平台配置本域名。
+
+zoek.246891.xyz {
+	encode gzip
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8090 {
+			# 头像上传走此通道，避免中间层过早断开
+			transport http {
+				read_timeout 120s
+				write_timeout 120s
+			}
+		}
+	}
+	handle /uploads/* {
+		reverse_proxy 127.0.0.1:8090 {
+			transport http {
+				read_timeout 120s
+				write_timeout 120s
+			}
+		}
+	}
+	handle /health {
+		reverse_proxy 127.0.0.1:8090
+	}
+
+	# 其余路径一律 404（本项目没有网页端，只有小程序 + API）
+	handle {
+		respond 404
+	}
+}
