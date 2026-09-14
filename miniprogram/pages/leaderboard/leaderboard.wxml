@@ -1,4 +1,4 @@
-<!--pages/leaderboard/leaderboard.wxml — 雀友榜 v6 Stitch 100% 还原-->
+<!--pages/leaderboard/leaderboard.wxml — 雀友榜（queyou-mingxi 设计稿还原）-->
 <view class="page">
   <!-- 未登录 -->
   <view class="empty-state" style="padding-top: {{navPadding}}px;" wx:if="{{!isLoggedIn}}">
@@ -10,39 +10,44 @@
 
   <block wx:if="{{isLoggedIn}}">
     <view class="main-content" style="padding-top: {{navPadding}}px;">
+
       <!-- 标题区 -->
-      <view class="lb-title-section anim-fade-up">
+      <view class="lb-head anim-fade-up">
         <view class="lb-title-row">
-          <view class="lb-title-left">
-            <text class="lb-title">雀友榜</text>
-            <text class="lb-subtitle">{{days === 0 ? "全部" : "近" + days + "日"}}雀叙·同台切磋</text>
-          </view>
-          <view class="lb-eco-tag">
-            <image class="lb-eco-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" />
-            <text class="lb-eco-text">休闲计分</text>
-          </view>
+          <text class="lb-title">雀友榜</text>
+          <view class="lb-title-dot anim-pulse"></view>
         </view>
+        <text class="lb-subtitle">{{days === 0 ? '全部' : '近' + days + '日'}}雀叙 · 同台切磋</text>
       </view>
 
-      <!-- 时间段切换 -->
+      <!-- 周期时间切片 -->
       <view class="lb-period-bar anim-fade-up delay-1">
         <view class="lb-period-tabs">
           <view class="lb-period-tab {{currentPeriod === 30 ? 'active' : ''}}" bindtap="switchPeriod" data-period="30">
             <text>近 30 天</text>
             <view class="lb-period-dot" wx:if="{{currentPeriod === 30}}"></view>
           </view>
-          <view class="lb-period-tab {{currentPeriod === 7 ? 'active' : ''}}" bindtap="switchPeriod" data-period="7"><text>近 7 天</text></view>
-          <view class="lb-period-tab {{currentPeriod === 0 ? 'active' : ''}}" bindtap="switchPeriod" data-period="0"><text>全部</text></view>
-        </view>
-        <view class="lb-period-footer">
-          <view class="lb-period-info">
-            <text class="lb-info-text">同台切磋 1 局即可上榜</text>
+          <view class="lb-period-tab {{currentPeriod === 7 ? 'active' : ''}}" bindtap="switchPeriod" data-period="7">
+            <text>近 7 天</text>
+            <view class="lb-period-dot" wx:if="{{currentPeriod === 7}}"></view>
           </view>
-          <text class="lb-disclaimer">纯积分不涉金钱</text>
+          <view class="lb-period-tab {{currentPeriod === 0 ? 'active' : ''}}" bindtap="switchPeriod" data-period="0">
+            <text>全部</text>
+            <view class="lb-period-dot" wx:if="{{currentPeriod === 0}}"></view>
+          </view>
         </view>
       </view>
 
-      <!-- 榜单切换：积分榜 / 排位榜 -->
+      <!-- 上榜准则说明 -->
+      <view class="lb-rules anim-fade-up delay-1">
+        <view class="lb-rules-left">
+          <image class="lb-rules-icon" src="/assets/icons/sys-info-circle.svg" mode="aspectFit" />
+          <text>同台切磋 1 局即可上榜</text>
+        </view>
+        <text class="lb-rules-right">纯积分统计 · 不涉金钱</text>
+      </view>
+
+      <!-- 榜单模式双层 Tab：积分榜 / 段位榜 -->
       <view class="lb-board-tabs anim-fade-up delay-1">
         <view class="lb-board-tab {{boardTab === 'score' ? 'active' : ''}}" bindtap="switchBoard" data-tab="score">
           <text>积分榜</text>
@@ -52,46 +57,55 @@
         </view>
       </view>
 
-      <!-- 我的排名卡 -->
-      <view class="my-rank-card anim-fade-up delay-2" wx:if="{{stats}}">
-        <view class="my-rank-glow"></view>
-        <view class="my-rank-header">
-          <view class="my-rank-user">
-            <view class="my-rank-avatar-wrap">
-              <image class="my-rank-avatar" src="{{avatarURL}}" mode="aspectFill" wx:if="{{avatarURL}}" />
-              <view class="my-rank-avatar my-rank-placeholder" wx:else><text>{{nickname[0]}}</text></view>
-              <view class="my-rank-badge"><text>#{{stats.my_rank || 2}}</text></view>
+      <!-- 核心卡片：我的战绩 -->
+      <view class="my-card anim-fade-up delay-2" wx:if="{{stats}}">
+        <view class="my-card-glow"></view>
+        <view class="my-card-head">
+          <view class="my-card-user">
+            <view class="my-avatar-wrap">
+              <image class="my-avatar" src="{{avatarURL}}" mode="aspectFill" wx:if="{{avatarURL}}" />
+              <view class="my-avatar my-avatar-ph" wx:else><text>{{nickname[0]}}</text></view>
+              <view class="my-avatar-badge"><text>#{{stats.my_rank || 0}}</text></view>
             </view>
-            <view class="my-rank-info">
-              <text class="my-rank-name">{{nickname}}</text>
-              <text class="my-rank-sub">{{stats.active_text || '本周期活跃 · 雀艺渐入佳境'}}</text>
+            <view class="my-info">
+              <view class="my-name-row">
+                <text class="my-name">{{nickname}}</text>
+                <view class="tier-chip tier-chip-self" wx:if="{{stats.tier_short}}"><text>{{stats.tier_short}} {{stats.stars || 0}}★</text></view>
+              </view>
+              <text class="my-sub">{{stats.active_text || '本周期活跃 · 雀艺渐入佳境'}}</text>
             </view>
           </view>
-          <view class="my-rank-score-col">
-            <text class="my-rank-score-label">净胜分</text>
-            <text class="my-rank-score-val">{{stats.total_score >= 0 ? '+' : ''}}{{stats.total_score}}</text>
+          <view class="my-score-col">
+            <text class="my-score-label">净胜分</text>
+            <text class="my-score-val">{{stats.total_score >= 0 ? '+' : ''}}{{stats.total_score}}</text>
           </view>
         </view>
-        <view class="my-rank-stats">
-          <view class="my-rank-stat">
+
+        <!-- 四维核心数据矩阵 -->
+        <view class="my-stats">
+          <view class="my-stat">
             <text class="my-stat-label">场次</text>
             <text class="my-stat-val">{{stats.games}}</text>
           </view>
-          <view class="my-rank-stat">
+          <view class="my-stat">
             <text class="my-stat-label">胜场 (胜率)</text>
-            <text class="my-stat-val text-primary">{{stats.wins}} <text class="my-stat-sub">{{stats.win_rate}}%</text></text>
+            <view class="my-stat-inline">
+              <text class="my-stat-val text-positive">{{stats.wins}}</text>
+              <text class="my-stat-sub">{{stats.win_rate}}%</text>
+            </view>
           </view>
-          <view class="my-rank-stat">
+          <view class="my-stat">
             <text class="my-stat-label">连胜</text>
             <text class="my-stat-val">{{stats.best_streak || 0}}</text>
           </view>
-          <view class="my-rank-stat">
-            <text class="my-stat-label">单局最高</text>
-            <text class="my-stat-val">{{stats.best_score}}</text>
+          <view class="my-stat">
+            <text class="my-stat-label">单场最高</text>
+            <text class="my-stat-val {{stats.best_score >= 0 ? 'text-positive' : 'text-negative'}}">{{stats.best_score >= 0 ? '+' : ''}}{{stats.best_score}}</text>
           </view>
         </view>
-        <view class="my-rank-badges" wx:if="{{stats.badges && stats.badges.length > 0}}">
-          <text class="my-badge-label">个人勋章:</text>
+
+        <!-- 个人勋章（有数据才显示） -->
+        <view class="my-badges" wx:if="{{stats.badges && stats.badges.length > 0}}">
           <view class="my-badge-pill" wx:for="{{stats.badges}}" wx:key="id">
             <text class="my-badge-icon">{{item.icon}}</text>
             <text class="my-badge-text">{{item.name}}</text>
@@ -99,58 +113,68 @@
         </view>
       </view>
 
-      <!-- 排名列表 -->
-      <view class="rank-list-section anim-fade-up delay-3">
-        <view class="rank-list-header">
-          <text class="rank-list-title">雀友排名</text>
-          <text class="rank-list-sub">实时自动结算更新</text>
+      <!-- 雀友排名列表 -->
+      <view class="rank-section anim-fade-up delay-3">
+        <view class="rank-head">
+          <view class="rank-head-left">
+            <text class="rank-head-title">雀友排名</text>
+            <view class="rank-head-dot"></view>
+          </view>
+          <view class="rank-head-right">
+            <view class="rank-live-dot anim-ping"></view>
+            <text>实时自动结算更新</text>
+          </view>
         </view>
 
         <view class="rank-item {{item.is_self ? 'rank-item-self' : ''}} {{item.displayRank === 1 ? 'rank-item-top' : ''}}" wx:for="{{entries}}" wx:key="user_id">
           <view class="rank-item-main">
-            <view class="rank-item-left">
-              <view class="rank-item-num-wrap" wx:if="{{item.displayRank === 1}}">
-                <image class="rank-item-trophy" src="/assets/icons/rank-1-god-crown.svg" mode="aspectFit" />
-              </view>
-              <view class="rank-item-num-wrap" wx:else>
-                <text class="rank-item-num rank-item-num-{{item.displayRank <= 3 ? item.displayRank : 'rest'}}">{{item.displayRank}}</text>
-              </view>
-              <image class="rank-item-avatar" src="{{item.avatar_url}}" mode="aspectFill" wx:if="{{item.avatar_url}}" />
-              <view class="rank-item-avatar rank-item-placeholder" style="background:{{item.avatarColor}};" wx:else><text>{{item.nickname[0]}}</text></view>
-              <view class="rank-item-info">
-                <view class="rank-item-name-row">
-                  <text class="rank-item-name">{{item.nickname}}</text>
-                  <view class="rank-item-tag rank-item-tag-tier" wx:if="{{item.tier_short}}"><text>{{item.tier_short}} {{item.stars}}★</text></view>
-                </view>
-                <view class="rank-item-detail">
-                  <text>{{item.games}} 场 · {{item.wins}} 胜</text>
-                </view>
-                <view class="rank-item-detail rank-item-detail-sub">
-                  <text>连胜 {{item.best_streak || 0}} · 最高分 {{item.best_score || 0}}</text>
-                </view>
-                <view class="rank-item-tags" wx:if="{{item.tags && item.tags.length > 0}}">
-                  <text class="rank-item-tag-cell" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
-                </view>
-              </view>
+            <!-- 名次 -->
+            <view class="rank-num">
+              <image class="rank-crown" src="/assets/icons/rank-1-god-crown.svg" mode="aspectFit" wx:if="{{item.displayRank === 1}}" />
+              <text class="rank-num-text rank-num-text-{{item.displayRank <= 3 ? item.displayRank : 'rest'}}" wx:else>{{item.displayRank}}</text>
             </view>
-            <view class="rank-item-right">
-              <text class="rank-item-score {{item.total_score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.total_score >= 0 ? '+' : ''}}{{item.total_score}}</text>
-              <view class="rank-item-action" wx:if="{{!item.is_self}}">
+
+            <!-- 头像 -->
+            <image class="rank-avatar" src="{{item.avatar_url}}" mode="aspectFill" wx:if="{{item.avatar_url}}" />
+            <view class="rank-avatar rank-avatar-ph" style="background:{{item.avatarColor}};" wx:else><text>{{item.nickname[0]}}</text></view>
+
+            <!-- 数据 -->
+            <view class="rank-info">
+              <view class="rank-name-row">
+                <text class="rank-name">{{item.nickname}}</text>
+                <view class="tier-chip {{item.displayRank === 1 ? 'tier-chip-gold' : ''}}" wx:if="{{item.tier_short}}"><text>{{item.tier_short}} {{item.stars || 0}}★</text></view>
+              </view>
+              <text class="rank-line">{{item.games}} 场 · {{item.wins}} 胜 · {{item.draws || 0}} 平</text>
+              <text class="rank-line rank-line-sub">连胜 {{item.best_streak || 0}} · 单场最高 {{item.best_score || 0}}</text>
+            </view>
+
+            <!-- 分数与互动 -->
+            <view class="rank-right">
+              <text class="rank-score {{item.total_score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.total_score >= 0 ? '+' : ''}}{{item.total_score}}</text>
+              <!-- 已在位：当前已在 forming/active 牌局落座；否则可约台 -->
+              <view class="rank-in-game" wx:if="{{item.in_game}}"><text>已在位</text></view>
+              <view class="rank-action" wx:else>
                 <image class="rank-action-icon" src="/assets/icons/share-wechat.svg" mode="aspectFit" />
-                <text class="rank-action-text">约开台</text>
+                <text class="rank-action-text">可约台</text>
                 <button class="rank-action-hit" open-type="share" bindtap="onInviteTap"></button>
               </view>
-              <view class="rank-item-action rank-item-action-self" wx:if="{{item.is_self}}">
-                <text class="rank-action-text-self">已在位</text>
-              </view>
             </view>
           </view>
-          <view class="rank-item-badges" wx:if="{{item.badges && item.badges.length > 0}}">
-            <view class="rank-badge-pill {{badge.style}}" wx:for="{{item.badges}}" wx:for-item="badge" wx:key="id">
-              <text class="rank-badge-icon">{{badge.icon}}</text>
-              <text>{{badge.name}}</text>
-            </view>
+
+          <!-- 规则标签（有数据才显示） -->
+          <view class="rank-tags" wx:if="{{item.tags && item.tags.length > 0}}">
+            <text class="rank-tag" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
           </view>
+        </view>
+
+        <!-- 到底提示 -->
+        <view class="lb-end" wx:if="{{entries.length > 0}}">
+          <view class="lb-end-line"></view>
+          <view class="lb-end-center">
+            <image class="lb-end-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" />
+            <text>已载入全部 {{entries.length}} 位雀友 · 到底了</text>
+          </view>
+          <view class="lb-end-line"></view>
         </view>
 
         <view class="empty-state" wx:if="{{entries.length === 0}}" style="padding: 80rpx 40rpx;">
@@ -160,14 +184,10 @@
         </view>
       </view>
 
-      <!-- 底部签名 -->
+      <!-- 文化与温情落款 -->
       <view class="lb-footer">
-        <view class="lb-footer-line"></view>
-        <image class="lb-footer-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" />
-        <view class="lb-footer-line"></view>
+        <text class="lb-footer-text">以牌会友 · 闲叙工夫茶</text>
       </view>
-      <text class="lb-footer-text">打麻雀啫，开心最紧要 · 同分并列</text>
-      <text class="lb-footer-sub">雀聚有期 · 怡情共叙</text>
     </view>
   </block>
 

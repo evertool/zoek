@@ -3,6 +3,7 @@ const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
 const guard = require('../../utils/guard')
+const tts = require('../../utils/tts')
 
 Page({
   data: {
@@ -24,6 +25,7 @@ Page({
     showBadgePanel: false,
     badgeRules: false,
     vibrateEnabled: false,
+    voiceEnabled: true, // 得分语音播报（默认开，storage 可关）
     showToast: false,
     toastMsg: '',
     navPadding: 0
@@ -44,7 +46,8 @@ Page({
         nickname: app.globalData.nickname || '',
         avatarURL: app.globalData.avatarURL || '',
         avatarColor: util.avatarColor(app.globalData.nickname || ''),
-        userId: app.globalData.userID ? ('ZM' + String(app.globalData.userID).padStart(6, '0')) : ''
+        userId: app.globalData.userID ? ('ZM' + String(app.globalData.userID).padStart(6, '0')) : '',
+        voiceEnabled: tts.isEnabled()
       })
       if (isLoggedIn) {
         this.loadStats()
@@ -69,13 +72,18 @@ Page({
 
   loadStats() {
     api.get('/user/stats').then(res => {
+      // 忠诚度标签：≥200 场「铁杆雀客」/ ≥20 场「常客」，不足不显示
+      var loyalty = ''
+      if ((res.games || 0) >= 200) loyalty = '铁杆雀客'
+      else if ((res.games || 0) >= 20) loyalty = '常客'
       this.setData({
         stats: {
           games: res.games || 0,
           total_score: res.total_score || 0,
           avg_score: res.avg_score || 0,
           win_rate: res.win_rate || 0,
-          recent_wins: res.recent_wins || 0
+          recent_wins: res.recent_wins || 0,
+          loyalty_text: loyalty
         }
       })
     }).catch(function() {})
@@ -243,6 +251,15 @@ Page({
   toggleVibrate() {
     this.setData({ vibrateEnabled: !this.data.vibrateEnabled })
     this.showToast(this.data.vibrateEnabled ? '触感振动提醒已开启' : '触感振动提醒已关闭')
+  },
+
+  // 得分语音播报开关（默认开；切换时用一句粤语试听反馈）
+  toggleVoice() {
+    var next = !this.data.voiceEnabled
+    this.setData({ voiceEnabled: next })
+    tts.setEnabled(next)
+    this.showToast(next ? '得分语音播报已开启' : '得分语音播报已关闭')
+    if (next) tts.speak('得分语音播报已开启，有人转分我会话你知')
   },
 
   showBlacklist() {

@@ -16,6 +16,17 @@ type Config struct {
 	JWT      JWTConfig      `yaml:"jwt"`
 	Log      LogConfig      `yaml:"log"`
 	CORS     CORSConfig     `yaml:"cors"`
+	TTS      TTSConfig      `yaml:"tts"`
+}
+
+// TTSConfig holds Tencent Cloud TTS (语音合成) settings for Cantonese playback.
+// SecretID/SecretKey 为空时语音播报回落到微信同声传译插件（普通话）。
+type TTSConfig struct {
+	SecretID  string `yaml:"secret_id"`
+	SecretKey string `yaml:"secret_key"`
+	Region    string `yaml:"region"`     // 默认 ap-guangzhou
+	VoiceType int    `yaml:"voice_type"` // 默认 101019（智彤·粤语女声，精品音色）
+	Codec     string `yaml:"codec"`      // mp3（前端播放体积最小）
 }
 
 // WechatConfig holds WeChat Mini Program settings.
@@ -92,6 +103,11 @@ func Default() *Config {
 		},
 		CORS: CORSConfig{
 			AllowOrigins: []string{"*"},
+		},
+		TTS: TTSConfig{
+			Region:    "ap-guangzhou",
+			VoiceType: 101019, // 智彤·粤语女声（精品音色）
+			Codec:     "mp3",
 		},
 	}
 }
@@ -172,6 +188,22 @@ func applyEnvOverrides(cfg *Config) {
 	}
 	if v := os.Getenv("ZOEK_WECHAT_APP_SECRET"); v != "" {
 		cfg.Wechat.AppSecret = v
+	}
+	if v := os.Getenv("ZOEK_TTS_SECRET_ID"); v != "" {
+		cfg.TTS.SecretID = v
+	}
+	if v := os.Getenv("ZOEK_TTS_SECRET_KEY"); v != "" {
+		cfg.TTS.SecretKey = v
+	}
+	if v := os.Getenv("ZOEK_TTS_REGION"); v != "" {
+		cfg.TTS.Region = v
+	}
+	if v := os.Getenv("ZOEK_TTS_VOICE_TYPE"); v != "" {
+		var vt int
+		for _, c := range v {
+			vt = vt*10 + int(c-'0')
+		}
+		cfg.TTS.VoiceType = vt
 	}
 }
 

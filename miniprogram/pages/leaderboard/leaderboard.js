@@ -96,19 +96,22 @@ Page({
   applyScoreCard() {
     var mine = (this._rawEntries || []).find(function(e) { return e.is_self })
     var base = mine || this._userStats || {}
-    this.setData({
-      stats: {
-        ...this.data.stats,
-        my_rank: (this.data.stats && this.data.stats.my_rank) || 0,
-        games: base.games || 0,
-        wins: base.wins || 0,
-        win_rate: Math.round(base.win_rate || 0),
+      this.setData({
+        stats: {
+          ...this.data.stats,
+          my_rank: (this.data.stats && this.data.stats.my_rank) || 0,
+          games: base.games || 0,
+          wins: base.wins || 0,
+          draws: base.draws || 0,
+          win_rate: Math.round(base.win_rate || 0),
         best_streak: base.best_streak || 0,
         best_score: base.best_score || 0,
         total_score: base.total_score || 0,
+        tier_short: base.tier_short || '',
+        stars: base.stars || 0,
         active_text: (base.games || 0) > 0 ? '本周期活跃 · 雀艺渐入佳境' : '未参与牌局'
-      }
-    })
+        }
+      })
   },
 
   /** 段位榜口径：/rank/me（仅满 4 人排位局） */
@@ -120,10 +123,13 @@ Page({
           ...this.data.stats,
           games: res.total_games || 0,
           wins: res.wins || 0,
+          draws: res.draws || 0,
           win_rate: Math.round(res.win_rate || 0),
           best_streak: res.best_streak || 0,
           best_score: res.best_score || 0,
           total_score: res.points || 0,
+          tier_short: (res.tier && res.tier.tier_short) || '',
+          stars: (res.tier && res.tier.stars_in_tier) || 0,
           active_text: '段位赛绩 · 满4人局计入排位'
         }
       })

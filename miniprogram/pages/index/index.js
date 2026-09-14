@@ -205,15 +205,11 @@ Page({
     }).catch(function() {})
   },
 
+  // 最近战绩只展示时间（HH:MM），不再带日期
   formatRecentTime(ts) {
     var d = util.toDate(ts)
     if (!d) return ''
-    var now = new Date()
-    var day = (now.getMonth() + 1) === (d.getMonth() + 1) && now.getDate() === d.getDate()
-      ? '今天'
-      : (d.getMonth() + 1) + '月' + d.getDate() + '日'
-    var hm = (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes()
-    return day + ' ' + hm
+    return (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes()
   },
 
   goHistory() {

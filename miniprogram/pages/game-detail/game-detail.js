@@ -1,8 +1,10 @@
-// pages/game-detail/game-detail.js — 牌局详情页（全场收支总览 + 转分流水，局概念已移除）
+// pages/game-detail/game-detail.js — 牌局结算明细页（全场收支总览 + 转分实时流水）
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
 const guard = require('../../utils/guard')
+
+const FLOW_PAGE_SIZE = 5 // 流水默认展示条数，其余折叠
 
 Page({
   data: {
@@ -11,6 +13,8 @@ Page({
     gameID: 0,
     detail: null,
     flow: [],
+    flowShown: FLOW_PAGE_SIZE,
+    flowPageSize: FLOW_PAGE_SIZE,
     loading: true,
     navPadding: 0
   },
@@ -31,18 +35,34 @@ Page({
     this.setData({ loading: true })
     api.get(`/games/${this.data.gameID}/history`).then(res => {
       var myID = Number(app.globalData.userID)
-      var players = (res.players || []).map(p => ({
-        ...p,
-        avatar_url: util.resolveAvatarURL(p.avatar_url || ''),
-        avatarColor: util.avatarColor(p.nickname),
-        scoreClass: p.total_score > 0 ? 'text-positive' : (p.total_score < 0 ? 'text-negative' : ''),
-        scoreText: (p.total_score > 0 ? '+' : '') + p.total_score
-      }))
-      var me = players.filter(function(p) { return Number(p.user_id) === myID })[0] || null
+      var myNick = app.globalData.nickname || '我'
+      var myPlayerID = 0
+
+      var sum = 0
+      var players = (res.players || []).map(p => {
+        var score = Number(p.total_score) || 0
+        sum += score
+        var isMe = Number(p.user_id) === myID
+        if (isMe) myPlayerID = Number(p.player_id)
+        return {
+          ...p,
+          nickname: p.nickname || '雀友',
+          avatar_url: util.resolveAvatarURL(p.avatar_url || ''),
+          avatarColor: util.avatarColor(p.nickname),
+          wind: p.wind || '',
+          isMe: isMe,
+          isChampion: p.rank === 1,
+          isNegative: score < 0,
+          score: score,
+          scoreText: (score > 0 ? '+' : '') + score,
+          scoreClass: score > 0 ? 'text-positive' : (score < 0 ? 'text-negative' : 'text-secondary')
+        }
+      })
+
       var infoByPlayer = {}
       players.forEach(function(p) { infoByPlayer[Number(p.player_id)] = p })
 
-      // 转分流水（新→旧）：「A → B」，头像取出分方，右侧我的净流向
+      // 转分流水（新→旧）
       var list = (res.adjustments || []).filter(function(a) { return a.status === 'accepted' })
       list.sort(function(a, b) {
         var ta = new Date(a.created_at || 0).getTime()
@@ -52,46 +72,53 @@ Page({
       var flow = list.map(function(a) {
         var fromId = Number(a.from_player_id)
         var toId = Number(a.to_player_id)
-        var from = infoByPlayer[fromId] || { nickname: '雀友', avatarColor: '', avatar_url: '' }
+        var from = infoByPlayer[fromId] || { nickname: '雀友', avatarColor: '' }
         var to = infoByPlayer[toId] || { nickname: '雀友' }
-        var outgoing = fromId === Number(me ? me.player_id : 0)
-        var incoming = toId === Number(me ? me.player_id : 0)
+        var outgoing = fromId === myPlayerID // 我出分
+        var incoming = toId === myPlayerID   // 我得分的
         var mine = outgoing || incoming
-        var fromName = outgoing ? '我' : from.nickname
-        var toName = incoming ? '我' : to.nickname
-        var score = mine ? (outgoing ? -a.amount : a.amount) : 0
+        var amount = Number(a.amount) || 0
+        var delta = mine ? (outgoing ? -amount : amount) : amount
+        var reason = a.reason || '转分'
+        var time = this.formatHM(a.created_at)
         return {
           id: a.id,
-          fromName: from.nickname,
+          fromLabel: outgoing ? ('我 (' + myNick + ')') : from.nickname,
+          toLabel: incoming ? ('我 (' + myNick + ')') : to.nickname,
+          fromIsMe: outgoing,
+          toIsMe: incoming,
+          dirClass: incoming ? 'in' : (outgoing ? 'out' : 'neutral'),
           fromInitial: (from.nickname || '雀')[0],
-          fromColor: from.avatarColor,
-          fromAvatar: from.avatar_url || '',
-          desc: fromName + ' → ' + toName,
-          sub: (a.reason ? a.reason + ' · ' : '') + this.formatHM(a.created_at),
-          score: score,
-          scoreClass: score > 0 ? 'text-positive' : (score < 0 ? 'text-negative' : 'text-secondary'),
-          scoreText: score > 0 ? '+' + score : '' + score,
-          timeText: this.formatHM(a.created_at)
+          reasonText: reason,
+          timeText: time,
+          subText: time + ' · ' + reason,
+          score: delta,
+          scoreText: mine ? ((delta > 0 ? '+' : '') + delta) : String(amount),
+          scoreClass: mine
+            ? (delta > 0 ? 'text-positive' : (delta < 0 ? 'text-negative' : 'text-secondary'))
+            : 'text-secondary'
         }
       }, this)
 
       var endedAt = util.toDate(res.ended_at)
+      var shown = this.data.flowShown || FLOW_PAGE_SIZE
+      if (shown > flow.length) shown = flow.length
+
       this.setData({
         detail: {
           gameName: res.game_name,
           status: res.status,
-          dateText: endedAt ? (endedAt.getMonth() + 1) + '月' + endedAt.getDate() + '日' : '',
-          timeText: endedAt ? this.formatHM(res.ended_at) : '',
-          myScore: me ? me.total_score : 0,
-          myScoreText: me ? ((me.total_score > 0 ? '+' : '') + me.total_score) : '0',
-          myScoreClass: me && me.total_score > 0 ? 'text-positive' : (me && me.total_score < 0 ? 'text-negative' : ''),
-          isChampion: me ? me.rank === 1 : false,
-          isBalanced: players.length === 4 && players.reduce(function(s, p) { return s + p.total_score }, 0) === 0,
+          statusText: util.statusText(res.status) || '散台圆满',
+          endedText: endedAt
+            ? ((endedAt.getMonth() + 1) + '月' + endedAt.getDate() + '日 ' + this.formatHM(res.ended_at) + ' 完结')
+            : '',
+          isBalanced: players.length > 0 && sum === 0,
+          sumText: '总和 Σ = ' + (sum > 0 ? '+' : '') + sum + ' 分',
           flowCount: flow.length,
-          playersText: players.map(function(p) { return p.nickname }).join(' / '),
           players: players
         },
         flow: flow,
+        flowShown: shown,
         loading: false
       })
     }).catch(() => {
@@ -99,10 +126,25 @@ Page({
     })
   },
 
+  loadMoreFlow() {
+    var shown = (this.data.flowShown || FLOW_PAGE_SIZE) + FLOW_PAGE_SIZE
+    if (shown > this.data.flow.length) shown = this.data.flow.length
+    this.setData({ flowShown: shown })
+  },
+
+  collapseFlow() {
+    this.setData({ flowShown: FLOW_PAGE_SIZE })
+  },
+
   formatHM(ts) {
     var d = util.toDate(ts)
     if (!d) return ''
     return (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes()
+  },
+
+  /** 积分走势曲线：跳转图表分析页 */
+  goChart() {
+    wx.navigateTo({ url: '/pages/game-chart/game-chart?game_id=' + this.data.gameID })
   },
 
   goBack() {

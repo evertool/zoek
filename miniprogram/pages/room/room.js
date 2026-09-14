@@ -3,6 +3,7 @@ const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
 const guard = require('../../utils/guard')
+const tts = require('../../utils/tts')
 
 // 安全加载 lottie（npm 构建失败时不会阻断页面）
 let lottie = null
@@ -266,6 +267,27 @@ Page({
         ledgerShown: shown,
         hasScores: this.data.hasScores || ledger.length > 0
       })
+
+      // 得分语音播报：只播「收到分」（转入我的新入账），转出去的不播
+      // 首次打开只记录水位不播报（避免进场把整段历史念一遍）
+      var mineAccepted = list.filter(function(a) {
+        if (a.status !== 'accepted') return false
+        return Number(a.to_player_id) === myPlayerID
+      }).sort(function(a, b) { return (a.id || 0) - (b.id || 0) })
+      var maxMineId = mineAccepted.length ? mineAccepted[mineAccepted.length - 1].id : 0
+      if (this._lastVoiceAdjId === undefined) {
+        this._lastVoiceAdjId = maxMineId
+      } else if (this.data.game && this.data.game.status === 'active') {
+        var voiceOn = tts.isEnabled() // 开关在「我的」页面，读全局 storage
+        for (var vi = 0; vi < mineAccepted.length; vi++) {
+          var va = mineAccepted[vi]
+          if ((va.id || 0) <= this._lastVoiceAdjId) continue
+          this._lastVoiceAdjId = va.id || this._lastVoiceAdjId
+          if (!voiceOn) continue
+          // 统一文案：收到N分
+          tts.speak('收到' + va.amount + '分')
+        }
+      }
     }).catch(() => {})
   },
 

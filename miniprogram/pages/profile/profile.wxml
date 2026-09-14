@@ -68,7 +68,7 @@
               <text class="pf-stat-val">{{stats.games}}</text>
               <text class="pf-stat-unit">场</text>
             </view>
-            <view class="pf-stat-badge"><text>铁杆雀客</text></view>
+            <view class="pf-stat-badge" wx:if="{{stats.loyalty_text}}"><text>{{stats.loyalty_text}}</text></view>
           </view>
           <view class="pf-stat-cell">
             <text class="pf-stat-label">总净积分</text>
@@ -76,7 +76,7 @@
               <text class="pf-stat-val text-positive">{{stats.total_score >= 0 ? '+' : ''}}{{stats.total_score}}</text>
               <text class="pf-stat-unit text-positive">分</text>
             </view>
-            <text class="pf-stat-sub">均场 +{{stats.avg_score}}</text>
+            <text class="pf-stat-sub">均场 {{stats.avg_score >= 0 ? '+' : ''}}{{stats.avg_score}}</text>
           </view>
           <view class="pf-stat-cell">
             <text class="pf-stat-label">胜率</text>
@@ -135,6 +135,19 @@
               </view>
             </view>
             <view class="pf-switch {{vibrateEnabled ? 'pf-switch-on' : ''}}">
+              <view class="pf-switch-knob"></view>
+            </view>
+          </view>
+          <view class="pf-menu-divider"></view>
+          <view class="pf-menu-item" bindtap="toggleVoice">
+            <view class="pf-menu-left">
+              <view class="pf-menu-icon pf-menu-icon-primary"><image src="/assets/icons/sys-speaker-voice.svg" mode="aspectFit" /></view>
+              <view class="pf-menu-info">
+                <text class="pf-menu-label">得分语音播报</text>
+                <text class="pf-menu-sub">粤语报分 · 有人转分自动话你知</text>
+              </view>
+            </view>
+            <view class="pf-switch {{voiceEnabled ? 'pf-switch-on' : ''}}">
               <view class="pf-switch-knob"></view>
             </view>
           </view>

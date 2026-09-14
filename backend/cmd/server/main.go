@@ -114,6 +114,7 @@ func main() {
 	settlementHandler := handler.NewSettlementHandler(s)
 	rankHandler := handler.NewRankHandler(s)
 	leaderboardHandler := handler.NewLeaderboardHandler(s)
+	ttsHandler := handler.NewTTSHandler(cfg)
 
 	// API v1
 	v1 := r.Group("/api/v1")
@@ -174,6 +175,9 @@ func main() {
 			auth.GET("/leaderboard", leaderboardHandler.GetLeaderboard)
 			auth.GET("/user/stats", leaderboardHandler.GetUserStats)
 			auth.GET("/user/badges", leaderboardHandler.GetUserBadges)
+
+			// TTS（粤语报分音频，需配置 tts 密钥；未配置返回 TTS_NOT_CONFIGURED）
+			auth.GET("/tts", ttsHandler.GetTTS)
 		}
 	}
 

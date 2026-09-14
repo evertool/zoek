@@ -235,10 +235,15 @@ func (h *SettlementHandler) GetHistoryDetail(c *gin.Context) {
 		if p.Seat >= 1 && p.Seat <= 4 {
 			wind = []string{"東", "南", "西", "北"}[p.Seat-1]
 		}
+		var avatarURL string
+		if u, uErr := h.Store.GetUserByID(p.UserID); uErr == nil {
+			avatarURL = u.AvatarURL
+		}
 		playerInfos = append(playerInfos, HistoryPlayerInfo{
 			PlayerID:   p.ID,
 			UserID:     p.UserID,
 			Nickname:   p.NicknameSnapshot,
+			AvatarURL:  avatarURL,
 			Seat:       p.Seat,
 			Wind:       wind,
 			TotalScore: totals[p.ID],

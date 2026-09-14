@@ -352,6 +352,15 @@ func (s *Store) GetGamePlayerTotals(gameID int64) (map[int64]int, error) {
 	for _, row := range rows {
 		totals[row.GamePlayerID] = row.Total
 	}
+	// 已生效补退分（PRD §7.3：from -amount，to +amount），与结算页/雀友榜同口径
+	adjs, err := s.GetAcceptedAdjustments(gameID)
+	if err != nil {
+		return nil, err
+	}
+	for _, adj := range adjs {
+		totals[adj.FromPlayerID] -= adj.Amount
+		totals[adj.ToPlayerID] += adj.Amount
+	}
 	return totals, nil
 }
 
@@ -671,6 +680,20 @@ func (s *Store) GetTotalsByGameIDs(gameIDs []int64) (map[int64]map[int64]int, er
 			out[row.GameID] = make(map[int64]int)
 		}
 		out[row.GameID][row.GamePlayerID] = row.Total
+	}
+	// 已生效补退分（PRD §7.3：from -amount，to +amount），与结算页/雀友榜同口径
+	var adjs []model.ScoreAdjustment
+	if err := s.DB.Where("game_id IN ? AND status = 'accepted'", gameIDs).Find(&adjs).Error; err != nil {
+		return nil, err
+	}
+	for _, adj := range adjs {
+		m := out[adj.GameID]
+		if m == nil {
+			m = make(map[int64]int)
+			out[adj.GameID] = m
+		}
+		m[adj.FromPlayerID] -= adj.Amount
+		m[adj.ToPlayerID] += adj.Amount
 	}
 	return out, nil
 }
@@ -1477,6 +1500,7 @@ type LeaderboardEntry struct {
 	AvatarURL  string   `json:"avatar_url"`
 	Games      int      `json:"games"`
 	Wins       int      `json:"wins"`
+	Draws      int      `json:"draws"` // 单场终局净分为 0 的场次数
 	Top3       int      `json:"top3"`
 	TotalScore int64    `json:"total_score"` // 窗口内净胜分
 	WinRate    float64  `json:"win_rate"`
@@ -1486,6 +1510,7 @@ type LeaderboardEntry struct {
 	BestScore  int      `json:"best_score"`  // 窗口内单场最高分
 	Tags       []string `json:"tags"`        // 规则标签：连胜王/今晚手气王/稳如泰山/大翻盘赢家/常客/铁脚/雀神
 	IsSelf     bool     `json:"is_self"`
+	InGame     bool     `json:"in_game"`   // 当前已在 forming/active 牌局落座（已在位）
 	Qualified  bool     `json:"qualified"` // 完成局数达到门槛，进入正式榜单
 	TierName   string   `json:"tier_name"` // 排位段位全名
 	TierShort  string   `json:"tier_short"`
@@ -1506,11 +1531,14 @@ type TrendPoint struct {
 type UserStats struct {
 	Games      int          `json:"games"`
 	Wins       int          `json:"wins"`
+	Draws      int          `json:"draws"` // 单场终局净分为 0 的场次数
 	Top3       int          `json:"top3"`
 	WinRate    float64      `json:"win_rate"`
 	Top3Rate   float64      `json:"top3_rate"`
 	AvgRank    float64      `json:"avg_rank"`
 	BestScore  int64        `json:"best_score"`
+	AvgScore   float64      `json:"avg_score"`  // 平均每场净得分（总净积分/场次）
+	RecentWins int          `json:"recent_wins"` // 最近 7 场里净分 > 0 的场数
 	TotalScore int64        `json:"total_score"` // 净胜分（正负均返回）
 	Trend      []TrendPoint `json:"trend"`
 }
@@ -1538,13 +1566,13 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 	}
 
 	type acc struct {
-		games, wins, top3, rankSum int
-		netSum                     int64
-		bestStreak, curStreak      int
-		bestScore                  int
-		inGameMax                  int
-		anyFinalZero, comeback     bool
-		nick, avatar               string
+		games, wins, draws, top3, rankSum int
+		netSum                            int64
+		bestStreak, curStreak             int
+		bestScore                         int
+		inGameMax                         int
+		anyFinalZero, comeback            bool
+		nick, avatar                      string
 	}
 	accs := map[int64]*acc{}
 	nick := map[int64]string{}
@@ -1564,7 +1592,8 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 			a.games++
 			a.rankSum += pt.Rank
 			a.netSum += pt.TotalScore
-			if pt.Rank == 1 {
+			// 胜场 = 单场第 1 名且净分 > 0（全场 0 分按平场计，不算胜）
+			if pt.Rank == 1 && pt.TotalScore > 0 {
 				a.wins++
 				a.curStreak++
 				if a.curStreak > a.bestStreak {
@@ -1577,6 +1606,7 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 				a.bestScore = int(pt.TotalScore)
 			}
 			if pt.TotalScore == 0 {
+				a.draws++
 				a.anyFinalZero = true
 			}
 			nick[pt.UserID] = pt.Nickname
@@ -1634,6 +1664,7 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 			AvatarURL: avatarURL,
 			Games:     a.games,
 			Wins:      a.wins,
+			Draws:     a.draws,
 			Top3:      a.top3,
 			IsSelf:    uid == userID,
 			Qualified: true,
@@ -1694,6 +1725,19 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 	})
 	if len(entries) > 20 {
 		entries = entries[:20] // 只显示前 20
+	}
+
+	// 在位状态：当前已在 forming/active 牌局落座的用户 → 已在位（不可约）
+	inGame := map[int64]bool{}
+	var seatedIDs []int64
+	if err := s.DB.Raw("SELECT DISTINCT gp.user_id FROM game_players gp JOIN games g ON g.id = gp.game_id WHERE g.status IN ('forming', 'active')").
+		Scan(&seatedIDs).Error; err == nil {
+		for _, uid := range seatedIDs {
+			inGame[uid] = true
+		}
+	}
+	for i := range entries {
+		entries[i].InGame = inGame[entries[i].UserID]
 	}
 	return entries, nil
 }
@@ -1880,8 +1924,12 @@ func (s *Store) GetUserStats(userID int64, maxTrend int) (*UserStats, error) {
 		st.Games++
 		st.TotalScore += mine.TotalScore
 		rankSum += mine.Rank
-		if mine.Rank == 1 {
+		// 与积分榜同口径：胜 = 单场第 1 名且净分 > 0；净分 0 计平场
+		if mine.Rank == 1 && mine.TotalScore > 0 {
 			st.Wins++
+		}
+		if mine.TotalScore == 0 {
+			st.Draws++
 		}
 		if mine.Rank <= 3 {
 			st.Top3++
@@ -1903,6 +1951,17 @@ func (s *Store) GetUserStats(userID int64, maxTrend int) (*UserStats, error) {
 		st.WinRate = round2(float64(st.Wins) / float64(st.Games) * 100)
 		st.Top3Rate = round2(float64(st.Top3) / float64(st.Games) * 100)
 		st.AvgRank = round2(float64(rankSum) / float64(st.Games))
+		st.AvgScore = round2(float64(st.TotalScore) / float64(st.Games))
+	}
+	// 最近 7 场里净分 > 0 的场数（Trend 按结束时间正序，取尾部）
+	recent := st.Trend
+	if len(recent) > 7 {
+		recent = recent[len(recent)-7:]
+	}
+	for _, p := range recent {
+		if p.Total > 0 {
+			st.RecentWins++
+		}
 	}
 	return st, nil
 }

@@ -97,7 +97,6 @@ Page({
     return {
       dateText: endedAt ? (endedAt.getMonth() + 1) + '月' + endedAt.getDate() + '日' : '',
       timeText: timeText,
-      roundsText: (res.completed_rounds || 0) + ' 局',
       zeroSum: zeroSum,
       players: players
     }

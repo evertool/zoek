@@ -1,98 +1,106 @@
-<!--pages/game-detail/game-detail.wxml — 每局详情页 v6 Stitch 还原-->
+<!--pages/game-detail/game-detail.wxml — 牌局结算明细（queyou-mingxi 设计稿还原）-->
 <view class="page">
+  <!-- 自定义导航：返回 + 居中标题 -->
   <view class="top-bar" style="padding-top: {{capsuleTop}}px;">
     <view class="nav-back-btn" style="width: {{capsuleHeight}}px; height: {{capsuleHeight}}px;" bindtap="goBack">
       <text class="nav-back-icon">‹</text>
     </view>
+    <text class="nav-title">牌局结算明细</text>
   </view>
 
   <view class="main-content">
-
     <block wx:if="{{detail}}">
-      <!-- 头部战局卡 -->
-      <view class="gd-hero card anim-fade-up">
-        <view class="gd-hero-row">
-          <view class="gd-hero-date"><view class="gd-dot"></view><text>{{detail.dateText}} {{detail.timeText}} 结束</text></view>
-          <view class="gd-pill gd-pill-blue">散台圆满</view>
+
+      <!-- 完结时间 + 零和校验 -->
+      <view class="gd-summary anim-fade-up">
+        <view class="gd-summary-left">
+          <view class="gd-summary-dot"></view>
+          <text>{{detail.endedText}}</text>
         </view>
-        <view class="gd-hero-row gd-hero-row-mid">
-          <text class="gd-hero-mylabel">我的净得分</text>
+        <view class="gd-balance-chip" wx:if="{{detail.isBalanced}}">
+          <image class="gd-balance-icon" src="/assets/icons/table-balance-jade.svg" mode="aspectFit" />
+          <text>零和已平账</text>
         </view>
-        <view class="gd-hero-row gd-hero-row-mid" wx:if="{{detail.isBalanced}}">
-          <view class="gd-zero-chip"><text>⚖ 零和已平账</text></view>
-        </view>
-        <view class="gd-hero-score-row">
-          <view class="gd-hero-score-left">
-            <text class="gd-hero-score {{detail.myScoreClass}}">{{detail.myScoreText}}</text>
-            <text class="gd-hero-unit">分</text>
-          </view>
-          <view class="gd-hero-players">
-            <text class="gd-players-label">对局雀友</text>
-            <text class="gd-players-names">{{detail.playersText}}</text>
-          </view>
-        </view>
-        <view class="gd-champion-chip" wx:if="{{detail.isChampion}}"><text>🏆 本台冠军</text></view>
       </view>
 
       <!-- 全场收支总览 -->
       <view class="gd-section anim-fade-up delay-1">
         <view class="gd-section-head">
-          <text class="gd-section-title">全场收支总览</text>
-          <text class="gd-section-sub" wx:if="{{detail.isBalanced}}">总和 Σ = 0 分</text>
+          <view class="gd-section-title-wrap">
+            <view class="gd-section-bar"></view>
+            <text class="gd-section-title">全场收支总览</text>
+          </view>
+          <text class="gd-section-chip">{{detail.sumText}}</text>
         </view>
-        <view class="gd-totals-grid">
-          <view class="gd-total-card {{p.rank === 1 ? 'gd-total-champion' : ''}}" wx:for="{{detail.players}}" wx:for-item="p" wx:key="player_id">
-            <view class="gd-total-top">
-              <view class="gd-avatar-wrap">
-                <view class="gd-avatar" style="background: {{p.avatarColor}};">{{p.nickname[0]}}</view>
-                <view class="gd-avatar-seat">{{p.wind}}位</view>
+        <view class="gd-players-grid">
+          <view class="gd-player {{p.isChampion ? 'gd-player-champion' : ''}} {{p.isNegative ? 'gd-player-negative' : ''}}" wx:for="{{detail.players}}" wx:for-item="p" wx:key="player_id">
+            <view class="gd-player-crown" wx:if="{{p.isChampion}}"><text>👑 雀神</text></view>
+            <view class="gd-player-main">
+              <view class="gd-player-left">
+                <view class="gd-player-avatar-wrap">
+                  <view class="gd-player-avatar" style="background: {{p.avatarColor}};">
+                    <image wx:if="{{p.avatar_url}}" class="gd-player-avatar-img" src="{{p.avatar_url}}" mode="aspectFill" />
+                    <text wx:else>{{p.nickname[0]}}</text>
+                  </view>
+                  <view class="gd-player-wind" wx:if="{{p.wind}}"><text>{{p.wind}}</text></view>
+                </view>
+                <view class="gd-player-name">
+                  <text class="gd-player-name-text">{{p.nickname}}</text>
+                  <text class="gd-player-me" wx:if="{{p.isMe}}">(我)</text>
+                </view>
               </view>
-              <view class="gd-total-name-col">
-                <text class="gd-total-name">{{p.nickname}}</text>
-                <text class="gd-total-wind">{{p.wind}}风位</text>
+              <view class="gd-player-score">
+                <text class="gd-player-score-val {{p.scoreClass}}">{{p.scoreText}}</text>
+                <text class="gd-player-unit">分</text>
               </view>
-              <view class="gd-seal" wx:if="{{p.rank === 1}}"><text>✓</text></view>
-            </view>
-            <view class="gd-total-score-row">
-              <text class="gd-total-score {{p.scoreClass}}">{{p.scoreText}}</text>
-              <text class="gd-total-unit">分</text>
             </view>
           </view>
         </view>
       </view>
 
-      <!-- 转分流水 -->
+      <!-- 转分实时流水 -->
       <view class="gd-section anim-fade-up delay-2">
         <view class="gd-section-head">
-          <text class="gd-section-title">转分流水</text>
-          <text class="gd-section-sub">共 {{detail.flowCount}} 笔记录</text>
+          <view class="gd-section-title-wrap">
+            <view class="gd-section-bar"></view>
+            <text class="gd-section-title">转分流水</text>
+          </view>
+          <text class="gd-section-count">共 {{detail.flowCount}} 笔过数记录</text>
         </view>
-        <view class="gd-flow-list">
-          <view class="gd-flow-item" wx:for="{{flow}}" wx:key="id">
-            <view class="gd-flow-num">
-              <text>{{item.fromInitial}}</text>
-            </view>
+
+        <view class="gd-flow-card">
+          <view class="gd-flow-row" wx:for="{{flow}}" wx:key="id" wx:if="{{index < flowShown}}">
+            <view class="gd-flow-avatar gd-flow-avatar-{{item.dirClass}}"><text>{{item.fromInitial}}</text></view>
             <view class="gd-flow-info">
-              <view class="gd-flow-title-row">
-                <text class="gd-flow-title">{{item.desc}}</text>
+              <view class="gd-flow-title">
+                <text class="{{item.fromIsMe ? 'gd-flow-label-me' : 'gd-flow-label'}}">{{item.fromLabel}}</text>
+                <text class="gd-flow-arrow gd-flow-arrow-{{item.dirClass}}">→</text>
+                <text class="{{item.toIsMe ? 'gd-flow-label-me' : 'gd-flow-label'}}">{{item.toLabel}}</text>
               </view>
-              <text class="gd-flow-sub">{{item.sub}}</text>
+              <text class="gd-flow-sub">{{item.subText}}</text>
             </view>
             <view class="gd-flow-right">
               <text class="gd-flow-score {{item.scoreClass}}">{{item.scoreText}}</text>
-              <text class="gd-flow-time">{{item.timeText}}</text>
             </view>
           </view>
+          <view class="gd-flow-empty" wx:if="{{flow.length === 0}}"><text>暂无转分记录</text></view>
         </view>
-        <view class="gd-flow-empty" wx:if="{{flow.length === 0}}"><text>暂无转分记录</text></view>
-      </view>
 
-      <!-- 底部动作 -->
-      <view class="gd-actions">
-        <button class="btn-secondary gd-share-btn" open-type="share"><text>私密分享给雀友 (生成明细卡)</text></button>
+        <view class="gd-flow-more" wx:if="{{flow.length > flowPageSize}}">
+          <text wx:if="{{flow.length > flowShown}}" bindtap="loadMoreFlow">展开其余 {{flow.length - flowShown}} 笔流水 ⌄</text>
+          <text wx:else bindtap="collapseFlow">收起流水 ⌃</text>
+        </view>
       </view>
     </block>
 
     <view class="load-tip" wx:if="{{loading}}">加载中...</view>
+  </view>
+
+  <!-- 底部操作栏：积分走势曲线 -->
+  <view class="gd-bottom" wx:if="{{detail}}">
+    <view class="gd-chart-btn" bindtap="goChart">
+      <image class="gd-chart-icon" src="/assets/icons/sys-chart-bar.svg" mode="aspectFit" />
+      <text>积分走势曲线</text>
+    </view>
   </view>
 </view>
