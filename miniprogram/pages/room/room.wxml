@@ -20,7 +20,7 @@
   <view class="main-content" style="padding-top: 8rpx;" wx:if="{{game}}">
 
     <!-- 桌面：4 个等腰梯形（北/东/南/西）由中心圆向外放射，短边贴圆心、长边朝外 -->
-    <view class="table-stage">
+    <view class="table-stage {{fx.quake ? 'fx-quake' : ''}}">
       <view class="table-center">
         <view class="table-center-ring"></view>
         <text class="table-center-tile">發</text>
@@ -33,7 +33,7 @@
 
       <view class="table-side side-{{item.pos}}"
         wx:for="{{seats}}" wx:key="seat" data-seat="{{item.seat}}" bindlongpress="onSeatLongPress">
-        <view class="side-fill">
+        <view class="side-fill {{fx.target === item.pos && fx.hit ? 'fx-hit-shake' : ''}} {{fx.target === item.pos && fx.kicked ? 'fx-avatar-kick' : ''}}">
           <view class="side-body {{item.player ? '' : 'side-body-empty'}}">
             <block wx:if="{{item.player}}">
               <view class="seat-head">
@@ -61,6 +61,90 @@
                 <button class="invite-hit" open-type="share"></button>
               </view>
             </block>
+          </view>
+        </view>
+      </view>
+
+      <!-- 席位互动道具 fx 层：只做动画（pointer-events:none，不挡任何操作） -->
+      <view class="fx-stage">
+        <!-- 扔飞拖鞋 -->
+        <block wx:if="{{fx.slipper}}">
+          <view class="fx-slipper" style="{{fx.slipper.style}}">
+            <view class="fx-slipper-inner">
+              <image src="/assets/icons/fx-slipper.svg" mode="aspectFit" />
+            </view>
+          </view>
+        </block>
+        <!-- 命中星芒 -->
+        <view wx:if="{{fx.stars}}" class="fx-stars {{fx.stars.on ? 'fx-on' : ''}}" style="{{fx.stars.style}}">
+          <text class="fx-star">⭐</text>
+          <text class="fx-star-b">💥</text>
+          <text class="fx-star-c">✨</text>
+        </view>
+        <!-- 台下猛踢：三重冲击波 + 大脚 + 火花 -->
+        <block wx:if="{{fx.kick}}">
+          <view class="fx-shock-center" style="{{fx.kick.style}}">
+            <view class="fx-shock fx-shock-1 {{fx.kick.run ? 'fx-run-1' : ''}}"></view>
+            <view class="fx-shock fx-shock-2 {{fx.kick.run ? 'fx-run-2' : ''}}"></view>
+            <view class="fx-shock fx-shock-3 {{fx.kick.run ? 'fx-run-3' : ''}}"></view>
+          </view>
+          <view class="fx-foot {{fx.kick.run ? 'fx-run' : ''}}" style="left: {{fx.kick.footX}}px; top: {{fx.kick.footY}}px;"><text>🦶</text></view>
+          <view class="fx-sparks {{fx.kick.hit ? 'fx-on' : ''}}" style="left: {{fx.kick.cx}}px; top: {{fx.kick.cy}}px;">
+            <text>💥</text>
+            <text class="fx-spark-b">💢</text>
+            <text class="fx-spark-c">⚡</text>
+            <text class="fx-spark-tag">CRITICAL HIT!</text>
+          </view>
+        </block>
+        <!-- 花儿谢了 -->
+        <block wx:if="{{fx.flower}}">
+          <view class="fx-flower {{fx.flower.on ? 'fx-on' : ''}}" style="left: {{fx.flower.x}}px; top: {{fx.flower.y}}px; transform: translateX(-50%);">
+            <view class="fx-flower-cloud"><text>🌧️</text><text>☁️</text></view>
+            <view class="fx-rain"><view class="r1"></view><view class="r2"></view><view class="r3"></view></view>
+            <view class="fx-wind"><view></view><view class="w2"></view></view>
+            <view class="fx-flower-stem {{fx.flower.wither ? 'fx-run-droop' : ''}}">
+              <text class="fx-flower-head">{{fx.flower.wither ? '🥀' : '🌹'}}</text>
+              <view class="fx-stem"></view>
+            </view>
+            <view class="fx-petals">
+              <text class="p1 {{fx.flower.wither ? 'fx-run' : ''}}">🥀</text>
+              <text class="p2 {{fx.flower.wither ? 'fx-run' : ''}}">🍂</text>
+              <text class="p3 {{fx.flower.wither ? 'fx-run' : ''}}">🍁</text>
+            </view>
+            <view class="fx-flower-bubble {{fx.flower.bubble ? 'fx-on' : ''}}"><text>等得我花儿都谢了... 🥀</text></view>
+          </view>
+        </block>
+        <!-- 斟杯靓茶 -->
+        <block wx:if="{{fx.tea}}">
+          <view class="fx-tea-teapot {{fx.tea.tilt ? 'fx-tilt' : ''}}" style="left: {{fx.tea.potX}}px; top: {{fx.tea.potY}}px;">
+            <image src="/assets/icons/fx-teapot.svg" mode="aspectFit" />
+          </view>
+          <view class="fx-tea-stream {{fx.tea.pour ? 'fx-on' : ''}}" style="left: {{fx.tea.streamX}}px; top: {{fx.tea.streamY}}px; height: {{fx.tea.streamH}}px;"></view>
+          <view class="fx-tea-cup" style="left: {{fx.tea.cupX}}px; top: {{fx.tea.cupY}}px;">
+            <view class="fx-steam"><view class="s1"></view><view class="s2"></view><view class="s3"></view></view>
+            <view class="cup-body">
+              <view class="cup-water {{fx.tea.pour ? 'fx-on' : ''}}"><text>茶香</text></view>
+            </view>
+            <view class="cup-label"><text>敬上一杯高山靓乌龙</text></view>
+          </view>
+        </block>
+        <!-- 送件点心 -->
+        <block wx:if="{{fx.dimsum}}">
+          <view class="fx-dimsum" style="left: {{fx.dimsum.x}}px; top: {{fx.dimsum.y}}px; transform: translateX(-50%);">
+            <view class="fx-dimsum-steam"><view class="s1"></view><view class="s2"></view></view>
+            <view class="fx-dimsum-lid {{fx.dimsum.run ? 'fx-run' : ''}}">
+              <image src="/assets/icons/fx-steamer-lid.svg" mode="aspectFit" />
+            </view>
+            <view class="fx-dimsum-base"><text>🥟</text><text>🥟</text></view>
+            <view class="fx-dimsum-label"><text>热腾腾广式虾饺 · 催牌啦！</text></view>
+          </view>
+        </block>
+        <!-- 踢击私密暗号气泡 -->
+        <view wx:if="{{fx.banner}}" class="fx-banner {{fx.banner.on ? 'fx-on' : ''}}">
+          <text class="banner-icon">🦶</text>
+          <view style="flex: 1; min-width: 0;">
+            <text class="banner-title">{{fx.banner.title}}</text>
+            <view class="banner-desc"><text>{{fx.banner.desc}}</text></view>
           </view>
         </view>
       </view>
@@ -210,6 +294,54 @@
     </view>
   </view>
 
+  <!-- 模态层 5: 席位互动道具（入口，动画本体在桌面 fx 层） -->
+  <view class="modal-overlay modal-bottom {{showPropModal ? 'modal-show' : ''}}" bindtap="closePropModal">
+    <view class="prop-sheet" catchtap="stopPropagation">
+      <view class="prop-head">
+        <view style="flex: 1; min-width: 0;">
+          <text class="prop-title">席位互动道具</text>
+          <text class="prop-sub">{{propTargetName ? '向【' + propTargetName + '】发送互动微道具或暗号' : '先选一个互动目标席位'}}</text>
+        </view>
+        <view class="modal-close-btn" bindtap="closePropModal"><text>✕</text></view>
+      </view>
+      <view class="prop-targets">
+        <text class="prop-targets-label">互动目标：</text>
+        <view wx:for="{{propTargets}}" wx:key="pos"
+          class="prop-target-chip {{propTarget === item.pos ? 'prop-target-on' : ''}}"
+          data-pos="{{item.pos}}" data-name="{{item.name}}" bindtap="selectPropTarget">
+          <text>{{item.wind}}位 · {{item.name}}</text>
+        </view>
+      </view>
+      <view class="prop-grid">
+        <view class="prop-card" data-type="slipper" bindtap="useProp">
+          <view class="prop-card-top"><text class="prop-card-emoji">🩴</text><text class="prop-card-tag">物理飞击</text></view>
+          <view><text class="prop-card-name">扔飞拖鞋</text><text class="prop-card-desc">抛物翻转 · 爆笑命中</text></view>
+        </view>
+        <view class="prop-card" data-type="tea" bindtap="useProp">
+          <view class="prop-card-top"><text class="prop-card-emoji">🍵</text><text class="prop-card-tag">紫砂倾注</text></view>
+          <view><text class="prop-card-name">斟杯靓茶</text><text class="prop-card-desc">金黄茶汤 · 涟漪白雾</text></view>
+        </view>
+        <view class="prop-card prop-card-hot" data-type="kick" bindtap="useProp">
+          <view class="prop-card-top"><text class="prop-card-emoji">🦶</text><text class="prop-card-tag">全桌震颤</text></view>
+          <view><text class="prop-card-name">台下猛踢</text><text class="prop-card-desc">动感大脚 · 震碎桌台</text></view>
+        </view>
+        <view class="prop-card prop-card-warm" data-type="flower" bindtap="useProp">
+          <view class="prop-card-top"><text class="prop-card-emoji">🥀</text><text class="prop-card-tag">萧瑟催牌</text></view>
+          <view><text class="prop-card-name">花儿谢了</text><text class="prop-card-desc">寒风落雨 · 花瓣凋零</text></view>
+        </view>
+        <view class="prop-card prop-card-wide" data-type="dimsum" bindtap="useProp">
+          <text class="prop-card-emoji">🥟</text>
+          <view style="flex: 1; min-width: 0;">
+            <text class="prop-card-name">送件点心</text>
+            <text class="prop-card-desc">竹蒸笼白雾揭盖 · 广式水晶虾饺</text>
+          </view>
+          <text class="prop-card-tag">虾饺掀盖</text>
+        </view>
+      </view>
+      <text class="prop-foot-tip">茶台道具仅为友谊催化剂，请保持惬意乐道精神</text>
+    </view>
+  </view>
+
   <!-- Toast -->
   <view class="toast {{showToast ? 'toast-show' : ''}}">
     <text>{{toastMsg}}</text>
@@ -220,8 +352,9 @@
     <canvas type="2d" id="lottie-swap" class="swap-anim-canvas"></canvas>
   </view>
 
-  <!-- 底部操作栏：左侧软按钮（取消开台 / 结束散台 / 查看找数） -->
+  <!-- 底部操作栏：左侧软按钮（道具盒 / 取消开台 / 结束散台 / 查看找数） -->
   <view class="room-footer safe-bottom" wx:if="{{game}}">
+    <view class="foot-soft" bindtap="openPropModal"><text class="foot-prop-emoji">🪄</text><text>道具盒</text></view>
     <view class="foot-soft" wx:if="{{isOwner && game.status === 'forming'}}" bindtap="doCancel">
       <image class="foot-soft-icon" src="/assets/icons/action-exit.svg" mode="aspectFit" /><text>取消开台</text>
     </view>

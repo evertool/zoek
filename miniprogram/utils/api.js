@@ -76,6 +76,50 @@ function put(path, data = {}, opts = {}) {
 }
 
 /**
+ * 二进制 GET 请求（图片 / 文件类接口，如小程序码）
+ * 与 request 的区别：responseType 为 arraybuffer，成功时 resolve ArrayBuffer
+ * 之所以不复用 request：默认 responseType 会把 PNG 当文本解析，图片必然损坏
+ * @param {string} path — API 路径（不含 baseURL）
+ * @param {object} opts — 可选：{ silent: true } 不自动弹 toast
+ * @returns {Promise<ArrayBuffer>}
+ */
+function getBinary(path, opts = {}) {
+  return new Promise((resolve, reject) => {
+    const app = getApp()
+    const header = {}
+    if (app.globalData.token) {
+      header['Authorization'] = 'Bearer ' + app.globalData.token
+    }
+    wx.request({
+      url: app.globalData.baseURL + path,
+      method: 'GET',
+      responseType: 'arraybuffer',
+      header,
+      success: (res) => {
+        if (res.statusCode >= 200 && res.statusCode < 300 && res.data && res.data.byteLength) {
+          resolve(res.data)
+          return
+        }
+        if (res.statusCode === 401) {
+          app.logout()
+          const err = { code: 'UNAUTHORIZED', message: '登录已过期' }
+          if (!opts.silent) wx.showToast({ title: err.message, icon: 'none' })
+          reject(err)
+          return
+        }
+        const err = { code: 'BINARY_FAILED', message: opts.errMsg || '图片加载失败' }
+        if (!opts.silent) wx.showToast({ title: err.message, icon: 'none', duration: 2500 })
+        reject(err)
+      },
+      fail: (err) => {
+        if (!opts.silent) wx.showToast({ title: '服务器出咗啲问题', icon: 'none' })
+        reject(err)
+      }
+    })
+  })
+}
+
+/**
  * 生成唯一 request_id（用于幂等）
  */
 function genRequestID() {
@@ -87,5 +131,6 @@ module.exports = {
   get,
   post,
   put,
+  getBinary,
   genRequestID
 }

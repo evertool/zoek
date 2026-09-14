@@ -62,14 +62,20 @@
 .pf-badge-scroll { white-space: nowrap; }
 .pf-badge-track { display: flex; gap: 20rpx; padding: 8rpx var(--margin-screen) 16rpx; }
 .pf-badge-card { flex-shrink: 0; width: 288rpx; padding: 24rpx; border-radius: var(--radius-lg); background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+/* 展架只展示已点亮徽章（数据由 /user/badges 的 unlocked 决定） */
+.pf-badge-card-lit { box-shadow: var(--shadow-lifted); }
 .pf-badge-locked { opacity: 0.6; }
 .pf-badge-icon-wrap { width: 72rpx; height: 72rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+/* 底盘色与点亮光晕由 profile.js 的 badge.iconStyle 内联驱动；下列类名保留作无色兜底 */
 .pf-badge-icon-gold { background: var(--secondary-fixed); }
 .pf-badge-icon-red { background: var(--tertiary-fixed); }
 .pf-badge-icon-green { background: var(--primary-fixed); }
 .pf-badge-icon-neutral { background: var(--surface-container-high); }
 .pf-badge-icon { font-size: 40rpx; }
 .pf-badge-icon-img { width: 56rpx; height: 56rpx; }
+/* 未点亮：图标置灰降透明（filter 不支持时 opacity 仍能表达「未点亮」） */
+.pf-badge-icon-dim { filter: grayscale(1); opacity: 0.45; }
+.pf-badge-icon-on { filter: none; opacity: 1; }
 .pf-badge-name { font-size: 28rpx; font-weight: 600; color: var(--on-surface); margin-top: 20rpx; }
 .pf-badge-desc { font-size: 22rpx; color: var(--on-surface-variant); margin-top: 8rpx; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .pf-badge-status { display: flex; align-items: center; gap: 8rpx; margin-top: 24rpx; }
@@ -123,6 +129,36 @@
 /* 徽章：横滑条空态 */
 .pf-badge-empty { margin: 8rpx var(--margin-screen) 16rpx; padding: 28rpx; border-radius: var(--radius-lg); background: var(--surface-container-lowest); box-shadow: var(--shadow-card); }
 .pf-badge-empty-text { font-size: 24rpx; color: var(--on-surface-variant); }
+.pf-badge-empty-sub { display: block; font-size: 22rpx; color: var(--outline); margin-top: 8rpx; }
+
+/* 牌局偏好设置面板（点「牌局偏好设置」打开，结构与徽章面板同款底部抽屉） */
+.pf-pref-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s; z-index: 1000; }
+.pf-pref-overlay.pf-pref-show { opacity: 1; visibility: visible; }
+.pf-pref-panel { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; background: var(--surface-container); border-radius: 32rpx 32rpx 0 0; padding-bottom: calc(env(safe-area-inset-bottom) + 32rpx); transform: translateY(100%); transition: transform 0.3s ease; }
+.pf-pref-overlay.pf-pref-show .pf-pref-panel { transform: translateY(0); }
+.pf-pref-grabber { width: 72rpx; height: 8rpx; border-radius: 4rpx; background: var(--outline-variant); margin: 16rpx auto 8rpx; }
+.pf-pref-header { display: flex; align-items: center; padding: 8rpx 32rpx; }
+.pf-pref-header-main { flex: 1; display: flex; flex-direction: column; }
+.pf-pref-title { font-size: 32rpx; font-weight: 700; color: var(--on-surface); }
+.pf-pref-sub { font-size: 22rpx; color: var(--on-surface-variant); margin-top: 4rpx; }
+.pf-pref-close { width: 56rpx; height: 56rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--surface-container-high); }
+.pf-pref-close text { font-size: 26rpx; color: var(--on-surface-variant); }
+/* 整行可点：点哪儿都能切开关，不用精准点到那颗小开关上 */
+.pf-pref-row { display: flex; align-items: center; gap: 20rpx; margin: 16rpx 32rpx 0; padding: 24rpx; border-radius: var(--radius-lg); background: var(--surface-container-lowest); box-shadow: var(--shadow-card); }
+.pf-pref-row:active { background: var(--surface-container-high); }
+.pf-pref-row-icon { width: 64rpx; height: 64rpx; border-radius: var(--radius-default); background: var(--surface-container); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pf-pref-row-icon image { width: 32rpx; height: 32rpx; }
+.pf-pref-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4rpx; }
+.pf-pref-row-label { font-size: 28rpx; font-weight: 600; color: var(--on-surface); }
+.pf-pref-row-desc { font-size: 22rpx; line-height: 1.5; color: var(--on-surface-variant); }
+.pf-pref-note { font-size: 22rpx; line-height: 1.6; color: var(--outline); margin: 24rpx 32rpx 0; }
+/* 配音音色三选一：整块不可点（:active 变底色会误导），选择器在下面自己响应 */
+.pf-pref-row-block { align-items: flex-start; }
+.pf-pref-row-block:active { background: var(--surface-container-lowest); }
+.pf-pref-seg { display: flex; gap: 12rpx; margin-top: 16rpx; }
+.pf-pref-seg-item { flex: 1; height: 60rpx; border-radius: var(--radius-md); background: var(--surface-container); color: var(--on-surface-variant); display: flex; align-items: center; justify-content: center; font-size: 22rpx; font-weight: 500; }
+.pf-pref-seg-item:active { opacity: 0.75; }
+.pf-pref-seg-on { background: var(--primary); color: var(--on-primary); font-weight: 600; }
 
 /* 徽章总览面板 */
 .pf-bp-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s; z-index: 1000; }
@@ -144,8 +180,17 @@
 .pf-bp-scroll { flex: 1; min-height: 0; max-height: 56vh; }
 .pf-bp-grid { display: flex; flex-wrap: wrap; gap: 20rpx; padding: 8rpx 32rpx 40rpx; }
 .pf-bp-card { width: calc((100% - 20rpx) / 2); box-sizing: border-box; padding: 24rpx; border-radius: var(--radius-lg); background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; flex-direction: column; }
-.pf-bp-card-locked { opacity: 0.75; }
-.pf-bp-card-top { display: flex; align-items: center; justify-content: space-between; }
+/* 已点亮：卡片浮起（配合图标同色光晕），与未点亮形成明确区分 */
+.pf-bp-card-lit { box-shadow: var(--shadow-lifted); }
+.pf-bp-card-locked { opacity: 0.72; }
+.pf-bp-card-locked .pf-bp-name { color: var(--on-surface-variant); }
+/* 从展架点入时的定位高亮 */
+.pf-bp-card-focus { box-shadow: var(--shadow-lifted), 0 0 0 4rpx var(--primary-fixed); }
+.pf-bp-card-top { display: flex; align-items: flex-start; justify-content: space-between; }
+/* 弹窗内图标放大，保证 SVG 勋章细节渲染清晰 */
+.pf-bp-card .pf-badge-icon-wrap { width: 88rpx; height: 88rpx; }
+.pf-bp-card .pf-badge-icon-img { width: 68rpx; height: 68rpx; }
+.pf-bp-card .pf-badge-icon { font-size: 48rpx; }
 .pf-bp-lit-chip { padding: 6rpx 14rpx; border-radius: 999rpx; background: var(--primary-fixed); }
 .pf-bp-lit-chip text { font-size: 20rpx; font-weight: 700; color: var(--on-primary-fixed); }
 .pf-bp-unlit-chip { padding: 6rpx 14rpx; border-radius: 999rpx; background: var(--surface-container-high); }
@@ -156,6 +201,27 @@
 .pf-bp-progress-track { height: 12rpx; border-radius: 6rpx; background: var(--surface-container-high); overflow: hidden; }
 .pf-bp-progress-fill { height: 100%; border-radius: 6rpx; background: var(--primary); }
 .pf-bp-progress-val { font-size: 20rpx; color: var(--on-surface-variant); }
+/* 已点亮的达成说明行（与未点亮的进度条同高，保证两列卡片底部对齐） */
+.pf-bp-unlock-line { margin-top: 20rpx; }
+.pf-bp-unlock-line text { font-size: 20rpx; color: var(--primary); font-weight: 600; }
+
+/* 弹窗加载 / 失败态：避免把「读不到数据」误报成「一枚都没点亮」 */
+.pf-bp-state { padding: 56rpx 32rpx; display: flex; flex-direction: column; align-items: center; gap: 24rpx; }
+.pf-bp-state-text { font-size: 24rpx; color: var(--on-surface-variant); text-align: center; }
+.pf-bp-state-btn { padding: 16rpx 48rpx; border-radius: var(--radius-full); background: var(--primary); }
+.pf-bp-state-btn text { font-size: 24rpx; font-weight: 600; color: var(--on-primary); }
+.pf-bp-footer { padding: 12rpx 32rpx 20rpx; text-align: center; }
+.pf-bp-footer text { font-size: 20rpx; color: var(--outline); }
+
+/* 弹窗卡片入场：仅位移缩放，避免覆盖未点亮卡片的 opacity 降透明 */
+@keyframes bpCardIn { from { transform: translateY(20rpx) scale(0.94); } to { transform: translateY(0) scale(1); } }
+.pf-bp-show .pf-bp-card { animation: bpCardIn 0.34s cubic-bezier(0, 0, 0.2, 1) both; }
+.pf-bp-show .pf-bp-card:nth-child(2) { animation-delay: 0.03s; }
+.pf-bp-show .pf-bp-card:nth-child(3) { animation-delay: 0.06s; }
+.pf-bp-show .pf-bp-card:nth-child(4) { animation-delay: 0.09s; }
+.pf-bp-show .pf-bp-card:nth-child(5) { animation-delay: 0.12s; }
+.pf-bp-show .pf-bp-card:nth-child(6) { animation-delay: 0.15s; }
+.pf-bp-show .pf-bp-card:nth-child(7) { animation-delay: 0.18s; }
 
 /* 徽章图标底色补齐（手气王） */
 .pf-badge-icon-amber { background: #f6eedc; }

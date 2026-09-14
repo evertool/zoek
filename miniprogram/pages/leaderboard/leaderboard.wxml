@@ -47,15 +47,7 @@
         <text class="lb-rules-right">纯积分统计 · 不涉金钱</text>
       </view>
 
-      <!-- 榜单模式双层 Tab：积分榜 / 段位榜 -->
-      <view class="lb-board-tabs anim-fade-up delay-1">
-        <view class="lb-board-tab {{boardTab === 'score' ? 'active' : ''}}" bindtap="switchBoard" data-tab="score">
-          <text>积分榜</text>
-        </view>
-        <view class="lb-board-tab {{boardTab === 'rank' ? 'active' : ''}}" bindtap="switchBoard" data-tab="rank">
-          <text>段位榜</text>
-        </view>
-      </view>
+      <!-- 榜单模式筛选：挪到「雀友排名」标题旁，checkbox 式按钮（单选） -->
 
       <!-- 核心卡片：我的战绩 -->
       <view class="my-card anim-fade-up delay-2" wx:if="{{stats}}">
@@ -116,9 +108,16 @@
       <!-- 雀友排名列表 -->
       <view class="rank-section anim-fade-up delay-3">
         <view class="rank-head">
-          <view class="rank-head-left">
-            <text class="rank-head-title">雀友排名</text>
-            <view class="rank-head-dot"></view>
+          <!-- 榜单分段器：选了哪个就是哪份排名，不再另起「雀友排名」标题 -->
+          <view class="lb-period-tabs rank-board-seg">
+            <view class="lb-period-tab {{boardTab === 'score' ? 'active' : ''}}" bindtap="switchBoard" data-tab="score">
+              <text>积分榜</text>
+              <view class="lb-period-dot" wx:if="{{boardTab === 'score'}}"></view>
+            </view>
+            <view class="lb-period-tab {{boardTab === 'rank' ? 'active' : ''}}" bindtap="switchBoard" data-tab="rank">
+              <text>段位榜</text>
+              <view class="lb-period-dot" wx:if="{{boardTab === 'rank'}}"></view>
+            </view>
           </view>
           <view class="rank-head-right">
             <view class="rank-live-dot anim-ping"></view>

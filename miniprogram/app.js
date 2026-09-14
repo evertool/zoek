@@ -6,13 +6,14 @@ const util = require('./utils/util')
 // develop = 本地开发（局域网 IP，仅开发者工具勾选「不校验合法域名」时可用）
 // trial   = 体验版；release = 正式版 —— 两者都必须走 https 正式域名（微信强制）
 const ENV_CONFIG = {
-  develop: 'http://192.168.1.20:8080/api/v1',
+  develop: 'https://zoek.246891.xyz/api/v1',
   trial: 'https://zoek.246891.xyz/api/v1',
   release: 'https://zoek.246891.xyz/api/v1'
 }
 const envVersion = (() => {
   try {
-    return wx.getAccountInfoSync().miniProgram.envVersion
+    // return wx.getAccountInfoSync().miniProgram.envVersion
+    return 'trial'
   } catch (e) {
     return 'develop'
   }
@@ -26,6 +27,9 @@ App({
     nickname: '',
     avatarURL: '',
     baseURL,
+    // 当前运行版本：develop（开发者工具/开发版）/ trial（体验版）/ release（正式版）。
+    // 除了选 baseURL，台码生成也要按它决定扫码后打开哪个版本的小程序。
+    envVersion,
     needProfile: false,
     // 守卫拦下的目标页（如分享入台/牌台），登录+完善资料后自动回去
     pendingRoute: ''

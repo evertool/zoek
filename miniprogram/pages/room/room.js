@@ -71,7 +71,25 @@ Page({
     swapTargetText: '',
     showToast: false,
     toastMsg: '',
-    showSwapAnim: false
+    showSwapAnim: false,
+    // 席位互动道具（动画编排移植自 docs/design/room-donghua/code.html，只做动画不改桌面样式）
+    showPropModal: false,
+    propTargets: [],
+    propTarget: '',
+    propTargetName: '',
+    fx: {
+      quake: false,   // 全桌地震
+      target: '',     // 当前目标方位（top/bottom/left/right）
+      hit: false,     // 目标座位命中抖动
+      kicked: false,  // 目标座位被踢弹飞
+      slipper: null,  // 飞拖鞋 { style }（--sx/--sy/--dx/--dy 注入抛物线）
+      stars: null,    // 命中星芒 { style, on }
+      kick: null,     // 台下猛踢 { style, cx, cy, footX, footY, run, hit }
+      flower: null,   // 花儿谢了 { x, y, on, wither, bubble }
+      tea: null,      // 斟杯靓茶 { potX, potY, cupX, cupY, streamX, streamY, streamH, tilt, pour }
+      dimsum: null,   // 送件点心 { x, y, run }
+      banner: null    // 踢击私密暗号气泡 { title, desc, on }
+    }
   },
 
   onLoad(options) {
@@ -132,10 +150,14 @@ Page({
 
   onHide() {
     this.stopPolling()
+    // 互动道具动画被打断：清掉未触发的定时器并复位状态，避免回台后状态错乱
+    this.clearFxTimers(true)
   },
 
   onUnload() {
     this.stopPolling()
+    // 卸载中只清定时器（卸载后 setData 会报错）
+    this.clearFxTimers(false)
   },
 
   startPolling() {
@@ -816,6 +838,232 @@ Page({
         }
       }
     })
+  },
+
+  // ========== 席位互动道具（编排移植自 docs/design/room-donghua/code.html） ==========
+  // 动画层说明：地震/头像弹飞作用在真实节点上（Lottie canvas 无法驱动 DOM），
+  // 因此整套编排走 WXSS keyframes；fx 元素坐标由 selectorQuery 实测注入。
+
+  openPropModal() {
+    var seats = this.data.seats || []
+    var targets = []
+    for (var i = 0; i < seats.length; i++) {
+      var s = seats[i]
+      if (s.player && !s.isSelf) {
+        targets.push({ pos: s.pos, name: s.player.nickname, wind: WINDS[i] })
+      }
+    }
+    if (!targets.length) {
+      this.showToast('仲未有其他雀友在座，暂无互动目标')
+      return
+    }
+    this.setData({
+      showPropModal: true,
+      propTargets: targets,
+      propTarget: targets[0].pos,
+      propTargetName: targets[0].name
+    })
+  },
+
+  closePropModal() {
+    this.setData({ showPropModal: false })
+  },
+
+  selectPropTarget(e) {
+    this.setData({ propTarget: e.currentTarget.dataset.pos, propTargetName: e.currentTarget.dataset.name })
+  },
+
+  useProp(e) {
+    var type = e.currentTarget.dataset.type
+    var pos = this.data.propTarget
+    if (!pos) {
+      this.showToast('先选一个互动目标席位')
+      return
+    }
+    this.closePropModal()
+    var that = this
+    this.getSeatCenter(pos, function(center) {
+      if (!center) {
+        that.showToast('没找到目标席位')
+        return
+      }
+      that.setData({ 'fx.target': pos })
+      if (type === 'slipper') that.fxSlipper(center)
+      else if (type === 'tea') that.fxTea(center, pos)
+      else if (type === 'kick') that.fxKick(center)
+      else if (type === 'flower') that.fxFlower(center, pos)
+      else if (type === 'dimsum') that.fxDimsum(center, pos)
+    })
+  },
+
+  // 统一登记 fx 定时器：onHide/onUnload 一次清干净，防状态残留
+  fxTimeout(fn, ms) {
+    var t = setTimeout(fn, ms)
+    this._fxTimers = this._fxTimers || []
+    this._fxTimers.push(t)
+    return t
+  },
+
+  clearFxTimers(reset) {
+    if (this._fxTimers) {
+      for (var i = 0; i < this._fxTimers.length; i++) clearTimeout(this._fxTimers[i])
+      this._fxTimers = []
+    }
+    if (reset) this.setData({ fx: this.initialFx() })
+  },
+
+  initialFx() {
+    return { quake: false, target: '', hit: false, kicked: false, slipper: null, stars: null, kick: null, flower: null, tea: null, dimsum: null, banner: null }
+  },
+
+  vibrate(long) {
+    try {
+      if (long) wx.vibrateLong()
+      else wx.vibrateShort({ type: 'medium' })
+    } catch (e) {}
+  },
+
+  // 席位中心坐标（px，相对 .table-stage 左上角）
+  getSeatCenter(pos, cb) {
+    var q = wx.createSelectorQuery().in(this)
+    q.select('.table-stage').boundingClientRect()
+    q.select('.side-' + pos).boundingClientRect()
+    q.exec(function(res) {
+      var stage = res && res[0]
+      var seat = res && res[1]
+      if (!stage || !seat) return cb(null)
+      cb({ x: seat.left + seat.width / 2 - stage.left, y: seat.top + seat.height / 2 - stage.top })
+    })
+  },
+
+  // 发射起点：我的席位中心；我不在座则取桌面右侧中部（东位方向）
+  mySeatCenter(cb) {
+    var seats = this.data.seats || []
+    for (var i = 0; i < seats.length; i++) {
+      if (seats[i].isSelf && seats[i].player) return this.getSeatCenter(seats[i].pos, cb)
+    }
+    cb({ x: 340, y: 157 })
+  },
+
+  // 1. 扔飞拖鞋 🩴：抛物线飞抵目标 → 命中抖动 + 星芒
+  fxSlipper(center) {
+    var that = this
+    var name = this.data.propTargetName
+    this.mySeatCenter(function(start) {
+      if (!start) start = { x: 340, y: 157 }
+      that.setData({
+        'fx.slipper': {
+          style: '--sx:' + start.x + 'px;--sy:' + start.y + 'px;--dx:' + center.x + 'px;--dy:' + center.y + 'px;'
+        }
+      })
+      that.fxTimeout(function() {
+        that.setData({
+          'fx.slipper': null,
+          'fx.hit': true,
+          'fx.stars': { on: true, style: 'left:' + center.x + 'px;top:' + center.y + 'px;' }
+        })
+        that.vibrate(false)
+        that.showToast('🩴 人字拖精准砸中【' + name + '】！全桌爆笑！')
+        that.fxTimeout(function() {
+          that.setData({ 'fx.hit': false, 'fx.stars': null })
+        }, 900)
+      }, 660)
+    })
+  },
+
+  // 2. 台下猛踢 🦶：大脚破屏 → 300ms 命中 → 三重冲击波 + 全桌地震 + 头像弹飞 + 暗号气泡
+  fxKick(center) {
+    var that = this
+    var name = this.data.propTargetName
+    this.setData({
+      'fx.kick': {
+        style: 'left:' + center.x + 'px;top:' + center.y + 'px;',
+        cx: center.x, cy: center.y,
+        footX: center.x - 36, footY: center.y - 45,
+        run: true, hit: false
+      }
+    })
+    this.vibrate(false)
+    this.fxTimeout(function() {
+      that.setData({
+        'fx.kicked': true,
+        'fx.quake': true,
+        'fx.kick.hit': true,
+        'fx.banner': {
+          on: true,
+          title: '大力踢！哎呀！踢咗【' + name + '】一脚！',
+          desc: '台底踢咁大啖，脚趾尾都抽筋！全桌得我知你踢我！'
+        }
+      })
+      that.vibrate(true)
+      that.showToast('💥 猛烈踢中【' + name + '】！全桌茶台剧烈摇晃震颤！')
+    }, 300)
+    this.fxTimeout(function() {
+      that.setData({ 'fx.kick': null, 'fx.quake': false })
+    }, 1200)
+    this.fxTimeout(function() {
+      that.setData({ 'fx.banner': null, 'fx.kicked': false })
+    }, 4200)
+  },
+
+  // 3. 花儿谢了 🥀：鲜花送到 → 0.7s 后枯萎凋零 + 愁云雨丝 + 粤语气泡
+  fxFlower(center, pos) {
+    var that = this
+    var name = this.data.propTargetName
+    // 花束悬在目标席位上方；上方位席位则放到席位下方，避免被 fx 层裁掉
+    var y = pos === 'top' ? center.y + 24 : center.y - 30
+    this.setData({ 'fx.flower': { x: center.x, y: y, on: true, wither: false, bubble: false } })
+    this.showToast('向【' + name + '】送去了一朵等胡的花儿...')
+    this.fxTimeout(function() {
+      that.setData({ 'fx.flower.wither': true, 'fx.flower.bubble': true })
+      that.vibrate(false)
+    }, 700)
+    this.fxTimeout(function() {
+      that.setData({ 'fx.flower': null })
+    }, 3800)
+  },
+
+  // 4. 斟杯靓茶 🍵：紫砂壶飞入倾斜 → 茶汤注入 → 水位涟漪白雾
+  fxTea(center, pos) {
+    var that = this
+    var name = this.data.propTargetName
+    // 茶杯悬在席位上方（上方位席位放到席位下方，防止被 fx 层上缘裁掉）
+    var cupX = center.x - 44
+    var cupY = pos === 'top' ? center.y + 24 : center.y - 110
+    var potX = cupX + 25
+    var potY = cupY - 80
+    var streamX = potX + 10
+    var streamY = potY + 40
+    var streamH = Math.max(20, cupY + 12 - streamY)
+    this.setData({
+      'fx.tea': { potX: potX, potY: potY, cupX: cupX, cupY: cupY, streamX: streamX, streamY: streamY, streamH: streamH, tilt: false, pour: false }
+    })
+    this.fxTimeout(function() {
+      that.setData({ 'fx.tea.tilt': true })
+    }, 150)
+    this.fxTimeout(function() {
+      that.setData({ 'fx.tea.pour': true })
+      that.showToast('已向【' + name + '】敬奉一盅热腾腾的工夫乌龙茶 🍵')
+    }, 450)
+    this.fxTimeout(function() {
+      that.setData({ 'fx.tea.pour': false, 'fx.tea.tilt': false })
+    }, 2100)
+    this.fxTimeout(function() {
+      that.setData({ 'fx.tea': null })
+    }, 2800)
+  },
+
+  // 5. 送件点心 🥟：竹蒸笼送到目标席位 → 掀盖白雾
+  fxDimsum(center, pos) {
+    var that = this
+    var name = this.data.propTargetName
+    var x = center.x
+    var y = pos === 'top' ? center.y + 30 : center.y - 150
+    this.setData({ 'fx.dimsum': { x: x, y: y, run: true } })
+    this.showToast('给【' + name + '】端上一笼热腾腾的笋尖水晶虾饺 🥟')
+    this.fxTimeout(function() {
+      that.setData({ 'fx.dimsum': null })
+    }, 2700)
   },
 
   showToast(msg) {

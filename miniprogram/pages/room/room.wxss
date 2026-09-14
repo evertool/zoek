@@ -197,3 +197,215 @@ page { overflow-x: hidden; overscroll-behavior-x: none; }
 .foot-soft text { font-size: 26rpx; font-weight: 600; color: var(--on-surface-variant); }
 .foot-soft-icon { width: 30rpx; height: 30rpx; }
 .foot-soft:active { background: var(--surface-container-low); }
+
+/* ========== 席位互动道具 fx 层（动画移植自 docs/design/room-donghua/code.html） ==========
+ * 只新增动画层，不改桌面既有样式。设计稿是 web CSS keyframes，这里 1:1 移植（px → rpx ×2）；
+ * 「台下猛踢」的全桌地震与目标头像弹飞必须作用在真实节点上，Lottie canvas 画不了 DOM，
+ * 故整套编排走 WXSS（项目内已有的 lottie 通道仅保留给换座动画）。
+ * fx 元素 left/top 由 room.js 的 selectorQuery 注入（px，相对 .table-stage）。 */
+.fx-stage { position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 30; overflow: hidden; pointer-events: none; }
+.fx-layer { position: absolute; left: 0; top: 0; right: 0; bottom: 0; opacity: 0; transition: opacity 0.2s ease; }
+.fx-layer.fx-on { opacity: 1; }
+
+/* 全桌地震（作用在 .table-stage 上，与圆角/让位等静态 transform 无冲突） */
+@keyframes fxTableQuake {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  10% { transform: translate(-9px, -12px) rotate(-2.8deg) scale(1.02); }
+  25% { transform: translate(11px, 8px) rotate(2.4deg) scale(0.98); }
+  40% { transform: translate(-10px, 6px) rotate(-1.5deg); }
+  55% { transform: translate(8px, -5px) rotate(1.2deg); }
+  70% { transform: translate(-5px, 3px) rotate(-0.6deg); }
+  85% { transform: translate(3px, -2px) rotate(0.3deg); }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+}
+.table-stage.fx-quake { animation: fxTableQuake 0.75s cubic-bezier(.36,.07,.19,.97) both; }
+
+/* 目标头像：命中抖动 / 被踢弹飞（作用在 .side-fill，避开 .side-body 的让位 transform） */
+@keyframes fxHeadHitShake {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  15% { transform: translate(-8px, 6px) rotate(-12deg) scale(0.92); }
+  30% { transform: translate(7px, -4px) rotate(10deg); }
+  45% { transform: translate(-5px, 3px) rotate(-6deg); }
+  60% { transform: translate(4px, -2px) rotate(4deg); }
+  80% { transform: translate(-2px, 1px) rotate(-1deg); }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+}
+.side-fill.fx-hit-shake { animation: fxHeadHitShake 0.65s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes fxAvatarKick {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  20% { transform: translate(-22px, -32px) scale(0.7, 1.35) rotate(-28deg); }
+  45% { transform: translate(18px, 14px) scale(1.28, 0.75) rotate(18deg); }
+  65% { transform: translate(-8px, -6px) scale(0.92, 1.08) rotate(-8deg); }
+  85% { transform: translate(4px, 2px) scale(1.04, 0.96) rotate(4deg); }
+  100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+}
+.side-fill.fx-avatar-kick { animation: fxAvatarKick 0.85s cubic-bezier(.22,1,.36,1) both; }
+
+/* 1. 扔飞拖鞋：外层管 X（匀速）、内层管 Y+旋转+缩放（合成抛物线，坐标用 CSS 变量注入） */
+.fx-slipper { position: absolute; left: -52rpx; top: -52rpx; width: 104rpx; height: 104rpx; z-index: 5; animation: fxSlipperX 0.65s linear both; }
+.fx-slipper-inner { width: 100%; height: 100%; animation: fxSlipperArc 0.65s ease-in-out both; }
+.fx-slipper-inner image { width: 100%; height: 100%; filter: drop-shadow(0 8rpx 12rpx rgba(0,0,0,0.5)); }
+@keyframes fxSlipperX { from { transform: translateX(var(--sx)); } to { transform: translateX(var(--dx)); } }
+@keyframes fxSlipperArc {
+  0% { transform: translateY(var(--sy)) rotate(0deg) scale(0.6); }
+  25% { transform: translateY(calc(var(--sy) + (var(--dy) - var(--sy)) * 0.25 - 155rpx)) rotate(180deg) scale(0.95); }
+  50% { transform: translateY(calc(var(--sy) + (var(--dy) - var(--sy)) * 0.5 - 220rpx)) rotate(360deg) scale(1.1); }
+  75% { transform: translateY(calc(var(--sy) + (var(--dy) - var(--sy)) * 0.75 - 155rpx)) rotate(540deg) scale(0.95); }
+  100% { transform: translateY(var(--dy)) rotate(720deg) scale(0.6); }
+}
+/* 命中星芒 */
+.fx-stars { position: absolute; width: 180rpx; height: 180rpx; margin-left: -90rpx; margin-top: -90rpx; display: flex; align-items: center; justify-content: center; opacity: 0; z-index: 6; }
+.fx-stars.fx-on { opacity: 1; }
+.fx-stars .fx-star { position: absolute; font-size: 72rpx; color: #fde047; animation: fxStarPop 0.7s ease-out forwards; }
+.fx-stars .fx-star-b { position: absolute; top: -8rpx; right: -8rpx; font-size: 44rpx; animation: fxPing 1s cubic-bezier(0, 0, 0.2, 1) infinite; }
+.fx-stars .fx-star-c { position: absolute; bottom: -4rpx; left: -8rpx; font-size: 36rpx; animation: fxBounce 1s infinite; }
+@keyframes fxStarPop { 0% { transform: scale(0) rotate(0deg); opacity: 1; } 50% { transform: scale(1.4) rotate(90deg); opacity: 1; } 100% { transform: scale(1.8) rotate(180deg); opacity: 0; } }
+
+/* 2. 台下猛踢：大脚破屏 + 三重冲击波 + 火花 */
+.fx-foot { position: absolute; font-size: 144rpx; z-index: 8; filter: drop-shadow(0 16px 24px rgba(0,0,0,0.6)); opacity: 0; }
+.fx-foot.fx-run { animation: fxFootSweep 0.75s cubic-bezier(.17,.89,.32,1.28) forwards; }
+@keyframes fxFootSweep {
+  0% { transform: translate3d(240px, 180px, 0) rotate(-65deg) scale(0.3); opacity: 0; }
+  25% { opacity: 1; transform: translate3d(80px, 40px, 0) rotate(-35deg) scale(1.4); }
+  45% { transform: translate3d(0, 0, 0) rotate(8deg) scale(1.65); }
+  65% { transform: translate3d(-20px, -12px) rotate(12deg) scale(1.4); opacity: 1; }
+  100% { transform: translate3d(-160px, -80px, 0) rotate(35deg) scale(0.5); opacity: 0; }
+}
+.fx-shock-center { position: absolute; width: 0; height: 0; }
+.fx-shock { position: absolute; border-radius: 50%; opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+.fx-shock-1 { width: 224rpx; height: 224rpx; border: 8rpx solid #fcd34d; box-shadow: 0 0 24rpx rgba(251,191,36,0.9); }
+.fx-shock-2 { width: 288rpx; height: 288rpx; border: 4rpx solid #6ee7b7; box-shadow: 0 0 18rpx rgba(52,211,153,0.8); }
+.fx-shock-3 { width: 352rpx; height: 352rpx; border: 2rpx solid #f87171; }
+.fx-shock.fx-run-1 { animation: fxShockExpand 0.7s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
+.fx-shock.fx-run-2 { animation: fxShockExpand 0.7s cubic-bezier(0.1, 0.8, 0.2, 1) 0.12s forwards; }
+.fx-shock.fx-run-3 { animation: fxShockExpand 0.7s cubic-bezier(0.1, 0.8, 0.2, 1) 0.22s forwards; }
+@keyframes fxShockExpand {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; border-width: 8rpx; }
+  50% { opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; border-width: 2rpx; }
+}
+.fx-sparks { position: absolute; width: 0; height: 0; display: flex; align-items: center; justify-content: center; opacity: 0; z-index: 7; }
+.fx-sparks.fx-on { opacity: 1; }
+.fx-sparks text { position: absolute; font-size: 64rpx; animation: fxPing 1s cubic-bezier(0, 0, 0.2, 1) infinite; }
+.fx-sparks .fx-spark-b { top: -32rpx; right: -48rpx; font-size: 44rpx; animation: fxBounce 1s infinite; }
+.fx-sparks .fx-spark-c { bottom: -40rpx; left: -40rpx; font-size: 40rpx; animation: fxSpin 1s linear infinite; }
+.fx-sparks .fx-spark-tag { position: absolute; top: -64rpx; left: 16rpx; padding: 4rpx 16rpx; border-radius: 8rpx; background: #8e1215; color: #fff; font-size: 22rpx; font-weight: 700; animation: fxPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+@keyframes fxPing { 75%, 100% { transform: scale(2); opacity: 0; } }
+@keyframes fxBounce { 0%, 100% { transform: translateY(-25%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); } 50% { transform: none; animation-timing-function: cubic-bezier(0, 0, 0.2, 1); } }
+@keyframes fxSpin { to { transform: rotate(360deg); } }
+@keyframes fxPulse { 50% { opacity: 0.5; } }
+
+/* 3. 花儿谢了：愁云雨丝 + 寒风 + 枯萎 + 花瓣飘落 + 粤语气泡 */
+.fx-flower { position: absolute; display: flex; flex-direction: column; align-items: center; opacity: 0; transition: opacity 0.3s ease; z-index: 9; }
+.fx-flower.fx-on { opacity: 1; }
+.fx-flower-cloud { display: flex; align-items: center; opacity: 0.9; }
+.fx-flower-cloud text { font-size: 56rpx; }
+.fx-flower-cloud text + text { font-size: 44rpx; margin-left: -16rpx; }
+.fx-rain { display: flex; align-items: center; gap: 8rpx; margin-top: -4rpx; }
+.fx-rain view { width: 4rpx; border-radius: 4rpx; background: rgba(147, 197, 253, 0.8); animation: fxRainDrop 0.85s linear infinite; }
+.fx-rain .r1 { height: 14rpx; }
+.fx-rain .r2 { height: 18rpx; background: rgba(191, 219, 254, 0.9); animation-delay: 0.28s; }
+.fx-rain .r3 { height: 12rpx; background: rgba(147, 197, 253, 0.7); animation-delay: 0.55s; }
+@keyframes fxRainDrop { 0% { transform: translateY(0); opacity: 0; } 30% { opacity: 0.9; } 100% { transform: translateY(32rpx); opacity: 0; } }
+.fx-wind { position: absolute; left: 0; right: 0; top: 48rpx; display: flex; flex-direction: column; gap: 8rpx; }
+.fx-wind view { height: 2rpx; border-radius: 4rpx; background: rgba(255,255,255,0.7); animation: fxWindBreeze 1.3s ease-out infinite; }
+.fx-wind .w2 { width: 48rpx; background: rgba(224, 242, 254, 0.6); animation-delay: 0.4s; }
+@keyframes fxWindBreeze { 0% { transform: translateX(-120rpx) scaleY(0.7); opacity: 0; } 40% { opacity: 0.85; } 100% { transform: translateX(180rpx) scaleY(1.2); opacity: 0; } }
+.fx-flower-stem { position: relative; margin-top: 4rpx; display: flex; flex-direction: column; align-items: center; transform-origin: bottom center; }
+.fx-flower-stem.fx-run-droop { animation: fxStemDroop 2.4s cubic-bezier(.42,0,.58,1) forwards; }
+.fx-flower-head { font-size: 64rpx; filter: saturate(1.4) brightness(1.1); }
+.fx-stem { width: 4rpx; height: 28rpx; border-radius: 4rpx; background: #40614f; transform-origin: bottom center; }
+@keyframes fxStemDroop {
+  0% { transform: rotate(0deg) scale(1); }
+  35% { transform: rotate(-8deg) scale(1); }
+  70% { transform: rotate(42deg) translate(8rpx, 12rpx) scale(0.92); }
+  100% { transform: rotate(62deg) translate(14rpx, 20rpx) scale(0.85); }
+}
+.fx-petals { position: absolute; top: 96rpx; left: 50%; margin-left: -20rpx; }
+.fx-petals text { position: absolute; opacity: 0; }
+.fx-petals .p1 { font-size: 32rpx; color: rgba(225, 29, 72, 0.9); }
+.fx-petals .p2 { font-size: 28rpx; color: rgba(190, 18, 60, 0.85); }
+.fx-petals .p3 { font-size: 24rpx; color: rgba(159, 18, 57, 0.8); }
+.fx-petals .p1.fx-run { animation: fxPetalFall1 2.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+.fx-petals .p2.fx-run { animation: fxPetalFall2 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.15s forwards; }
+.fx-petals .p3.fx-run { animation: fxPetalFall3 2.1s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s forwards; }
+@keyframes fxPetalFall1 { 0% { transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; } 40% { transform: translate(-36rpx, 56rpx) rotate(85deg) scale(0.9); } 75% { transform: translate(24rpx, 110rpx) rotate(190deg) scale(0.8); opacity: 0.8; } 100% { transform: translate(-16rpx, 190rpx) rotate(310deg) scale(0.6); opacity: 0; } }
+@keyframes fxPetalFall2 { 0% { transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; } 35% { transform: translate(44rpx, 48rpx) rotate(-70deg) scale(0.9); } 70% { transform: translate(-28rpx, 116rpx) rotate(-160deg) scale(0.75); opacity: 0.8; } 100% { transform: translate(32rpx, 180rpx) rotate(-260deg) scale(0.5); opacity: 0; } }
+@keyframes fxPetalFall3 { 0% { transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; } 50% { transform: translate(-16rpx, 76rpx) rotate(120deg) scale(0.85); } 100% { transform: translate(-40rpx, 170rpx) rotate(240deg) scale(0.55); opacity: 0; } }
+.fx-flower-bubble { margin-top: 8rpx; padding: 8rpx 20rpx; border-radius: 999rpx; background: rgba(0,0,0,0.75); border: 2rpx solid rgba(255,255,255,0.2); opacity: 0; transform: translateY(8rpx); transition: all 0.5s ease; white-space: nowrap; }
+.fx-flower-bubble.fx-on { opacity: 1; transform: translateY(0); }
+.fx-flower-bubble text { font-size: 20rpx; color: #fef08a; font-weight: 700; }
+
+/* 4. 斟杯靓茶：紫砂壶飞入倾斜 + 金黄茶汤 + 水位涟漪白雾 */
+.fx-tea-teapot { position: absolute; width: 210rpx; height: 170rpx; z-index: 6; transition: transform 0.5s ease-out; filter: drop-shadow(0 12px 16px rgba(0,0,0,0.5)); }
+.fx-tea-teapot.fx-tilt { transform: rotate(-42deg); }
+.fx-tea-teapot image { width: 100%; height: 100%; }
+.fx-tea-stream { position: absolute; width: 8rpx; border-radius: 8rpx; background: linear-gradient(180deg, rgba(254,240,138,0.95), rgba(234,179,8,0.9), rgba(202,138,4,1)); opacity: 0; transition: opacity 0.2s ease; z-index: 5; }
+.fx-tea-stream.fx-on { opacity: 1; }
+.fx-tea-cup { position: absolute; display: flex; flex-direction: column; align-items: center; z-index: 6; }
+.fx-tea-cup .cup-body { position: relative; width: 88rpx; height: 88rpx; border-radius: 50%; background: rgba(255,251,235,0.95); border: 4rpx solid #fcd34d; box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.fx-tea-cup .cup-water { width: 64rpx; height: 64rpx; border-radius: 50%; background: rgba(217,119,6,0.85); display: flex; align-items: center; justify-content: center; transform: scale(0.9); transition: transform 0.5s ease; }
+.fx-tea-cup .cup-water.fx-on { transform: scale(1.05); }
+.fx-tea-cup .cup-water text { font-size: 18rpx; color: #451a03; font-weight: 700; }
+.fx-tea-cup .cup-label { margin-top: 4rpx; padding: 2rpx 12rpx; border-radius: 999rpx; background: rgba(0,0,0,0.6); font-size: 18rpx; color: #fde68a; font-weight: 600; }
+.fx-steam { position: absolute; left: 0; right: 0; top: -28rpx; display: flex; align-items: flex-end; justify-content: center; gap: 6rpx; }
+.fx-steam view { border-radius: 999rpx; background: rgba(255,255,255,0.8); filter: blur(2rpx); animation: fxTeaSteam 1.6s ease-out infinite; }
+.fx-steam .s1 { width: 6rpx; height: 24rpx; }
+.fx-steam .s2 { width: 8rpx; height: 30rpx; background: rgba(255,255,255,0.9); animation-delay: 0.5s; }
+.fx-steam .s3 { width: 6rpx; height: 20rpx; background: rgba(255,255,255,0.6); }
+@keyframes fxTeaSteam { 0% { transform: translateY(0) scaleX(0.8); opacity: 0; } 40% { opacity: 0.75; } 100% { transform: translateY(-48rpx) scaleX(1.3); opacity: 0; } }
+
+/* 5. 送件点心：竹蒸笼揭盖 + 白雾 */
+.fx-dimsum { position: absolute; display: flex; flex-direction: column; align-items: center; z-index: 9; }
+.fx-dimsum-lid { position: relative; z-index: 3; width: 156rpx; height: 68rpx; }
+.fx-dimsum-lid.fx-run { animation: fxLidLift 2.2s ease-in-out forwards; }
+.fx-dimsum-lid image { width: 100%; height: 100%; filter: drop-shadow(0 4rpx 8rpx rgba(0,0,0,0.25)); }
+.fx-dimsum-steam { position: absolute; left: 0; right: 0; top: -8rpx; display: flex; align-items: flex-end; justify-content: center; gap: 10rpx; z-index: 4; }
+.fx-dimsum-steam view { border-radius: 999rpx; background: rgba(255,255,255,0.85); filter: blur(3rpx); animation: fxTeaSteam 1.6s ease-out infinite; }
+.fx-dimsum-steam .s1 { width: 12rpx; height: 32rpx; }
+.fx-dimsum-steam .s2 { width: 16rpx; height: 40rpx; background: rgba(255,255,255,0.9); animation-delay: 0.5s; }
+.fx-dimsum-base { margin-top: -6rpx; width: 192rpx; height: 128rpx; border-radius: 0 0 32rpx 32rpx; background: #92400e; border: 4rpx solid #d97706; box-shadow: 0 16rpx 32rpx rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: space-around; box-sizing: border-box; z-index: 2; }
+.fx-dimsum-base text { font-size: 48rpx; }
+.fx-dimsum-label { margin-top: 8rpx; padding: 4rpx 20rpx; border-radius: 999rpx; background: rgba(0,0,0,0.7); font-size: 20rpx; color: #fde68a; font-weight: 600; white-space: nowrap; }
+@keyframes fxLidLift {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  40% { transform: translateY(-60rpx) rotate(-16deg); opacity: 0.9; }
+  75% { transform: translateY(-68rpx) rotate(-18deg); opacity: 0.9; }
+  100% { transform: translateY(0) rotate(0deg); opacity: 1; }
+}
+
+/* 6. 台下猛踢的私密暗号气泡（桌面内浮层，非全局弹窗） */
+.fx-banner { position: absolute; left: 24rpx; right: 24rpx; bottom: 24rpx; display: flex; align-items: center; gap: 12rpx; padding: 16rpx 20rpx; border-radius: 24rpx; background: rgba(33,49,69,0.95); border: 2rpx solid rgba(255,220,195,0.3); box-shadow: 0 16rpx 48rpx rgba(0,0,0,0.35); opacity: 0; transform: translateY(48rpx); transition: all 0.3s ease; z-index: 10; }
+.fx-banner.fx-on { opacity: 1; transform: translateY(0); }
+.fx-banner .banner-icon { font-size: 44rpx; animation: fxBounce 1s infinite; }
+.fx-banner .banner-title { font-size: 24rpx; font-weight: 700; color: #ffdcc3; }
+.fx-banner .banner-desc { font-size: 20rpx; color: rgba(234,241,255,0.9); margin-top: 2rpx; }
+
+/* 道具抽屉（沿用现有 modal 风格） */
+.prop-sheet { background: var(--surface-container-lowest); border-top-left-radius: var(--radius-xl); border-top-right-radius: var(--radius-xl); width: 100%; padding: var(--space-lg) var(--space-lg) calc(env(safe-area-inset-bottom) + var(--space-lg)); box-shadow: var(--shadow-modal); display: flex; flex-direction: column; }
+.prop-head { display: flex; align-items: flex-start; justify-content: space-between; }
+.prop-title { font-size: 34rpx; font-weight: 700; color: var(--on-surface); }
+.prop-sub { font-size: 24rpx; color: var(--on-surface-variant); margin-top: 4rpx; }
+.prop-targets { display: flex; align-items: center; flex-wrap: wrap; gap: 12rpx; margin-top: 20rpx; }
+.prop-targets-label { font-size: 22rpx; color: var(--on-surface-variant); }
+.prop-target-chip { padding: 8rpx 20rpx; border-radius: var(--radius-full); background: var(--surface-container); font-size: 24rpx; color: var(--on-surface-variant); font-weight: 500; }
+.prop-target-chip.prop-target-on { background: var(--primary); color: var(--on-primary); font-weight: 600; }
+.prop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20rpx; margin-top: 24rpx; }
+.prop-card { display: flex; flex-direction: column; justify-content: space-between; min-height: 200rpx; padding: 24rpx; border-radius: var(--radius-lg); background: var(--surface-container-low); text-align: left; box-sizing: border-box; }
+.prop-card:active { transform: scale(0.97); }
+.prop-card-top { display: flex; align-items: center; justify-content: space-between; }
+.prop-card-emoji { font-size: 52rpx; }
+.prop-card-tag { font-size: 20rpx; padding: 4rpx 12rpx; border-radius: 8rpx; background: var(--surface-container-high); color: var(--on-surface-variant); font-weight: 600; }
+.prop-card-name { font-size: 30rpx; font-weight: 700; color: var(--on-surface); margin-top: 16rpx; }
+.prop-card-desc { font-size: 22rpx; color: var(--on-surface-variant); margin-top: 4rpx; }
+.prop-card-hot { background: rgba(254, 243, 199, 0.8); border: 2rpx solid rgba(253, 230, 138, 0.8); }
+.prop-card-hot .prop-card-name { color: #78350f; }
+.prop-card-hot .prop-card-desc { color: #92400e; }
+.prop-card-warm { background: rgba(255, 241, 242, 0.8); border: 2rpx solid rgba(254, 202, 202, 0.8); }
+.prop-card-warm .prop-card-name { color: #881337; }
+.prop-card-warm .prop-card-desc { color: #9f1239; }
+.prop-card-wide { grid-column: span 2; flex-direction: row; align-items: center; justify-content: space-between; min-height: 140rpx; }
+.prop-card-wide .prop-card-emoji { margin-right: 20rpx; }
+.prop-foot-tip { margin-top: 24rpx; font-size: 22rpx; color: var(--outline); text-align: center; }
+.prop-card-name, .prop-card-desc, .banner-title, .banner-desc { display: block; }
+.foot-prop-emoji { font-size: 32rpx; line-height: 1; }

@@ -4,6 +4,21 @@ const api = require('../../utils/api')
 const util = require('../../utils/util')
 const guard = require('../../utils/guard')
 const tts = require('../../utils/tts')
+const prefs = require('../../utils/prefs')
+
+// 徽章静态元数据：key 与后端 /user/badges 返回的 code 一一对应（PRD §3.6.6 v1.3 共 7 枚）
+// icon —— 图标资源（本地 SVG，展架与弹窗共用同一份，保证「图标 ↔ 徽章」一一对应）
+// tint —— 勋章底盘色（取自设计资产页的勋章底色，点亮时同时用作光晕色）
+const BADGE_META = {
+  mahjong_god:     { icon: '/assets/icons/badge-mahjong-god.svg',     tint: '#fffbeb' },
+  streak_fire:     { icon: '/assets/icons/badge-streak-fire.svg',     tint: '#fff7ed' },
+  big_comeback:    { icon: '/assets/icons/badge-big-comeback.svg',    tint: '#ecfdf5' },
+  lucky_king:      { icon: '/assets/icons/badge-lucky-king.svg',      tint: '#fff1f2' },
+  stable_mountain: { icon: '/assets/icons/badge-stable-mountain.svg', tint: '#f0f9ff' },
+  regular:         { icon: '/assets/icons/badge-regular-player.svg',  tint: '#ecfdf5' },
+  iron_leg:        { icon: '/assets/icons/badge-iron-foot.svg',       tint: '#f1f5f9' }
+}
+const BADGE_FALLBACK_TINT = '#f1f5f9'
 
 Page({
   data: {
@@ -21,11 +36,25 @@ Page({
     rankTier: '',
     tierFull: '',
     badges: [],
+    nextBadge: null,
+    badgeTotal: 0,
+    badgeLoading: false,
+    badgeError: false,
     unlockedCount: 0,
     showBadgePanel: false,
     badgeRules: false,
-    vibrateEnabled: false,
-    voiceEnabled: true, // 得分语音播报（默认开，storage 可关）
+    bpFocusCode: '',
+    bpScrollInto: '',
+    vibrateEnabled: true, // 震动提醒（默认开，storage 可关）
+    voiceEnabled: false, // 得分语音播报（默认关，storage 可开）
+    voiceTone: 'female_yue', // 配音音色（默认女声粤语）
+    // 三选一的文案；key 与 utils/prefs.js 的 TONES、后端 handler/tts.go 的 ttsVoices 对齐
+    voiceTones: [
+      { key: 'female_yue', label: '女声粤语' },
+      { key: 'female_mandarin', label: '女声普语' },
+      { key: 'male_mandarin', label: '男声普语' }
+    ],
+    showPrefsPanel: false,
     showToast: false,
     toastMsg: '',
     navPadding: 0
@@ -47,7 +76,9 @@ Page({
         avatarURL: app.globalData.avatarURL || '',
         avatarColor: util.avatarColor(app.globalData.nickname || ''),
         userId: app.globalData.userID ? ('ZM' + String(app.globalData.userID).padStart(6, '0')) : '',
-        voiceEnabled: tts.isEnabled()
+        // 每次进页面都从 storage 重读，避免「改了但显示的是旧值」
+        voiceEnabled: prefs.getVoice(),
+        vibrateEnabled: prefs.getVibrate()
       })
       if (isLoggedIn) {
         this.loadStats()
@@ -90,49 +121,75 @@ Page({
   },
 
   loadBadges() {
-    // 成就徽章：后端按 PRD §3.6.6 v1.3 规则计算（雀神≥100胜/连胜王≥4/流水时间线翻盘/峰值≥300/终局0分/常客20/铁脚200）
-    api.get('/user/badges').then(res => {
-      const ICON_URL = {
-        mahjong_god: '/assets/icons/badge-mahjong-god.svg',
-        streak_fire: '/assets/icons/badge-streak-fire.svg',
-        big_comeback: '/assets/icons/badge-big-comeback.svg',
-        lucky_king: '/assets/icons/badge-lucky-king.svg',
-        stable_mountain: '/assets/icons/badge-stable-mountain.svg'
-      }
-      const EMOJI = { regular: '🪑', iron_leg: '👣' }
-      const STYLE = {
-        mahjong_god: 'gold',
-        streak_fire: 'red',
-        big_comeback: 'green',
-        lucky_king: 'amber',
-        stable_mountain: 'neutral',
-        regular: 'green',
-        iron_leg: 'neutral'
-      }
-      const badges = (res.badges || []).map((b, i) => ({
-        id: i + 1,
-        name: b.name,
-        desc: b.desc,
-        iconURL: ICON_URL[b.code] || '',
-        icon: EMOJI[b.code] || '🏅',
-        style: STYLE[b.code] || 'neutral',
-        locked: !b.unlocked,
-        status: b.unlocked ? '已点亮' : '',
-        progress: b.target > 0 ? Math.min(100, Math.round(b.current / b.target * 100)) : 0,
-        current: b.current,
-        target: b.target
-      }))
-      this.setData({ badges, unlockedCount: res.unlocked_count || 0 })
-    }).catch(function() {})
+    // 成就徽章：点亮状态一律取自后端 /user/badges（PRD §3.6.6 v1.3 规则 + 真实对局数据），
+    // 前端只做「图标 / 底盘 / 排序」映射，绝不自行判定或伪造点亮状态
+    this.setData({ badgeLoading: true, badgeError: false })
+    api.get('/user/badges', {}, { silent: true }).then(res => {
+      const raw = (res && res.badges) || []
+      const list = raw.map(b => {
+        const meta = BADGE_META[b.code] || {}
+        const unlocked = !!b.unlocked
+        const target = b.target || 0
+        const current = b.current || 0
+        const tint = meta.tint || BADGE_FALLBACK_TINT
+        return {
+          code: b.code,
+          name: b.name || '未命名徽章',
+          desc: b.desc || '',
+          locked: !unlocked,
+          iconURL: meta.icon || '',
+          icon: '🏅', // 兜底：新增徽章未配图标时才走到
+          tint: tint,
+          // 已点亮：保留勋章原色底盘 + 同色光晕；未点亮：由 wxss .pf-badge-icon-dim 置灰
+          iconStyle: unlocked
+            ? ('background:' + tint + ';box-shadow:0 0 0 8rpx ' + tint + ';')
+            : ('background:' + tint + ';'),
+          progress: target > 0
+            ? Math.min(100, Math.round(current / target * 100))
+            : (unlocked ? 100 : 0),
+          current: current,
+          target: target
+        }
+      })
+      // 弹窗排布：已点亮的勋章优先置顶，未点亮按完成度从高到低（进度条更靠前）
+      const lit = list.filter(b => !b.locked)
+      const unlit = list.filter(b => b.locked).sort((a, b) => b.progress - a.progress)
+      const badges = lit.concat(unlit)
+      // 展架空态用：最接近点亮的那枚（只取有计数进度的，布尔型徽章没有中间态）
+      const nextBadge = unlit.filter(b => b.target > 1 && b.current > 0)[0] || null
+      this.setData({
+        badges: badges,
+        nextBadge: nextBadge,
+        badgeTotal: (res && res.total) || badges.length,
+        unlockedCount: typeof res.unlocked_count === 'number' ? res.unlocked_count : lit.length,
+        badgeLoading: false,
+        badgeError: false
+      })
+    }).catch(() => {
+      // 读不到战绩时明确报错，而不是静默展示成「一枚都没点亮」
+      this.setData({ badgeLoading: false, badgeError: true, badges: [], nextBadge: null, unlockedCount: 0, badgeTotal: 0 })
+    })
   },
 
-  /** 打开徽章总览面板（全部徽章排布 + 点亮状态 + 进度 + 规则说明） */
-  openBadgePanel() {
-    this.setData({ showBadgePanel: true })
+  /** 打开徽章总览面板（全部徽章排布 + 点亮状态 + 进度 + 规则说明）
+   *  从展架卡片点入时携带 code：面板自动滚到并高亮该枚「已点亮」徽章 */
+  openBadgePanel(e) {
+    var code = (e && e.currentTarget && e.currentTarget.dataset) ? (e.currentTarget.dataset.code || '') : ''
+    this.setData({
+      showBadgePanel: true,
+      bpFocusCode: code,
+      bpScrollInto: code ? ('bp-' + code) : ''
+    })
+    if (this._bpFocusTimer) clearTimeout(this._bpFocusTimer)
+    if (code) {
+      // 高亮只作定位提示，稍后自动淡出；滚动位置保留
+      this._bpFocusTimer = setTimeout(() => this.setData({ bpFocusCode: '' }), 1600)
+    }
   },
 
   closeBadgePanel() {
-    this.setData({ showBadgePanel: false, badgeRules: false })
+    if (this._bpFocusTimer) clearTimeout(this._bpFocusTimer)
+    this.setData({ showBadgePanel: false, badgeRules: false, bpFocusCode: '', bpScrollInto: '' })
   },
 
   /** 面板内 ⓘ 说明符号：展开/收起规则说明 */
@@ -248,16 +305,52 @@ Page({
     })
   },
 
-  toggleVibrate() {
-    this.setData({ vibrateEnabled: !this.data.vibrateEnabled })
-    this.showToast(this.data.vibrateEnabled ? '触感振动提醒已开启' : '触感振动提醒已关闭')
+  // ── 牌局偏好设置面板 ──
+  openPrefsPanel() {
+    this.setData({
+      showPrefsPanel: true,
+      // 打开时同步一次 storage，多端/多页面改过也能显示对
+      voiceEnabled: prefs.getVoice(),
+      vibrateEnabled: prefs.getVibrate(),
+      voiceTone: prefs.getVoiceTone()
+    })
   },
 
-  // 得分语音播报开关（默认开；切换时用一句粤语试听反馈）
+  closePrefsPanel() {
+    this.setData({ showPrefsPanel: false })
+  },
+
+  // 配音音色：女声粤语（默认）/ 女声普通话 / 男声普通话。
+  // 选完立刻用同一句试听——不听见就等于没选。
+  // 注意：只有「女声粤语」是真粤语（腾讯云 TextToVoice 的粤语音色只有智彤一个），
+  // 另外两个是普通话精品音色；说明文案在面板里写清楚了。
+  selectVoiceTone(e) {
+    var tone = e.currentTarget.dataset.key
+    if (!tone || tone === this.data.voiceTone) return
+    this.setData({ voiceTone: tone })
+    prefs.setVoiceTone(tone)
+    var label = ''
+    for (var i = 0; i < this.data.voiceTones.length; i++) {
+      if (this.data.voiceTones[i].key === tone) label = this.data.voiceTones[i].label
+    }
+    this.showToast('配音音色：' + label)
+    if (this.data.voiceEnabled) tts.speak('收到10分')
+  },
+
+  // 震动提醒（默认开）。开启时立刻震一下当反馈——用户马上知到生效
+  toggleVibrate() {
+    var next = !this.data.vibrateEnabled
+    this.setData({ vibrateEnabled: next })
+    prefs.setVibrate(next)
+    if (next) prefs.buzz('medium')
+    this.showToast(next ? '震动提醒已开启' : '震动提醒已关闭')
+  },
+
+  // 得分语音播报（默认关）。开启时用一句粤语试听当反馈
   toggleVoice() {
     var next = !this.data.voiceEnabled
     this.setData({ voiceEnabled: next })
-    tts.setEnabled(next)
+    prefs.setVoice(next)
     this.showToast(next ? '得分语音播报已开启' : '得分语音播报已关闭')
     if (next) tts.speak('得分语音播报已开启，有人转分我会话你知')
   },

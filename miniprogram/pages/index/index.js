@@ -193,7 +193,7 @@ Page({
     api.get('/games/history', { page: 1, page_size: 3 }).then(res => {
       const recent = (res.games || []).map(g => ({
         game_id: g.game_id,
-        name: g.name || '得闲开台',
+        name: g.name || '未命名牌局',
         statusText: util.statusText(g.status),
         timeText: this.formatRecentTime(g.ended_at || g.created_at),
         playersText: (g.players || []).map(function(p) { return p.nickname }).slice(0, 4).join('、'),

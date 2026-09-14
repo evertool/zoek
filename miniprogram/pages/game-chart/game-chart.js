@@ -78,7 +78,7 @@ Page({
 
       this.setData({
         detail: {
-          gameName: res.game_name || '得闲开台',
+          gameName: res.game_name || '未命名牌局',
           dateText: this.dateText(res.ended_at || res.created_at),
           roundsText: (res.completed_rounds || rounds.length) + '局满编',
           zeroSum: totalFinal === 0
