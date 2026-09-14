@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>北位台主标签遮挡测量</title>
+<style>
+  /* 1rpx = 0.5px；数值全部取自 pages/room/room.wxss */
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; background: #f8f9ff; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif; }
+  .table-stage { position: relative; width: 375px; height: 315px; }
+  .table-center { position: absolute; left: 187.5px; top: 157.5px; width: 95px; height: 95px; margin: -47.5px 0 0 -47.5px; border-radius: 50%; background: rgba(255,255,255,.72); border: 1px solid rgba(27,107,74,.16); z-index: 3; }
+  .wind-dot { position: absolute; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; box-shadow: 0 2px 5px -2px rgba(11,28,48,.3); z-index: 4; }
+  .wind-dot-bottom { left: 174.5px; top: 192px; background: #9b7fb0; }
+  /* 下位梯形：left 217 top 410 w316 h210（rpx）→ px 减半；圆角 20rpx 的多段折线由 JS 注入 */
+  .table-side { position: absolute; left: 108.5px; top: 205px; width: 158px; height: 105px; background: rgba(27,107,74,.18); z-index: 1; }
+  .side-fill { position: absolute; top: 1.5px; left: 1.5px; right: 1.5px; bottom: 1.5px; background: #fff; display: flex; align-items: center; justify-content: center; }
+  /* 内容：宽度收在 170rpx=85px */
+  .side-body { width: 100%; max-width: 85px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .seat-head { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; }
+  .seat-avatar { width: 28px; height: 28px; border-radius: 50%; background: #dce9ff; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .seat-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
+  .seat-owner-tag { align-self: flex-start; padding: 1px 5px; border-radius: 4px; background: #f6eedc; color: #8a6a1f; font-size: 9px; font-weight: 700; }
+  .seat-name { font-size: 12px; font-weight: 600; line-height: 1.25; color: #0b1c30; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seat-score { font-size: 21px; font-weight: 700; line-height: 1; color: #005235; }
+  .give-btn { width: 100%; height: 28px; border-radius: 999px; border: 1px solid rgba(27,107,74,.35); color: #005235; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+  #measure { position: fixed; right: 8px; top: 8px; font: 11px/1.5 monospace; background: #fff; padding: 8px; border: 1px solid #ccc; white-space: pre; }
+</style>
+</head>
+<body>
+  <div class="table-stage" id="stage">
+    <div class="table-center"></div>
+    <div class="wind-dot wind-dot-bottom" id="dot">北</div>
+    <div class="table-side" id="side">
+      <div class="side-fill" id="fill">
+        <div class="side-body" id="body">
+          <div class="seat-head" id="head">
+            <div class="seat-avatar">细</div>
+            <div class="seat-meta">
+              <div class="seat-owner-tag" id="tag">台主</div>
+              <div class="seat-name">细辉</div>
+            </div>
+          </div>
+          <div class="seat-score">+42</div>
+          <div class="give-btn">＋ 给分</div>
+        </div>
+      </div>
+    </div>
+  </div>
+<pre id="measure">measuring…</pre>
+<script>
+  // 下位梯形的圆角折线（r=20rpx），与 room.wxss 中 .table-side.side-bottom 一致
+  const POLY = 'polygon(18.6% 6.8%, 19.4% 4.1%, 20.8% 1.9%, 22.6% 0.5%, 24.6% 0.0%, 75.4% 0.0%, 77.4% 0.5%, 79.2% 1.9%, 80.6% 4.1%, 81.4% 6.8%, 97.6% 87.7%, 97.7% 92.1%, 96.6% 96.2%, 94.3% 99.0%, 91.5% 100.0%, 8.5% 100.0%, 5.7% 99.0%, 3.4% 96.2%, 2.3% 92.1%, 2.4% 87.7%)';
+  document.getElementById('side').style.clipPath = POLY;
+  document.getElementById('fill').style.clipPath = POLY;
+
+  const SHIFT = 12;   // rpx，用户可调
+  document.getElementById('body').style.transform = 'translateY(' + (SHIFT / 2) + 'px)';
+
+  const r = (px) => +(px * 2).toFixed(1);   // px → rpx 便于对照 WXSS
+  const box = (id) => { const b = document.getElementById(id).getBoundingClientRect(); const s = document.getElementById('stage').getBoundingClientRect(); return { top: b.top - s.top, bottom: b.bottom - s.top, left: b.left - s.left, right: b.right - s.left, h: b.height }; };
+  const dot = box('dot'), tag = box('tag'), head = box('head'), body = box('body'), side = box('side'), fill = box('fill');
+  const overlap = (a, b) => Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+  const lines = [
+    'shift(rpx) = ' + SHIFT,
+    '座位梯形  top=' + r(side.top) + ' bottom=' + r(side.bottom) + ' (rpx)',
+    '内层白底  top=' + r(fill.top) + ' bottom=' + r(fill.bottom) + ' h=' + r(fill.h),
+    '内容块    top=' + r(body.top) + ' bottom=' + r(body.bottom) + ' h=' + r(body.h),
+    '头像行    top=' + r(head.top) + ' h=' + r(head.h),
+    '台主标签  top=' + r(tag.top) + ' bottom=' + r(tag.bottom) + ' left=' + r(tag.left) + ' right=' + r(tag.right),
+    '北圆点    top=' + r(dot.top) + ' bottom=' + r(dot.bottom) + ' left=' + r(dot.left) + ' right=' + r(dot.right),
+    '---',
+    '竖直遮挡(标签∩圆点) = ' + r(overlap(tag, dot)) + ' rpx   (>0 即被盖住)',
+    '水平重叠(标签∩圆点) = ' + r(Math.min(tag.right, dot.right) - Math.max(tag.left, dot.left)) + ' rpx',
+    '内容底 vs 内层底  差 = ' + r(fill.bottom - body.bottom) + ' rpx   (<0 即被裁掉)',
+    '内容顶 vs 内层顶  差 = ' + r(body.top - fill.top) + ' rpx'
+  ];
+  document.getElementById('measure').textContent = lines.join('\n');
+</script>
+</body>
+</html>

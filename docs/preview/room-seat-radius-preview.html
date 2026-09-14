@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN" data-page-node-id="fokd5aP8uQZNpLP2Clry6n">
+<head data-page-node-id="XBVo8Ei9qR34TLsBUQndao">
+<meta charset="utf-8" data-page-node-id="WM9DudIDPZJTUZ4xZYh1BQ">
+<meta name="viewport" content="width=device-width, initial-scale=1" data-page-node-id="TJCn7sG4uyjEmacKGtFtnN">
+<title>房间页座位圆角 · 预览</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 28px 20px 48px; background: #eef2f8; color: #0b1c30;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif; }
+  h1 { font-size: 17px; margin: 0 auto 6px; max-width: 1200px; }
+  .note { font-size: 12px; color: #5a6573; max-width: 1200px; margin: 0 auto 18px; line-height: 1.7; }
+  .note code { background: #fff; padding: 1px 5px; border-radius: 5px; font-size: 11px; }
+  .stages { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
+  .stage-wrap { }
+  .stage-title { font-size: 12px; font-weight: 700; color: #33465c; margin-bottom: 6px; text-align: center; }
+  /* 舞台 750×630 rpx → 375×315 px */
+  .table-stage { position: relative; width: 375px; height: 315px; background: #f8f9ff; border-radius: 18px; overflow: hidden; box-shadow: 0 12px 30px rgba(11,28,48,.10); }
+  .table-center { position: absolute; left: 187.5px; top: 157.5px; width: 95px; height: 95px; margin: -47.5px 0 0 -47.5px; border-radius: 50%; background: rgba(255,255,255,.72); border: 1px solid rgba(27,107,74,.16); display: flex; align-items: center; justify-content: center; z-index: 3; }
+  .table-center-ring { position: absolute; left: 50%; top: 50%; width: 74px; height: 74px; margin: -37px 0 0 -37px; border-radius: 50%; border: 1px dashed rgba(27,107,74,.22); }
+  .table-center-tile { position: relative; font-size: 31px; font-weight: 700; color: #005235; line-height: 1; }
+  .wind-dot { position: absolute; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; box-shadow: 0 2px 5px -2px rgba(11,28,48,.3); z-index: 4; }
+  .wd-top { left: 174.5px; top: 97px; background: #dda43c; }
+  .wd-left { left: 127px; top: 144.5px; background: #4a7fd4; }
+  .wd-right { left: 222px; top: 144.5px; background: #1b6b4a; }
+  .wd-bottom { left: 174.5px; top: 192px; background: #9b7fb0; }
+  .table-side { position: absolute; background: rgba(27,107,74,.18); z-index: 1; }
+  .side-fill { position: absolute; top: 1.5px; left: 1.5px; right: 1.5px; bottom: 1.5px; background: #fff; display: flex; align-items: center; justify-content: center; }
+  .side-body { width: 100%; max-width: 85px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .seat-head { display: flex; align-items: center; gap: 4px; width: 100%; }
+  .seat-avatar { width: 28px; height: 28px; border-radius: 50%; background: #e5eeff; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+  .seat-meta { flex: 1; min-width: 0; }
+  .seat-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seat-score { font-size: 21px; font-weight: 700; line-height: 1.1; }
+  .give-btn { width: 100%; height: 28px; border-radius: 999px; border: 1px solid rgba(27,107,74,.35); color: #005235; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+  .seat-empty-ring { width: 38px; height: 38px; border-radius: 50%; border: 1px dashed #bfc9c0; display: flex; align-items: center; justify-content: center; color: #6f7a72; }
+  .seat-empty-text { font-size: 11px; color: #3f4943; }
+  .invite-btn { width: 100%; height: 28px; border-radius: 999px; border: 1px solid rgba(37,99,235,.35); color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+</style>
+</head>
+<body data-page-node-id="zDBLxoFwcqJI784cnrkpq0">
+  <h1 data-page-node-id="f1GmSmRbDVnrWAOjLxDXOn">房间页座位圆角 · 预览</h1>
+  <div class="note" data-page-node-id="PXOMAH3AEDxHv4bldPY7ui">
+    几何与 <code data-page-node-id="eZ0p4fRp3sNla2xcpdDutZ">pages/room/room.wxss</code> 一致（短边 190 / 长边 316 / 进深 210 rpx，rpx ÷ 2）；
+    圆角用<strong data-page-node-id="NHjbRlCAEo0YyGGHvq3y1Q">每个角 4 段折线拟合圆弧</strong>的 <code data-page-node-id="sazomW2xXAWSoLfD6siDEh">clip-path: polygon()</code> 实现——
+    外边那圈细描边仍是「外层铺色 + 内层缩进 1.5px 铺白」两层叠出来的，所以圆角会跟着描边走。
+  </div>
+  <div class="stages" id="stages" data-page-node-id="wPImO8lwNsPyk9ESLjXiXq"></div>
+<script>
+// —— 与 /tmp/gen_rounded_seat.py 同一套算法：圆角顶点 → 圆弧采样点 ——
+const SEGMENTS = 4;
+const sub = (a, b) => [a[0] - b[0], a[1] - b[1]];
+const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
+const mul = (a, k) => [a[0] * k, a[1] * k];
+const norm = (a) => { const n = Math.hypot(a[0], a[1]); return [a[0] / n, a[1] / n]; };
+
+function roundCorner(prevP, p, nextP, r) {
+  if (r <= 0) return [p.slice()];
+  const u = norm(sub(prevP, p)), v = norm(sub(nextP, p));
+  const cosT = Math.max(-1, Math.min(1, u[0] * v[0] + u[1] * v[1]));
+  const theta = Math.acos(cosT);
+  const t = r / Math.tan(theta / 2);
+  const bis = norm(add(u, v));
+  const center = add(p, mul(bis, r / Math.sin(theta / 2)));
+  let a0 = Math.atan2(...sub(add(p, mul(u, t)), center).reverse());
+  let a1 = Math.atan2(...sub(add(p, mul(v, t)), center).reverse());
+  let d = a1 - a0;
+  while (d > Math.PI) d -= 2 * Math.PI;
+  while (d < -Math.PI) d += 2 * Math.PI;
+  const pts = [];
+  for (let i = 0; i <= SEGMENTS; i++) {
+    const ang = a0 + d * i / SEGMENTS;
+    pts.push([center[0] + r * Math.cos(ang), center[1] + r * Math.sin(ang)]);
+  }
+  return pts;
+}
+
+// 四个方向的顶点（元素本地坐标，单位 = rpx），与 room.wxss 原几何一致
+const SHAPES = {
+  top:    { box: [316, 210], verts: [[62.9, 210], [253.1, 210], [316, 0], [0, 0]] },
+  bottom: { box: [316, 210], verts: [[62.9, 0], [253.1, 0], [316, 210], [0, 210]] },
+  left:   { box: [210, 316], verts: [[0, 0], [0, 316], [210, 253.1], [210, 62.9]] },
+  right:  { box: [210, 316], verts: [[210, 0], [210, 316], [0, 253.1], [0, 62.9]] }
+};
+
+function polygonFor(pos, r) {
+  const { box, verts } = SHAPES[pos];
+  const [w, h] = box;
+  let out = [];
+  for (let i = 0; i < verts.length; i++) {
+    out = out.concat(roundCorner(verts[(i - 1 + verts.length) % verts.length], verts[i], verts[(i + 1) % verts.length], r));
+  }
+  return 'polygon(' + out.map(([x, y]) => `${(x / w * 100).toFixed(1)}% ${(y / h * 100).toFixed(1)}%`).join(', ') + ')';
+}
+
+const GEO = {  // rpx，与 room.wxss 一致
+  top:    [217, 10, 316, 210],
+  bottom: [217, 410, 316, 210],
+  left:   [70, 157, 210, 316],
+  right:  [470, 157, 210, 316]
+};
+
+const SEATS = {
+  top:    { name: '细辉', score: '+42', self: false },
+  left:   { empty: true },
+  right:  { name: 'May姐', score: '-18', self: false },
+  bottom: { name: '我', score: '+8', self: true }
+};
+
+const WINDS = [['top', '南'], ['left', '東'], ['right', '西'], ['bottom', '北']];
+
+function stage(r) {
+  const seats = Object.entries(GEO).map(([pos, [l, t, w, h]]) => {
+    const s = SEATS[pos];
+    const body = s.empty
+      ? `<div class="side-body"><div class="seat-empty-ring">＋</div><div class="seat-empty-text">仲有位</div><div class="invite-btn">邀请入座</div></div>`
+      : `<div class="side-body">
+           <div class="seat-head"><div class="seat-avatar">${s.name[0]}</div>
+             <div class="seat-meta"><div class="seat-name">${s.name}</div></div></div>
+           <div class="seat-score" style="color:${s.score.startsWith('+') ? '#005235' : '#8e1215'}">${s.score}</div>
+           <div class="give-btn">＋ 给分</div>
+         </div>`;
+    return `<div class="table-side" style="left:${l / 2}px;top:${t / 2}px;width:${w / 2}px;height:${h / 2}px;clip-path:${polygonFor(pos, r)}">
+      <div class="side-fill" style="clip-path:${polygonFor(pos, r)}">${body}</div>
+    </div>`;
+  }).join('');
+
+  const winds = WINDS.map(([pos, ch]) => `<div class="wind-dot wd-${pos}">${ch}</div>`).join('');
+
+  return `<div class="stage-wrap">
+    <div class="stage-title">${r === 0 ? '圆角 0（原样）' : `圆角 ${r}rpx`}</div>
+    <div class="table-stage">
+      <div class="table-center"><div class="table-center-ring"></div><text class="table-center-tile">發</text></div>
+      ${winds}
+      ${seats}
+    </div>
+  </div>`;
+}
+
+const RADII = (new URLSearchParams(location.search).get('r') || '0,20,32').split(',').map(Number);
+document.getElementById('stages').innerHTML = RADII.map(stage).join('');
+</script>
+</body>
+</html>

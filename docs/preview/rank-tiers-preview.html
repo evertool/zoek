@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>六品雀位段位表 · 预览</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 32px 24px 56px; background: #eef2f8; color: #0b1c30;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif; }
+  h1 { font-size: 17px; margin: 0 0 6px; max-width: 1080px; margin-inline: auto; }
+  .note { font-size: 12px; color: #5a6573; max-width: 1080px; margin: 0 auto 20px; line-height: 1.7; }
+  .note code { background: #fff; padding: 1px 5px; border-radius: 5px; font-size: 11px; }
+  .panels { display: flex; gap: 22px; justify-content: center; flex-wrap: wrap; }
+  .panel { width: 372px; }
+  .panel-title { font-size: 12px; font-weight: 700; color: #33465c; margin-bottom: 8px; }
+  .screen { background: #f8f9ff; border-radius: 20px; padding: 14px; box-shadow: 0 14px 36px rgba(11,28,48,.12); }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+  .sec-title { font-size: 15px; font-weight: 700; }
+  .sec-sub { font-size: 10px; color: #6f7a72; }
+  /* 我的段位卡（hero）片段：只保留称号 + 累计星行 */
+  .hero { background: #fff; border-radius: 16px; padding: 12px; box-shadow: 0 2px 8px -2px rgba(11,28,48,.06); margin-bottom: 10px; }
+  .hero-name { font-size: 13px; font-weight: 600; color: #005235; }
+  .hero-stars { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+  .hero-total { font-size: 14px; font-weight: 700; color: #904d00; }
+  .hero-tip { font-size: 11px; color: #b45309; }
+  /* 品阶行 */
+  .tiers { display: flex; flex-direction: column; gap: 7px; }
+  .tier { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 16px; background: #fff;
+    box-shadow: 0 2px 8px -2px rgba(11,28,48,.06); border: 1px solid transparent; }
+  .tier.current { border: 1px solid #005235; background: #f2faf5; }
+  .tier.peak { border: 1px solid #f0b429; background: rgba(255,251,235,.6); }
+  .tier.peak .name { color: #92400e; }
+  .icon { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .icon svg { width: 27px; height: 27px; }
+  .info { flex: 1; min-width: 0; }
+  .name { font-size: 13px; font-weight: 700; }
+  .req { font-size: 10px; color: #3f4943; margin-top: 2px; }
+  .right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; }
+  .grade { padding: 2px 6px; border-radius: 999px; background: #dce9ff; font-size: 9px; color: #3f4943; }
+  .grade.now { background: #005235; color: #fff; font-weight: 600; }
+  .tier.peak .grade.now { background: #b45309; color: #fffbeb; }
+  .range { font-size: 9px; color: #6f7a72; }
+  .legend { max-width: 1080px; margin: 22px auto 0; font-size: 12px; color: #5a6573; line-height: 1.9; }
+</style>
+</head>
+<body>
+  <h1>六品雀位段位表 · 预览</h1>
+  <div class="note">图标读取 <code>miniprogram/assets/icons/rank-*.svg</code> 真实资源；行布局与配色对齐 <code>pages/rank/rank.wxss</code>（rpx ÷ 2）。</div>
+  <div class="panels" id="panels"></div>
+  <div class="legend">
+    <div>· 每行左侧由原先的「雀/發/中/神」文字牌换成对应的段位勋牌图标，底座色取自设计稿（stone-50 / amber-50 / emerald-50 / red-50）。</div>
+    <div>· 「当前所在」行仍用绿色描边；至尊累计满 50 星晋圣后，该行换成金色勋牌描边 + 「至尊·最强雀圣」。</div>
+    <div>· 页脚「炫耀我的 xx 段位与连胜」按钮已移除（右上角原生转发菜单仍可用）。</div>
+  </div>
+<script>
+const ROWS = [[1, "rank-9-novice.svg", "#f8fafc", "九品·初入雀境", "星需 3 星 · 新晋保底不扣星", "青铜级", "I~III段"], [2, "rank-8-street.svg", "rgba(255, 251, 235, 0.75)", "八品·市井雀手", "星需 3 星 · 零基础连胜稳进", "白银级", "I~III段"], [3, "rank-6-artisan.svg", "rgba(245, 245, 244, 0.8)", "六品·茶铺雀侠", "星需 4 星 · 橙火高段切磋", "黄金级", "I~IV段"], [4, "rank-4-facai.svg", "#ecfdf5", "四品·省城雀师", "星需 4 星 · 需稳踏着齐物徽", "铂金级", "I~IV段"], [5, "rank-2-hongzhong.svg", "#fef2f2", "二品·岭南雀宗", "星需 6 星 · 扣星加雀考虑心", "皇牌级", "I~V段"], [6, "rank-1-god-crown.svg", "#fffbeb", "至尊·无双雀神", "累计 50 星晋「至尊·最强雀圣」", "大满贯", "全段锁"]];
+const SVGS = {"rank-9-novice.svg": "<svg height=\"42\" id=\"svg-rank-p9\" viewBox=\"0 0 48 48\" width=\"42\" xmlns=\"http://www.w3.org/2000/svg\">\n<rect fill=\"#f8fafc\" height=\"32\" rx=\"6\" stroke=\"#94a3b8\" stroke-width=\"2.5\" width=\"28\" x=\"10\" y=\"8\"/>\n<rect fill=\"#ffffff\" height=\"22\" rx=\"3\" stroke=\"#cbd5e1\" stroke-dasharray=\"2 2\" stroke-width=\"1.5\" width=\"18\" x=\"15\" y=\"13\"/>\n<circle cx=\"24\" cy=\"24\" fill=\"#94a3b8\" r=\"4\"/>\n</svg>", "rank-8-street.svg": "<svg height=\"42\" id=\"svg-rank-p8\" viewBox=\"0 0 48 48\" width=\"42\" xmlns=\"http://www.w3.org/2000/svg\">\n<rect fill=\"#fef3c7\" height=\"32\" rx=\"6\" stroke=\"#b45309\" stroke-width=\"2.5\" width=\"28\" x=\"10\" y=\"8\"/>\n<circle cx=\"24\" cy=\"24\" fill=\"#d97706\" r=\"9\"/>\n<rect fill=\"#fef3c7\" height=\"6\" rx=\"1\" width=\"6\" x=\"21\" y=\"21\"/>\n</svg>", "rank-6-artisan.svg": "<svg height=\"42\" id=\"svg-rank-p6\" viewBox=\"0 0 48 48\" width=\"42\" xmlns=\"http://www.w3.org/2000/svg\">\n<rect fill=\"#ffffff\" height=\"32\" rx=\"6\" stroke=\"#d97706\" stroke-width=\"2.5\" width=\"28\" x=\"10\" y=\"8\"/>\n<rect fill=\"#fdfbf7\" height=\"22\" rx=\"3\" stroke=\"#f59e0b\" stroke-width=\"1.8\" width=\"18\" x=\"15\" y=\"13\"/>\n<rect fill=\"#e2e8f0\" height=\"14\" rx=\"2\" width=\"10\" x=\"19\" y=\"17\"/>\n</svg>", "rank-4-facai.svg": "<svg height=\"42\" id=\"svg-rank-fa\" viewBox=\"0 0 48 48\" width=\"42\" xmlns=\"http://www.w3.org/2000/svg\">\n<rect fill=\"#005235\" height=\"36\" rx=\"7\" stroke=\"#a6f3c9\" stroke-width=\"2\" width=\"32\" x=\"8\" y=\"6\"/>\n<text class=\"chinese-seal\" fill=\"#ffffff\" font-size=\"22\" font-weight=\"900\" text-anchor=\"middle\" x=\"24\" y=\"32\">發</text>\n</svg>", "rank-2-hongzhong.svg": "<svg height=\"42\" id=\"svg-rank-zhong\" viewBox=\"0 0 48 48\" width=\"42\" xmlns=\"http://www.w3.org/2000/svg\">\n<rect fill=\"#b91c1c\" height=\"36\" rx=\"7\" stroke=\"#fef08a\" stroke-width=\"2.2\" width=\"32\" x=\"8\" y=\"6\"/>\n<text class=\"chinese-seal\" fill=\"#ffffff\" font-size=\"22\" font-weight=\"900\" text-anchor=\"middle\" x=\"24\" y=\"32\">中</text>\n</svg>", "rank-1-god-crown.svg": "<svg height=\"42\" id=\"svg-rank-crown\" viewBox=\"0 0 48 48\" width=\"42\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"24\" cy=\"24\" fill=\"#fffbeb\" r=\"21\" stroke=\"#d97706\" stroke-width=\"2.5\"/>\n<path d=\"M10 33h28l-3-16-7 8-4-12-4 12-7-8z\" fill=\"#d97706\"/>\n<circle cx=\"10\" cy=\"16\" fill=\"#f59e0b\" r=\"2.5\"/>\n<circle cx=\"24\" cy=\"12\" fill=\"#f59e0b\" r=\"2.5\"/>\n<circle cx=\"38\" cy=\"16\" fill=\"#f59e0b\" r=\"2.5\"/>\n<rect fill=\"#b45309\" height=\"4\" rx=\"2\" width=\"28\" x=\"10\" y=\"33\"/>\n</svg>"};
+const STATES = {"至尊 32 星 · 未晋圣": {"current": 6, "peak": false, "stars": 32, "hero": ["至尊·无双雀神", "累计 32 星 · 至尊无上限", "距「至尊·最强雀圣」还需 18 星"]}, "至尊 50 星 · 已晋圣": {"current": 6, "peak": true, "stars": 50, "hero": ["至尊·最强雀圣", "累计 50 星 · 雀圣无上限", "已晋「至尊·最强雀圣」"]}, "六品 8 星 · 中段位": {"current": 3, "peak": false, "stars": 8, "hero": ["六品·茶铺雀侠", null, null]}};
+
+document.getElementById('panels').innerHTML = Object.entries(STATES).map(([label, st]) => {
+  const rows = ROWS.map(r => {
+    const [idx, file, bg, name, req, grade, range] = r;
+    const isPeakRow = st.peak && idx === 6;
+    const rowName = isPeakRow ? '至尊·最强雀圣' : name;
+    const rowReq = isPeakRow ? '已晋圣 · 累计星无上限' : req;
+    const cls = ['tier'];
+    if (st.current === idx) cls.push('current');
+    if (st.current === idx && st.peak) cls.push('peak');
+    return `<div class="${cls.join(' ')}">
+      <div class="icon" style="background:${bg}">${SVGS[file]}</div>
+      <div class="info">
+        <div class="name">${rowName}</div>
+        <div class="req">${rowReq}</div>
+      </div>
+      <div class="right">
+        <div class="grade ${st.current === idx ? 'now' : ''}">${st.current === idx ? '当前所在' : grade}</div>
+        <span class="range">${range}</span>
+      </div>
+    </div>`;
+  }).join('');
+  const tip = st.hero[1]
+    ? `<div class="hero-stars"><span class="hero-total">${st.hero[1]}</span><span class="hero-tip">${st.hero[2] || ''}</span></div>`
+    : `<div class="hero-stars"><span class="hero-tip">升「四品·省城雀师」还需 2 星</span></div>`;
+  return `<div class="panel">
+    <div class="panel-title">${label}</div>
+    <div class="screen">
+      <div class="sec-head"><span class="sec-title">🎴 六品雀位徽标规范</span><span class="sec-sub">雀桥传奇雀衔</span></div>
+      <div class="hero"><div class="hero-name">${st.hero[0]}</div>${tip}</div>
+      <div class="tiers">${rows}</div>
+    </div>
+  </div>`;
+}).join('');
+</script>
+</body>
+</html>

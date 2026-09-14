@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>成就徽章弹窗 · 预览</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 36px 24px 60px; background: #eef2f8; color: #0b1c30;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif; }
+  .page-head { max-width: 1000px; margin: 0 auto 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; }
+  .page-head h1 { font-size: 17px; margin: 0; }
+  .page-note { font-size: 12px; color: #5a6573; line-height: 1.7; }
+  .page-note code { background: #fff; padding: 1px 5px; border-radius: 5px; font-size: 11px; }
+  .tabs { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+  .tab { padding: 7px 14px; border-radius: 999px; border: 1px solid #b9c6d8; background: #fff; font-size: 12px; font-weight: 600; color: #33465c; cursor: pointer; }
+  .tab.on { background: #005235; border-color: #005235; color: #fff; }
+  .stage { display: flex; justify-content: center; }
+  .phone { position: relative; width: 390px; height: 700px; border-radius: 30px; overflow: hidden; background: #f8f9ff; box-shadow: 0 24px 60px rgba(11,28,48,.18); }
+  .phone-bg { position: absolute; inset: 0; padding: 22px 16px; display: flex; flex-direction: column; gap: 12px; }
+  .bg-card { background: #fff; border-radius: 16px; padding: 14px; box-shadow: 0 2px 8px -2px rgba(11,28,48,.06); }
+  .bg-bar { width: 12px; height: 14px; border-radius: 2px; background: #005235; display: inline-block; margin-right: 8px; vertical-align: -1px; }
+  .bg-title { font-size: 16px; font-weight: 700; }
+  .bg-line { height: 9px; border-radius: 6px; background: #e6ecf7; margin-top: 9px; }
+  .bg-line.s { width: 62%; }
+  .bg-empty-t { font-size: 12px; color: #3f4943; margin-top: 10px; }
+  .bg-empty-s { font-size: 11px; color: #6f7a72; margin-top: 4px; }
+  .bg-empty-s b { color: #005235; }
+  .overlay { position: absolute; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; }
+  .panel { width: 100%; max-height: 78%; background: #e5eeff; border-radius: 16px 16px 0 0; display: flex; flex-direction: column; animation: rise .3s cubic-bezier(0,0,.2,1) both; }
+  @keyframes rise { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .grabber { width: 36px; height: 4px; border-radius: 2px; background: #bfc9c0; margin: 8px auto 4px; }
+  .header { display: flex; align-items: center; padding: 4px 16px 8px; }
+  .header-main { flex: 1; }
+  .title { font-size: 16px; font-weight: 700; }
+  .sub { font-size: 11px; color: #3f4943; margin-top: 2px; }
+  .icon-btn { width: 28px; height: 28px; border-radius: 50%; background: #dce9ff; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #6f7a72; cursor: pointer; }
+  .icon-btn.info { color: #005235; font-weight: 700; margin-right: 8px; }
+  .rules { margin: 0 16px 8px; padding: 10px 12px; border-radius: 12px; background: #ffdcc3; font-size: 11px; line-height: 1.6; color: #3f4943; }
+  .rules b { display: block; color: #0b1c30; font-size: 12px; margin-bottom: 4px; }
+  .scroll { flex: 1; min-height: 0; overflow-y: auto; }
+  .grid { display: flex; flex-wrap: wrap; gap: 10px; padding: 4px 16px 20px; }
+  .card { width: calc((100% - 10px) / 2); padding: 12px; border-radius: 16px; background: #fff; box-shadow: 0 2px 8px -2px rgba(11,28,48,.06); display: flex; flex-direction: column; animation: cardIn .34s cubic-bezier(0,0,.2,1) both; }
+  .card:nth-child(2) { animation-delay: .03s; } .card:nth-child(3) { animation-delay: .06s; }
+  .card:nth-child(4) { animation-delay: .09s; } .card:nth-child(5) { animation-delay: .12s; }
+  .card:nth-child(6) { animation-delay: .15s; } .card:nth-child(7) { animation-delay: .18s; }
+  @keyframes cardIn { from { transform: translateY(10px) scale(.94); } to { transform: translateY(0) scale(1); } }
+  .card.lit { box-shadow: 0 8px 24px -4px rgba(27,107,74,.12), 0 2px 6px -1px rgba(11,28,48,.04); }
+  .card.locked { opacity: .72; }
+  .card-top { display: flex; align-items: flex-start; justify-content: space-between; }
+  .icon-wrap { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .icon-wrap svg { width: 34px; height: 34px; }
+  .icon-wrap.dim { filter: grayscale(1); opacity: .45; }
+  .chip { padding: 3px 7px; border-radius: 999px; font-size: 10px; }
+  .chip.lit { background: #a6f3c9; color: #002113; font-weight: 700; }
+  .chip.unlit { background: #dce9ff; color: #6f7a72; }
+  .name { font-size: 14px; font-weight: 700; margin-top: 10px; }
+  .card.locked .name { color: #3f4943; }
+  .desc { font-size: 11px; line-height: 1.5; color: #3f4943; margin-top: 4px; }
+  .progress-wrap { margin-top: 10px; }
+  .track { height: 6px; border-radius: 3px; background: #dce9ff; overflow: hidden; }
+  .fill { height: 100%; border-radius: 3px; background: #005235; }
+  .pval { font-size: 10px; color: #3f4943; margin-top: 4px; display: block; }
+  .unlock-line { margin-top: 10px; font-size: 10px; font-weight: 600; color: #005235; }
+  .footer { padding: 6px 16px 10px; text-align: center; font-size: 10px; color: #6f7a72; }
+  .legend { max-width: 1000px; margin: 22px auto 0; font-size: 12px; color: #5a6573; line-height: 1.9; }
+</style>
+</head>
+<body>
+  <div class="page-head">
+    <div>
+      <h1>成就徽章弹窗 · 预览</h1>
+      <div class="page-note">图标读取 <code>miniprogram/assets/icons/badge-*.svg</code> 真实资源，数据字段与 <code>GET /api/v1/user/badges</code> 一致；
+      面板外观与 <code>pages/profile/profile.wxml</code> 的徽章弹窗一一对应（rpx ÷ 2）。</div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+  </div>
+
+  <div class="stage">
+    <div class="phone">
+      <div class="phone-bg">
+        <div class="bg-card">
+          <div class="bg-title"><span class="bg-bar"></span>我的 · 成就徽章</div>
+          <div class="bg-empty-t">仲未点亮任何徽章</div>
+          <div class="bg-empty-s" id="shelf">最接近：—</div>
+        </div>
+        <div class="bg-card"><div class="bg-line"></div><div class="bg-line s"></div></div>
+        <div class="bg-card"><div class="bg-line"></div><div class="bg-line s"></div></div>
+      </div>
+      <div class="overlay">
+        <div class="panel">
+          <div class="grabber"></div>
+          <div class="header">
+            <div class="header-main">
+              <div class="title">成就徽章</div>
+              <div class="sub" id="sum"></div>
+            </div>
+            <div class="icon-btn info" id="ruleBtn">i</div>
+            <div class="icon-btn">&#10005;</div>
+          </div>
+          <div class="rules" id="rules" style="display:none">
+            <b>规则说明</b>
+            徽章由真实对局数据自动计算，规则透明可解释：胜场、连胜、逐局流水时间线、期间峰值积分、终局记分、参与场次。数据不足时不会点亮，亦不会随机生成；同一场牌局可获多个徽章。
+          </div>
+          <div class="scroll"><div class="grid" id="grid"></div></div>
+          <div class="footer">点亮状态实时同步战绩 · 数据不足不会点亮</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div>· <b>已点亮</b>：勋章保留原色底盘 + 同色光晕，卡片浮起，右上角 <code>✓ 已点亮</code>，底部为「已点亮 · 战绩为证」。</div>
+    <div>· <b>未点亮</b>：图标置灰降透明（<code>grayscale(1)</code> + <code>opacity .45</code>），右上角 <code>未点亮</code>，底部显示真实进度条（来自后端 current/target）。</div>
+    <div>· 弹窗内已点亮置顶，未点亮按完成度降序；顶部为「已点亮 N/7 · 由真实战绩自动计算」，与后端 unlocked_count 一致。</div>
+    <div>· 进度数字在本预览里是<b>示例值</b>，真实数字以账号实际对局数据为准。</div>
+  </div>
+
+<script>
+const META = {"mahjong_god": {"tint": "#fffbeb"}, "streak_fire": {"tint": "#fff7ed"}, "big_comeback": {"tint": "#ecfdf5"}, "lucky_king": {"tint": "#fff1f2"}, "stable_mountain": {"tint": "#f0f9ff"}, "regular": {"tint": "#ecfdf5"}, "iron_leg": {"tint": "#f1f5f9"}};
+const SVGS = {"mahjong_god": "<svg height=\"42\" id=\"svg-badge-god\" viewBox=\"0 0 48 48\" width=\"42\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"24\" cy=\"24\" fill=\"#fffbeb\" r=\"21\" stroke=\"#d97706\" stroke-width=\"2\"/>\n<rect fill=\"#ffffff\" height=\"24\" rx=\"4\" stroke=\"#b45309\" stroke-width=\"1.8\" width=\"18\" x=\"15\" y=\"16\"/>\n<path d=\"M12 16h24l-3-8-6 4-3-6-3 6-6-4z\" fill=\"#f59e0b\"/>\n<text class=\"chinese-seal\" fill=\"#dc2626\" font-size=\"12\" font-weight=\"900\" text-anchor=\"middle\" x=\"24\" y=\"32\">雀</text>\n</svg>", "streak_fire": "<svg height=\"42\" id=\"svg-badge-fire\" viewBox=\"0 0 48 48\" width=\"42\" xmlns=\"http://www.w3.org/2000/svg\">\n<path d=\"M24 5c0 7-7 11-7 19a11 11 0 0022 0c0-11-9-15-15-19z\" fill=\"#ea580c\"/>\n<path d=\"M24 22c-2 2-4 5-4 9a8 8 0 0016 0c0-5-5-7-12-9z\" fill=\"#facc15\"/>\n<circle cx=\"24\" cy=\"35\" fill=\"#ffffff\" opacity=\"0.8\" r=\"3\"/>\n</svg>", "big_comeback": "<svg height=\"42\" id=\"svg-badge-comeback\" viewBox=\"0 0 48 48\" width=\"42\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"24\" cy=\"24\" fill=\"#f0fdf4\" r=\"21\" stroke=\"#005235\" stroke-width=\"2\"/>\n<path d=\"M12 30c3-10 10-16 20-16M24 10l8 4-5 7\" fill=\"none\" stroke=\"#16a34a\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"3.5\"/>\n<text fill=\"#005235\" font-size=\"10\" font-weight=\"900\" text-anchor=\"middle\" x=\"24\" y=\"38\">+30</text>\n</svg>", "lucky_king": "<svg height=\"42\" id=\"svg-badge-lucky\" viewBox=\"0 0 48 48\" width=\"42\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"24\" cy=\"24\" fill=\"#fff1f2\" r=\"21\" stroke=\"#e11d48\" stroke-width=\"2\"/>\n<path d=\"M16 28c4-10 14-12 18-5s-6 12-14 8z\" fill=\"#f43f5e\"/>\n<circle cx=\"20\" cy=\"20\" fill=\"#ffffff\" r=\"1.5\"/>\n<polygon fill=\"#fbbf24\" points=\"36,12 37,15 40,15 37,17 38,20 36,18 33,20 34,17 32,15 35,15\"/>\n<polygon fill=\"#fbbf24\" points=\"12,14 13,16 15,16 13,17 14,19 12,18 10,19 11,17 9,16 11,16\"/>\n</svg>", "stable_mountain": "<svg height=\"42\" id=\"svg-badge-mountain\" viewBox=\"0 0 48 48\" width=\"42\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"24\" cy=\"24\" fill=\"#f0f9ff\" r=\"21\" stroke=\"#0284c7\" stroke-width=\"2\"/>\n<path d=\"M10 35l10-15 6 9 5-7 7 13z\" fill=\"#0284c7\"/>\n<path d=\"M20 20l3 5-3 2z\" fill=\"#bae6fd\"/>\n<line stroke=\"#0369a1\" stroke-linecap=\"round\" stroke-width=\"2.5\" x1=\"8\" x2=\"40\" y1=\"36\" y2=\"36\"/>\n</svg>", "regular": "<svg height=\"42\" viewBox=\"0 0 48 48\" width=\"42\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"24\" cy=\"24\" fill=\"#f4fbf7\" r=\"21\" stroke=\"#005235\" stroke-width=\"2\"/>\n<rect fill=\"#ffffff\" height=\"16\" rx=\"2.5\" stroke=\"#005235\" stroke-width=\"1.8\" width=\"12\" x=\"13\" y=\"14\"/>\n<rect fill=\"#ffffff\" height=\"16\" rx=\"2.5\" stroke=\"#005235\" stroke-width=\"1.8\" width=\"12\" x=\"23\" y=\"18\"/>\n<circle cx=\"19\" cy=\"22\" fill=\"#dc2626\" r=\"2\"/>\n<circle cx=\"29\" cy=\"26\" fill=\"#1b6b4a\" r=\"2\"/>\n</svg>", "iron_leg": "<svg height=\"42\" viewBox=\"0 0 48 48\" width=\"42\" xmlns=\"http://www.w3.org/2000/svg\">\n<circle cx=\"24\" cy=\"24\" fill=\"#f8fafc\" r=\"21\" stroke=\"#475569\" stroke-width=\"2\"/>\n<path d=\"M24 10l3 4 5-1 1 5 5 2-2 5 3 4-4 3 0 5-5 1-2 5-5-2-4 3-3-4-5-1 1-5-4-3 2-5-3-4 4-3 0-5 5-1z\" fill=\"#cbd5e1\" stroke=\"#64748b\" stroke-width=\"1.2\"/>\n<circle cx=\"24\" cy=\"24\" fill=\"#475569\" r=\"10\"/>\n<text fill=\"#ffffff\" font-size=\"9\" font-weight=\"900\" text-anchor=\"middle\" x=\"24\" y=\"27.5\">100</text>\n</svg>"};
+const DATASETS = {"① 全部未点亮（0/7）": [["mahjong_god", "雀神", "累计胜场 ≥ 100 场", false, 0, 100], ["streak_fire", "连胜王", "连胜 ≥ 4 场", false, 0, 4], ["big_comeback", "大翻盘赢家", "单场 ≥ 2/3 时间负分且终局记分为正", false, 0, 1], ["lucky_king", "今晚手气王", "单场期间最高积分记录 ≥ 300 分", false, 0, 1], ["stable_mountain", "稳如泰山", "单场结束时记分为 0 分", false, 0, 1], ["regular", "常客", "累计参与 ≥ 20 场", false, 6, 20], ["iron_leg", "铁脚", "累计参与 ≥ 200 场", false, 6, 200]], "② 部分点亮（2/7）": [["mahjong_god", "雀神", "累计胜场 ≥ 100 场", false, 7, 100], ["streak_fire", "连胜王", "连胜 ≥ 4 场", false, 2, 4], ["big_comeback", "大翻盘赢家", "单场 ≥ 2/3 时间负分且终局记分为正", true, 1, 1], ["lucky_king", "今晚手气王", "单场期间最高积分记录 ≥ 300 分", false, 0, 1], ["stable_mountain", "稳如泰山", "单场结束时记分为 0 分", true, 1, 1], ["regular", "常客", "累计参与 ≥ 20 场", false, 12, 20], ["iron_leg", "铁脚", "累计参与 ≥ 200 场", false, 12, 200]], "③ 全部点亮（7/7）": [["mahjong_god", "雀神", "累计胜场 ≥ 100 场", true, 137, 100], ["streak_fire", "连胜王", "连胜 ≥ 4 场", true, 6, 4], ["big_comeback", "大翻盘赢家", "单场 ≥ 2/3 时间负分且终局记分为正", true, 1, 1], ["lucky_king", "今晚手气王", "单场期间最高积分记录 ≥ 300 分", true, 1, 1], ["stable_mountain", "稳如泰山", "单场结束时记分为 0 分", true, 1, 1], ["regular", "常客", "累计参与 ≥ 20 场", true, 214, 20], ["iron_leg", "铁脚", "累计参与 ≥ 200 场", true, 214, 200]]};
+
+const grid = document.getElementById('grid');
+const sum = document.getElementById('sum');
+const tabs = document.getElementById('tabs');
+const shelf = document.getElementById('shelf');
+
+// 与 profile.js loadBadges 相同的映射逻辑：点亮状态取后端 unlocked，前端只做图标/排序映射
+function build(raw) {
+  const list = raw.map(b => {
+    const [code, name, desc, unlocked, current, target] = b;
+    const tint = (META[code] || {}).tint || '#f1f5f9';
+    return {
+      code, name, desc, unlocked, current, target, tint,
+      locked: !unlocked,
+      halo: unlocked ? `background:${tint};box-shadow:0 0 0 4px ${tint};` : `background:${tint};`,
+      progress: target > 0 ? Math.min(100, Math.round(current / target * 100)) : (unlocked ? 100 : 0)
+    };
+  });
+  const lit = list.filter(b => !b.locked);
+  const unlit = list.filter(b => b.locked).sort((a, b) => b.progress - a.progress);
+  return lit.concat(unlit);
+}
+
+function render(key) {
+  const list = build(DATASETS[key]);
+  const litCount = list.filter(b => !b.locked).length;
+  sum.textContent = `已点亮 ${litCount}/${list.length} · 由真实战绩自动计算`;
+
+  const next = list.filter(b => b.locked && b.target > 1 && b.current > 0)[0];
+  shelf.innerHTML = next
+    ? `最接近：<b>${next.name}</b>　进度 ${next.current}/${next.target}`
+    : '点此查看全部徽章同达成条件';
+
+  grid.innerHTML = list.map(b => `
+    <div class="card ${b.locked ? 'locked' : 'lit'}">
+      <div class="card-top">
+        <div class="icon-wrap ${b.locked ? 'dim' : ''}" style="${b.halo}">${SVGS[b.code] || ''}</div>
+        ${b.locked ? '<div class="chip unlit">未点亮</div>' : '<div class="chip lit">&#10003; 已点亮</div>'}
+      </div>
+      <div class="name">${b.name}</div>
+      <div class="desc">${b.desc}</div>
+      ${b.locked
+        ? `<div class="progress-wrap"><div class="track"><div class="fill" style="width:${b.progress}%"></div></div>
+             <span class="pval">${b.target > 1 ? `进度 ${b.current}/${b.target} · 仲差 ${b.target - b.current}` : '仲未达成 · 静候你嘅高光一局'}</span></div>`
+        : '<div class="unlock-line">已点亮 · 战绩为证</div>'}
+    </div>`).join('');
+}
+
+const keys = Object.keys(DATASETS);
+keys.forEach((k, i) => {
+  const el = document.createElement('button');
+  el.className = 'tab' + (i === 1 ? ' on' : '');
+  el.textContent = k;
+  el.onclick = () => {
+    [...tabs.children].forEach(c => c.classList.remove('on'));
+    el.classList.add('on');
+    render(k);
+  };
+  tabs.appendChild(el);
+});
+
+document.getElementById('ruleBtn').onclick = () => {
+  const r = document.getElementById('rules');
+  r.style.display = r.style.display === 'none' ? 'block' : 'none';
+};
+
+// 默认展示「部分点亮」；?d=0 / ?d=2 可直接指定某一份示例数据（便于截图）
+const qs = new URLSearchParams(location.search).get('d');
+const initIdx = qs !== null && DATASETS[keys[+qs]] ? +qs : 1;
+[...tabs.children].forEach((c, i) => c.classList.toggle('on', i === initIdx));
+render(keys[initIdx]);
+</script>
+</body>
+</html>

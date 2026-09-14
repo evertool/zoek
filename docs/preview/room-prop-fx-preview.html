@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>席位互动道具动画 · 关键帧预览</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 26px 20px 50px; background: #eef2f8; color: #0b1c30;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", sans-serif; }
+  h1 { font-size: 17px; margin: 0 auto 6px; max-width: 860px; }
+  .note { font-size: 12px; color: #5a6573; max-width: 860px; margin: 0 auto 18px; line-height: 1.7; }
+  .note code { background: #fff; padding: 1px 5px; border-radius: 5px; font-size: 11px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 22px; justify-content: center; max-width: 860px; margin: 0 auto; }
+  .panel-title { font-size: 12px; font-weight: 700; color: #33465c; margin-bottom: 6px; }
+  .panel { width: 402px; }
+  /* 舞台 750×630 rpx → 375×315px，加浅色描边便于观察 */
+  .table-stage { position: relative; width: 375px; height: 315px; background: #eff4ff; border-radius: 12px; box-shadow: 0 10px 26px rgba(11,28,48,.10); }
+  .fx-stage { pointer-events: none; }
+  /* 席位占位（真实页面里是圆角梯形座位） */
+  .side { position: absolute; background: #fff; border: 1px solid rgba(27,107,74,.15); box-shadow: 0 2px 8px -2px rgba(11,28,48,.06); display: flex; align-items: center; justify-content: center; }
+  .side-top    { left: 108.5px; top: 5px;   width: 158px; height: 105px; border-radius: 14px 14px 8px 8px; }
+  .side-bottom { left: 108.5px; top: 205px; width: 158px; height: 105px; border-radius: 8px 8px 14px 14px; }
+  .side-left   { left: 35px;     top: 78.5px; width: 105px; height: 158px; border-radius: 14px 8px 8px 14px; }
+  .side-right  { left: 235px;    top: 78.5px; width: 105px; height: 158px; border-radius: 8px 14px 14px 8px; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: #dce9ff; color: #0b1c30; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  .table-center { position: absolute; left: 187.5px; top: 157.5px; width: 95px; height: 95px; margin: -47.5px 0 0 -47.5px; border-radius: 50%; background: rgba(255,255,255,.72); border: 1px solid rgba(27,107,74,.16); display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 700; color: #005235; z-index: 3; }
+  .fx-caption { position: absolute; left: 8px; bottom: 6px; font-size: 10px; color: #6f7a72; z-index: 40; }
+/* ===== room.wxss fx 样式（rpx 已换算 px） ===== */
+/* ========== 席位互动道具 fx 层（动画移植自 docs/design/room-donghua/code.html） ==========
+ * 只新增动画层，不改桌面既有样式。设计稿是 web CSS keyframes，这里 1:1 移植（px → rpx ×2）；
+ * 「台下猛踢」的全桌地震与目标头像弹飞必须作用在真实节点上，Lottie canvas 画不了 DOM，
+ * 故整套编排走 WXSS（项目内已有的 lottie 通道仅保留给换座动画）。
+ * fx 元素 left/top 由 room.js 的 selectorQuery 注入（px，相对 .table-stage）。 */
+.fx-stage { position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 30; overflow: hidden; pointer-events: none; }
+.fx-layer { position: absolute; left: 0; top: 0; right: 0; bottom: 0; opacity: 0; transition: opacity 0.2s ease; }
+.fx-layer.fx-on { opacity: 1; }
+
+/* 全桌地震（作用在 .table-stage 上，与圆角/让位等静态 transform 无冲突） */
+@keyframes fxTableQuake {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  10% { transform: translate(-9px, -12px) rotate(-2.8deg) scale(1.02); }
+  25% { transform: translate(11px, 8px) rotate(2.4deg) scale(0.98); }
+  40% { transform: translate(-10px, 6px) rotate(-1.5deg); }
+  55% { transform: translate(8px, -5px) rotate(1.2deg); }
+  70% { transform: translate(-5px, 3px) rotate(-0.6deg); }
+  85% { transform: translate(3px, -2px) rotate(0.3deg); }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+}
+.table-stage.fx-quake { animation: fxTableQuake 0.75s cubic-bezier(.36,.07,.19,.97) both; }
+
+/* 目标头像：命中抖动 / 被踢弹飞（作用在 .side-fill，避开 .side-body 的让位 transform） */
+@keyframes fxHeadHitShake {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  15% { transform: translate(-8px, 6px) rotate(-12deg) scale(0.92); }
+  30% { transform: translate(7px, -4px) rotate(10deg); }
+  45% { transform: translate(-5px, 3px) rotate(-6deg); }
+  60% { transform: translate(4px, -2px) rotate(4deg); }
+  80% { transform: translate(-2px, 1px) rotate(-1deg); }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+}
+.side-fill.fx-hit-shake { animation: fxHeadHitShake 0.65s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes fxAvatarKick {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  20% { transform: translate(-22px, -32px) scale(0.7, 1.35) rotate(-28deg); }
+  45% { transform: translate(18px, 14px) scale(1.28, 0.75) rotate(18deg); }
+  65% { transform: translate(-8px, -6px) scale(0.92, 1.08) rotate(-8deg); }
+  85% { transform: translate(4px, 2px) scale(1.04, 0.96) rotate(4deg); }
+  100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+}
+.side-fill.fx-avatar-kick { animation: fxAvatarKick 0.85s cubic-bezier(.22,1,.36,1) both; }
+
+/* 1. 扔飞拖鞋：外层管 X（匀速）、内层管 Y+旋转+缩放（合成抛物线，坐标用 CSS 变量注入） */
+.fx-slipper { position: absolute; left: -26px; top: -26px; width: 52px; height: 52px; z-index: 5; animation: fxSlipperX 0.65s linear both; }
+.fx-slipper-inner { width: 100%; height: 100%; animation: fxSlipperArc 0.65s ease-in-out both; }
+.fx-slipper-inner image { width: 100%; height: 100%; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); }
+@keyframes fxSlipperX { from { transform: translateX(var(--sx)); } to { transform: translateX(var(--dx)); } }
+@keyframes fxSlipperArc {
+  0% { transform: translateY(var(--sy)) rotate(0deg) scale(0.6); }
+  25% { transform: translateY(calc(var(--sy) + (var(--dy) - var(--sy)) * 0.25 - 77.5px)) rotate(180deg) scale(0.95); }
+  50% { transform: translateY(calc(var(--sy) + (var(--dy) - var(--sy)) * 0.5 - 110px)) rotate(360deg) scale(1.1); }
+  75% { transform: translateY(calc(var(--sy) + (var(--dy) - var(--sy)) * 0.75 - 77.5px)) rotate(540deg) scale(0.95); }
+  100% { transform: translateY(var(--dy)) rotate(720deg) scale(0.6); }
+}
+/* 命中星芒 */
+.fx-stars { position: absolute; width: 90px; height: 90px; margin-left: -45px; margin-top: -45px; display: flex; align-items: center; justify-content: center; opacity: 0; z-index: 6; }
+.fx-stars.fx-on { opacity: 1; }
+.fx-stars .fx-star { position: absolute; font-size: 36px; color: #fde047; animation: fxStarPop 0.7s ease-out forwards; }
+.fx-stars .fx-star-b { position: absolute; top: -4px; right: -4px; font-size: 22px; animation: fxPing 1s cubic-bezier(0, 0, 0.2, 1) infinite; }
+.fx-stars .fx-star-c { position: absolute; bottom: -2px; left: -4px; font-size: 18px; animation: fxBounce 1s infinite; }
+@keyframes fxStarPop { 0% { transform: scale(0) rotate(0deg); opacity: 1; } 50% { transform: scale(1.4) rotate(90deg); opacity: 1; } 100% { transform: scale(1.8) rotate(180deg); opacity: 0; } }
+
+/* 2. 台下猛踢：大脚破屏 + 三重冲击波 + 火花 */
+.fx-foot { position: absolute; font-size: 72px; z-index: 8; filter: drop-shadow(0 16px 24px rgba(0,0,0,0.6)); opacity: 0; }
+.fx-foot.fx-run { animation: fxFootSweep 0.75s cubic-bezier(.17,.89,.32,1.28) forwards; }
+@keyframes fxFootSweep {
+  0% { transform: translate3d(240px, 180px, 0) rotate(-65deg) scale(0.3); opacity: 0; }
+  25% { opacity: 1; transform: translate3d(80px, 40px, 0) rotate(-35deg) scale(1.4); }
+  45% { transform: translate3d(0, 0, 0) rotate(8deg) scale(1.65); }
+  65% { transform: translate3d(-20px, -12px) rotate(12deg) scale(1.4); opacity: 1; }
+  100% { transform: translate3d(-160px, -80px, 0) rotate(35deg) scale(0.5); opacity: 0; }
+}
+.fx-shock-center { position: absolute; width: 0; height: 0; }
+.fx-shock { position: absolute; border-radius: 50%; opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+.fx-shock-1 { width: 112px; height: 112px; border: 4px solid #fcd34d; box-shadow: 0 0 12px rgba(251,191,36,0.9); }
+.fx-shock-2 { width: 144px; height: 144px; border: 2px solid #6ee7b7; box-shadow: 0 0 9px rgba(52,211,153,0.8); }
+.fx-shock-3 { width: 176px; height: 176px; border: 1px solid #f87171; }
+.fx-shock.fx-run-1 { animation: fxShockExpand 0.7s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; }
+.fx-shock.fx-run-2 { animation: fxShockExpand 0.7s cubic-bezier(0.1, 0.8, 0.2, 1) 0.12s forwards; }
+.fx-shock.fx-run-3 { animation: fxShockExpand 0.7s cubic-bezier(0.1, 0.8, 0.2, 1) 0.22s forwards; }
+@keyframes fxShockExpand {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; border-width: 4px; }
+  50% { opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; border-width: 1px; }
+}
+.fx-sparks { position: absolute; width: 0; height: 0; display: flex; align-items: center; justify-content: center; opacity: 0; z-index: 7; }
+.fx-sparks.fx-on { opacity: 1; }
+.fx-sparks text { position: absolute; font-size: 32px; animation: fxPing 1s cubic-bezier(0, 0, 0.2, 1) infinite; }
+.fx-sparks .fx-spark-b { top: -16px; right: -24px; font-size: 22px; animation: fxBounce 1s infinite; }
+.fx-sparks .fx-spark-c { bottom: -20px; left: -20px; font-size: 20px; animation: fxSpin 1s linear infinite; }
+.fx-sparks .fx-spark-tag { position: absolute; top: -32px; left: 8px; padding: 2px 8px; border-radius: 4px; background: #8e1215; color: #fff; font-size: 11px; font-weight: 700; animation: fxPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+@keyframes fxPing { 75%, 100% { transform: scale(2); opacity: 0; } }
+@keyframes fxBounce { 0%, 100% { transform: translateY(-25%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); } 50% { transform: none; animation-timing-function: cubic-bezier(0, 0, 0.2, 1); } }
+@keyframes fxSpin { to { transform: rotate(360deg); } }
+@keyframes fxPulse { 50% { opacity: 0.5; } }
+
+/* 3. 花儿谢了：愁云雨丝 + 寒风 + 枯萎 + 花瓣飘落 + 粤语气泡 */
+.fx-flower { position: absolute; display: flex; flex-direction: column; align-items: center; opacity: 0; transition: opacity 0.3s ease; z-index: 9; }
+.fx-flower.fx-on { opacity: 1; }
+.fx-flower-cloud { display: flex; align-items: center; opacity: 0.9; }
+.fx-flower-cloud text { font-size: 28px; }
+.fx-flower-cloud text + text { font-size: 22px; margin-left: -8px; }
+.fx-rain { display: flex; align-items: center; gap: 4px; margin-top: -2px; }
+.fx-rain view { width: 2px; border-radius: 2px; background: rgba(147, 197, 253, 0.8); animation: fxRainDrop 0.85s linear infinite; }
+.fx-rain .r1 { height: 7px; }
+.fx-rain .r2 { height: 9px; background: rgba(191, 219, 254, 0.9); animation-delay: 0.28s; }
+.fx-rain .r3 { height: 6px; background: rgba(147, 197, 253, 0.7); animation-delay: 0.55s; }
+@keyframes fxRainDrop { 0% { transform: translateY(0); opacity: 0; } 30% { opacity: 0.9; } 100% { transform: translateY(16px); opacity: 0; } }
+.fx-wind { position: absolute; left: 0; right: 0; top: 24px; display: flex; flex-direction: column; gap: 4px; }
+.fx-wind view { height: 1px; border-radius: 2px; background: rgba(255,255,255,0.7); animation: fxWindBreeze 1.3s ease-out infinite; }
+.fx-wind .w2 { width: 24px; background: rgba(224, 242, 254, 0.6); animation-delay: 0.4s; }
+@keyframes fxWindBreeze { 0% { transform: translateX(-60px) scaleY(0.7); opacity: 0; } 40% { opacity: 0.85; } 100% { transform: translateX(90px) scaleY(1.2); opacity: 0; } }
+.fx-flower-stem { position: relative; margin-top: 2px; display: flex; flex-direction: column; align-items: center; transform-origin: bottom center; }
+.fx-flower-stem.fx-run-droop { animation: fxStemDroop 2.4s cubic-bezier(.42,0,.58,1) forwards; }
+.fx-flower-head { font-size: 32px; filter: saturate(1.4) brightness(1.1); }
+.fx-stem { width: 2px; height: 14px; border-radius: 2px; background: #40614f; transform-origin: bottom center; }
+@keyframes fxStemDroop {
+  0% { transform: rotate(0deg) scale(1); }
+  35% { transform: rotate(-8deg) scale(1); }
+  70% { transform: rotate(42deg) translate(4px, 6px) scale(0.92); }
+  100% { transform: rotate(62deg) translate(7px, 10px) scale(0.85); }
+}
+.fx-petals { position: absolute; top: 48px; left: 50%; margin-left: -10px; }
+.fx-petals text { position: absolute; opacity: 0; }
+.fx-petals .p1 { font-size: 16px; color: rgba(225, 29, 72, 0.9); }
+.fx-petals .p2 { font-size: 14px; color: rgba(190, 18, 60, 0.85); }
+.fx-petals .p3 { font-size: 12px; color: rgba(159, 18, 57, 0.8); }
+.fx-petals .p1.fx-run { animation: fxPetalFall1 2.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+.fx-petals .p2.fx-run { animation: fxPetalFall2 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.15s forwards; }
+.fx-petals .p3.fx-run { animation: fxPetalFall3 2.1s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s forwards; }
+@keyframes fxPetalFall1 { 0% { transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; } 40% { transform: translate(-18px, 28px) rotate(85deg) scale(0.9); } 75% { transform: translate(12px, 55px) rotate(190deg) scale(0.8); opacity: 0.8; } 100% { transform: translate(-8px, 95px) rotate(310deg) scale(0.6); opacity: 0; } }
+@keyframes fxPetalFall2 { 0% { transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; } 35% { transform: translate(22px, 24px) rotate(-70deg) scale(0.9); } 70% { transform: translate(-14px, 58px) rotate(-160deg) scale(0.75); opacity: 0.8; } 100% { transform: translate(16px, 90px) rotate(-260deg) scale(0.5); opacity: 0; } }
+@keyframes fxPetalFall3 { 0% { transform: translate(0,0) rotate(0deg) scale(1); opacity: 1; } 50% { transform: translate(-8px, 38px) rotate(120deg) scale(0.85); } 100% { transform: translate(-20px, 85px) rotate(240deg) scale(0.55); opacity: 0; } }
+.fx-flower-bubble { margin-top: 4px; padding: 4px 10px; border-radius: 499.5px; background: rgba(0,0,0,0.75); border: 1px solid rgba(255,255,255,0.2); opacity: 0; transform: translateY(4px); transition: all 0.5s ease; white-space: nowrap; }
+.fx-flower-bubble.fx-on { opacity: 1; transform: translateY(0); }
+.fx-flower-bubble text { font-size: 10px; color: #fef08a; font-weight: 700; }
+
+/* 4. 斟杯靓茶：紫砂壶飞入倾斜 + 金黄茶汤 + 水位涟漪白雾 */
+.fx-tea-teapot { position: absolute; width: 105px; height: 85px; z-index: 6; transition: transform 0.5s ease-out; filter: drop-shadow(0 12px 16px rgba(0,0,0,0.5)); }
+.fx-tea-teapot.fx-tilt { transform: rotate(-42deg); }
+.fx-tea-teapot image { width: 100%; height: 100%; }
+.fx-tea-stream { position: absolute; width: 4px; border-radius: 4px; background: linear-gradient(180deg, rgba(254,240,138,0.95), rgba(234,179,8,0.9), rgba(202,138,4,1)); opacity: 0; transition: opacity 0.2s ease; z-index: 5; }
+.fx-tea-stream.fx-on { opacity: 1; }
+.fx-tea-cup { position: absolute; display: flex; flex-direction: column; align-items: center; z-index: 6; }
+.fx-tea-cup .cup-body { position: relative; width: 44px; height: 44px; border-radius: 50%; background: rgba(255,251,235,0.95); border: 2px solid #fcd34d; box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.fx-tea-cup .cup-water { width: 32px; height: 32px; border-radius: 50%; background: rgba(217,119,6,0.85); display: flex; align-items: center; justify-content: center; transform: scale(0.9); transition: transform 0.5s ease; }
+.fx-tea-cup .cup-water.fx-on { transform: scale(1.05); }
+.fx-tea-cup .cup-water text { font-size: 9px; color: #451a03; font-weight: 700; }
+.fx-tea-cup .cup-label { margin-top: 2px; padding: 1px 6px; border-radius: 499.5px; background: rgba(0,0,0,0.6); font-size: 9px; color: #fde68a; font-weight: 600; }
+.fx-steam { position: absolute; left: 0; right: 0; top: -14px; display: flex; align-items: flex-end; justify-content: center; gap: 3px; }
+.fx-steam view { border-radius: 499.5px; background: rgba(255,255,255,0.8); filter: blur(1px); animation: fxTeaSteam 1.6s ease-out infinite; }
+.fx-steam .s1 { width: 3px; height: 12px; }
+.fx-steam .s2 { width: 4px; height: 15px; background: rgba(255,255,255,0.9); animation-delay: 0.5s; }
+.fx-steam .s3 { width: 3px; height: 10px; background: rgba(255,255,255,0.6); }
+@keyframes fxTeaSteam { 0% { transform: translateY(0) scaleX(0.8); opacity: 0; } 40% { opacity: 0.75; } 100% { transform: translateY(-24px) scaleX(1.3); opacity: 0; } }
+
+/* 5. 送件点心：竹蒸笼揭盖 + 白雾 */
+.fx-dimsum { position: absolute; display: flex; flex-direction: column; align-items: center; z-index: 9; }
+.fx-dimsum-lid { position: relative; z-index: 3; width: 78px; height: 34px; }
+.fx-dimsum-lid.fx-run { animation: fxLidLift 2.2s ease-in-out forwards; }
+.fx-dimsum-lid image { width: 100%; height: 100%; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25)); }
+.fx-dimsum-steam { position: absolute; left: 0; right: 0; top: -4px; display: flex; align-items: flex-end; justify-content: center; gap: 5px; z-index: 4; }
+.fx-dimsum-steam view { border-radius: 499.5px; background: rgba(255,255,255,0.85); filter: blur(1.5px); animation: fxTeaSteam 1.6s ease-out infinite; }
+.fx-dimsum-steam .s1 { width: 6px; height: 16px; }
+.fx-dimsum-steam .s2 { width: 8px; height: 20px; background: rgba(255,255,255,0.9); animation-delay: 0.5s; }
+.fx-dimsum-base { margin-top: -3px; width: 96px; height: 64px; border-radius: 0 0 16px 16px; background: #92400e; border: 2px solid #d97706; box-shadow: 0 8px 16px rgba(0,0,0,0.25); display: flex; align-items: center; justify-content: space-around; box-sizing: border-box; z-index: 2; }
+.fx-dimsum-base text { font-size: 24px; }
+.fx-dimsum-label { margin-top: 4px; padding: 2px 10px; border-radius: 499.5px; background: rgba(0,0,0,0.7); font-size: 10px; color: #fde68a; font-weight: 600; white-space: nowrap; }
+@keyframes fxLidLift {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  40% { transform: translateY(-30px) rotate(-16deg); opacity: 0.9; }
+  75% { transform: translateY(-34px) rotate(-18deg); opacity: 0.9; }
+  100% { transform: translateY(0) rotate(0deg); opacity: 1; }
+}
+
+/* 6. 台下猛踢的私密暗号气泡（桌面内浮层，非全局弹窗） */
+.fx-banner { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 12px; background: rgba(33,49,69,0.95); border: 1px solid rgba(255,220,195,0.3); box-shadow: 0 8px 24px rgba(0,0,0,0.35); opacity: 0; transform: translateY(24px); transition: all 0.3s ease; z-index: 10; }
+.fx-banner.fx-on { opacity: 1; transform: translateY(0); }
+.fx-banner .banner-icon { font-size: 22px; animation: fxBounce 1s infinite; }
+.fx-banner .banner-title { font-size: 12px; font-weight: 700; color: #ffdcc3; }
+.fx-banner .banner-desc { font-size: 10px; color: rgba(234,241,255,0.9); margin-top: 1px; }
+
+
+/* ===== 各面板的定格状态（负 delay + paused = 冻结在关键帧） ===== */
+.p-kick .table-stage { animation-play-state: paused; }
+.p-kick .fx-foot { animation-play-state: paused; animation-delay: -0.30s; opacity: 1; }
+.p-kick .fx-run-1 { animation-play-state: paused; animation-delay: -0.10s; }
+.p-kick .fx-run-2 { animation-play-state: paused; animation-delay: 0s; }
+.p-kick .fx-run-3 { animation-play-state: paused; animation-delay: 0s; }
+.p-kick .fx-avatar-kick { animation-play-state: paused; animation-delay: -0.17s; }
+.p-kick .fx-sparks.fx-on, .p-kick .fx-banner.fx-on { opacity: 1; transform: none; }
+.p-kick .fx-banner { transform: none; }
+.p-slipper .fx-slipper, .p-slipper .fx-slipper-inner { animation-play-state: paused; animation-delay: -0.325s; }
+.p-slipper .fx-stars, .p-slipper .side-fill { opacity: 0.999; }
+.p-slipper .fx-star { animation-play-state: paused; animation-delay: -0.2s; }
+.p-slipper .side-fill { animation-play-state: paused; animation-delay: -0.2s; }
+.p-flower .fx-flower { opacity: 1; }
+.p-flower .fx-run-droop, .p-flower .fx-run, .p-flower .fx-rain view,
+.p-flower .fx-wind view, .p-flower .fx-flower-bubble { animation-play-state: paused; }
+.p-flower .fx-run-droop { animation-delay: -1.6s; }
+.p-flower .p1 { animation-delay: -0.9s; }
+.p-flower .p2 { animation-delay: -0.75s; }
+.p-flower .p3 { animation-delay: -0.6s; }
+.p-flower .fx-rain view, .p-flower .fx-wind view { animation-delay: -0.4s; }
+.p-flower .fx-flower-bubble { opacity: 1; transform: none; }
+.p-tea .fx-tea-teapot { transform: rotate(-42deg); }
+.p-tea .fx-tea-stream, .p-tea .cup-water { opacity: 1; }
+.p-tea .fx-steam view, .p-tea .fx-dimsum-steam view, .p-tea .cup-water.fx-on { animation-play-state: paused; animation-delay: -0.6s; opacity: 0.75; }
+.p-tea .fx-tea-stream { opacity: 1; }
+.p-tea .cup-water.fx-on { transform: scale(1.05); opacity: 1; }
+.p-tea .fx-tea-teapot { transform: rotate(-42deg); }
+.p-tea .fx-tea-teapot { transition: none; }
+.p-dimsum .fx-dimsum-lid.fx-run, .p-dimsum .fx-dimsum-steam view { animation-play-state: paused; }
+.p-dimsum .fx-dimsum-lid.fx-run { animation-delay: -0.9s; }
+.p-dimsum .fx-dimsum-steam view { animation-delay: -0.6s; opacity: 0.8; }
+</style>
+</head>
+<body>
+  <h1>席位互动道具动画 · 关键帧预览</h1>
+  <div class="note">
+    样式直接取自 <code>miniprogram/pages/room/room.wxss</code> 的 fx 段（rpx ÷ 2 = px，数值零漂移），
+    用「负 <code>animation-delay</code> + <code>paused</code>」定格关键帧。
+    完整时序：拖鞋 0.65s 飞行 → 命中；猛踢 0.3s 命中 → 地震 0.75s + 气泡 4.2s；花儿 3.8s；斟茶 2.8s；点心 2.7s。
+  </div>
+  <div class="grid">
+    <div class="panel">
+      <div class="panel-title">台下猛踢 🦶（命中瞬间：地震 + 冲击波 + 头像弹飞 + 暗号气泡）</div>
+      <div class="table-stage p-kick" style="animation: none;">
+        <div class="fx-stage">
+          <div class="fx-shock-center" style="left: 187px; top: 257px;">
+            <div class="fx-shock fx-shock-1 fx-run-1"></div>
+            <div class="fx-shock fx-shock-2 fx-run-2"></div>
+            <div class="fx-shock fx-shock-3 fx-run-3"></div>
+          </div>
+          <div class="fx-foot fx-run" style="left: 143px; top: 212px;">🦶</div>
+          <div class="fx-sparks fx-on" style="left: 187px; top: 257px;">
+            <text>💥</text><text class="fx-spark-b">💢</text><text class="fx-spark-c">⚡</text><text class="fx-spark-tag">CRITICAL HIT!</text>
+          </div>
+          <div class="side side-bottom" style="animation: none;"><div class="side-fill fx-avatar-kick"><div class="avatar">强</div></div></div>
+          <div class="fx-banner fx-on">
+            <text class="banner-icon">🦶</text>
+            <div style="flex:1;min-width:0;">
+              <text class="banner-title">大力踢！哎呀！踢咗【阿强】一脚！</text>
+              <div class="banner-desc"><text>台底踢咁大啖，脚趾尾都抽筋！全桌得我知你踢我！</text></div>
+            </div>
+          </div>
+          <div class="fx-caption">下位 · 阿强</div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">扔飞拖鞋 🩴（抛物线中段 + 命中星芒 + 目标抖动）</div>
+      <div class="table-stage p-slipper">
+        <div class="fx-stage">
+          <div class="fx-slipper" style="--sx: 300px; --sy: 157px; --dx: 179px; --dy: 257px;">
+            <div class="fx-slipper-inner"><image src="/Users/lkahung/workspace/zoek/miniprogram/assets/icons/fx-slipper.svg" style="width:52px;height:52px;display:block;" /></div>
+          </div>
+          <div class="fx-stars fx-on" style="left: 179px; top: 257px;">
+            <text class="fx-star">⭐</text><text class="fx-star-b">💥</text><text class="fx-star-c">✨</text>
+          </div>
+          <div class="side side-right"><div class="avatar">我</div></div>
+          <div class="side side-bottom"><div class="side-fill fx-hit-shake" style="animation-play-state: paused; animation-delay: -0.2s;"><div class="avatar">强</div></div></div>
+          <div class="fx-caption">右位(我) → 下位 · 阿强</div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">花儿谢了 🥀（枯萎垂头 + 花瓣飘落 + 愁云雨丝寒风 + 气泡）</div>
+      <div class="table-stage p-flower">
+        <div class="fx-stage">
+          <div class="fx-flower fx-on" style="left: 187px; top: 122px; transform: translateX(-50%);">
+            <div class="fx-flower-cloud"><text>🌧️</text><text>☁️</text></div>
+            <div class="fx-rain"><view class="r1"></view><view class="r2"></view><view class="r3"></view></div>
+            <div class="fx-wind"><view></view><view class="w2"></view></div>
+            <div class="fx-flower-stem fx-run-droop">
+              <text class="fx-flower-head">🥀</text>
+              <div class="fx-stem"></div>
+            </div>
+            <div class="fx-petals">
+              <text class="p1 fx-run">🥀</text><text class="p2 fx-run">🍂</text><text class="p3 fx-run">🍁</text>
+            </div>
+            <div class="fx-flower-bubble fx-on"><text>等得我花儿都谢了... 🥀</text></div>
+          </div>
+          <div class="side side-top"><div class="avatar">萍</div></div>
+          <div class="fx-caption">上位 · 阿萍</div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">斟杯靓茶 🍵 + 送件点心 🥟（倾斜注水 / 掀盖白雾）</div>
+      <div class="table-stage p-tea">
+        <div class="fx-stage">
+          <div class="fx-tea-teapot fx-tilt" style="left: 168px; top: 47px;"><image src="/Users/lkahung/workspace/zoek/miniprogram/assets/icons/fx-teapot.svg" style="width:105px;height:85px;display:block;" /></div>
+          <div class="fx-tea-stream fx-on" style="left: 203px; top: 72px; height: 52px;"></div>
+          <div class="fx-tea-cup" style="left: 143px; top: 127px;">
+            <div class="fx-steam"><view class="s1"></view><view class="s2"></view><view class="s3"></view></div>
+            <div class="cup-body"><div class="cup-water fx-on"><text style="font-size:9px;color:#451a03;font-weight:700;">茶香</text></div></div>
+            <div class="cup-label"><text style="font-size:9px;color:#fde68a;">敬上一杯高山靓乌龙</text></div>
+          </div>
+          <div class="fx-caption">西位 · 卡窿二</div>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">送件点心 🥟（蒸笼掀盖 + 白雾 + 水晶虾饺）</div>
+      <div class="table-stage p-dimsum">
+        <div class="fx-stage">
+          <div class="fx-dimsum" style="left: 187px; top: 107px; transform: translateX(-50%);">
+            <div class="fx-dimsum-steam"><view class="s1"></view><view class="s2"></view></view>
+            <div class="fx-dimsum-lid fx-run"><image src="/Users/lkahung/workspace/zoek/miniprogram/assets/icons/fx-steamer-lid.svg" style="width:78px;height:34px;display:block;" /></div>
+            <div class="fx-dimsum-base"><text style="font-size:24px;">🥟</text><text style="font-size:24px;">🥟</text></div>
+            <div class="fx-dimsum-label"><text style="font-size:10px;color:#fde68a;">热腾腾广式虾饺 · 催牌啦！</text></div>
+          </div>
+          <div class="side side-right"><div class="avatar">我</div></div>
+          <div class="fx-caption">右位 · 勿忘我</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
