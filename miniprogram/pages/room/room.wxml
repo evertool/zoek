@@ -7,10 +7,11 @@
     </view>
     <view class="status-pill" wx:if="{{game}}">
       <view class="status-dot {{game.status === 'forming' ? 'status-dot-active' : ''}}"></view>
-      <text>{{game.statusText}} · {{players.length}}/4 入座</text>
+      <!-- 入座人数取后端的 player_count（只算在座），不能用 players.length——那份含已离座的人 -->
+      <text>{{game.statusText}} · {{game.player_count}}/4 入座</text>
     </view>
-    <!-- 未记分时出示台码（拉人入台）；已记分后的「结束散台」移到下方底栏 -->
-    <view class="qr-icon-btn" wx:if="{{game && !hasScores && game.status !== 'ended'}}" bindtap="toggleQrModal">
+    <!-- 还能凑脚就出示台码（拉人入台）：牌局进行中 + 成员没锁 + 未满 4 人，判据见 room.js applyGame -->
+    <view class="qr-icon-btn" wx:if="{{canInvite}}" bindtap="openQrModal">
       <image class="qr-icon-img" src="/assets/icons/table-qrcode.svg" mode="aspectFit" />
     </view>
   </view>
@@ -110,19 +111,27 @@
   </view>
 
   <!-- 模态层 1: QR 台码弹窗 -->
-  <view class="modal-overlay {{showQrModal ? 'modal-show' : ''}}" bindtap="toggleQrModal">
+  <view class="modal-overlay {{showQrModal ? 'modal-show' : ''}}" bindtap="closeQrModal">
     <view class="qr-modal-card" catchtap="stopPropagation">
       <view class="qr-modal-header">
         <view>
           <text class="qr-modal-title">扫码加入牌局</text>
           <text class="qr-modal-sub">微信扫一扫 · 自动锁定空位</text>
         </view>
-        <view class="modal-close-btn" bindtap="toggleQrModal"><text>✕</text></view>
+        <view class="modal-close-btn" bindtap="closeQrModal"><text>✕</text></view>
       </view>
       <view class="qr-modal-body">
-        <image class="qr-modal-img" src="{{qrPath}}" mode="aspectFit" wx:if="{{qrPath}}" />
+        <view class="qr-modal-loading" wx:if="{{qrLoading}}">
+          <view class="room-state-spinner"></view>
+          <text class="qr-modal-tip">台码生成中...</text>
+        </view>
+        <image class="qr-modal-img" src="{{qrPath}}" mode="aspectFit" wx:elif="{{qrPath}}" />
+        <view class="qr-modal-img-placeholder qr-modal-retry" wx:elif="{{qrError}}" bindtap="retryQRCode">
+          <text class="qr-modal-retry-icon">↻</text>
+          <text class="qr-modal-tip">台码生成失败，点击重试</text>
+        </view>
         <view class="qr-modal-img-placeholder" wx:else><text>QR</text></view>
-        <text class="qr-modal-tip">永久有效 · 仅限本局同台使用</text>
+        <text class="qr-modal-tip" wx:if="{{qrPath}}">永久有效 · 仅限本局同台使用</text>
       </view>
       <!-- 呼叫雀友：透明 button 命中层拉起微信分享（与座位「邀请入座」同款实现） -->
       <view class="qr-modal-btn" hover-class="qr-modal-btn-active">
@@ -179,6 +188,10 @@
       <view class="swap-modal-actions">
         <view class="swap-cancel-btn" bindtap="closeSwapModal"><text>取消</text></view>
         <view class="swap-confirm-btn" bindtap="sendSwapRequest"><text>发送申请</text></view>
+      </view>
+      <!-- 台主额外入口：长按他人座位现在一律是「申请换位」，移出改从这里进（离座动作，有流水账单需先「结束散台」结算） -->
+      <view class="swap-kick-btn" wx:if="{{isOwner}}" bindtap="kickFromSwapModal">
+        <text>移出牌台</text>
       </view>
     </view>
   </view>

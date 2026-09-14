@@ -1,5 +1,8 @@
 /* pages/room/room.wxss — 台间页 v7 环形桌面版（对齐设计稿） */
-.page { min-height: 100vh; background: var(--background); }
+/* 禁止整页被左右拖动：内容只要横向溢出（哪怕亚像素），iOS/安卓都允许把整页拖走；
+ * overscroll-behavior 再关掉拖到边缘后的整页回弹。竖向滚动不受影响。 */
+page { overflow-x: hidden; overscroll-behavior-x: none; }
+.page { min-height: 100vh; background: var(--background); overflow-x: hidden; }
 .main-content { padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: 200rpx; display: flex; flex-direction: column; gap: var(--space-md); }
 
 /* 自定义导航栏：返回按钮 + 状态胶囊 + 台码，与系统胶囊同一水平 */
@@ -38,27 +41,39 @@
 .wind-dot-right { left: 444rpx; top: 289rpx; background: #1b6b4a; }
 .wind-dot-bottom { left: 349rpx; top: 384rpx; background: #9b7fb0; }
 
-/* 梯形用 clip-path 切形：外层铺描边色，内层（.side-fill）缩进 3rpx 铺白底 → 得到随形状走的细描边 */
+/* 梯形用 clip-path 切形：外层铺描边色，内层（.side-fill）缩进 3rpx 铺白底 → 得到随形状走的细描边。
+ * 四个角做成 20rpx 圆角：clip-path: polygon() 不支持圆角，这里用「每个角 4 段折线拟合圆弧」实现
+ * （偏差 ≈ 0.02r ≈ 0.4rpx，肉眼不可见）。不用 clip-path: path() / SVG 背景是因为部分安卓 WebView
+ * 兜不住——真机一旦不支持，座位会直接退化成矩形；折线拟合最坏也只是圆角略有棱角。
+ * 数值由 scripts/gen-rounded-trapezoid.py 生成（改圆角半径就重跑覆盖这几行），几何与原梯形完全一致：
+ * 短边 190、长边 316、进深 210，仅把 4 个顶点换成圆弧切点。 */
 .table-side { position: absolute; background: rgba(27,107,74,0.18); z-index: 1; }
-.table-side.side-top { left: 217rpx; top: 10rpx; width: 316rpx; height: 210rpx; clip-path: polygon(19.9% 100%, 80.1% 100%, 100% 0, 0 0); }
-.table-side.side-bottom { left: 217rpx; top: 410rpx; width: 316rpx; height: 210rpx; clip-path: polygon(19.9% 0, 80.1% 0, 100% 100%, 0 100%); }
-.table-side.side-left { left: 70rpx; top: 157rpx; width: 210rpx; height: 316rpx; clip-path: polygon(0 0, 0 100%, 100% 80.1%, 100% 19.9%); }
-.table-side.side-right { left: 470rpx; top: 157rpx; width: 210rpx; height: 316rpx; clip-path: polygon(100% 0, 100% 100%, 0 80.1%, 0 19.9%); }
+.table-side.side-top { left: 217rpx; top: 10rpx; width: 316rpx; height: 210rpx; clip-path: polygon(18.6% 93.2%, 19.4% 95.9%, 20.8% 98.1%, 22.6% 99.5%, 24.6% 100.0%, 75.4% 100.0%, 77.4% 99.5%, 79.2% 98.1%, 80.6% 95.9%, 81.4% 93.2%, 97.6% 12.3%, 97.7% 7.9%, 96.6% 3.8%, 94.3% 1.0%, 91.5% 0.0%, 8.5% 0.0%, 5.7% 1.0%, 3.4% 3.8%, 2.3% 7.9%, 2.4% 12.3%); }
+.table-side.side-bottom { left: 217rpx; top: 410rpx; width: 316rpx; height: 210rpx; clip-path: polygon(18.6% 6.8%, 19.4% 4.1%, 20.8% 1.9%, 22.6% 0.5%, 24.6% 0.0%, 75.4% 0.0%, 77.4% 0.5%, 79.2% 1.9%, 80.6% 4.1%, 81.4% 6.8%, 97.6% 87.7%, 97.7% 92.1%, 96.6% 96.2%, 94.3% 99.0%, 91.5% 100.0%, 8.5% 100.0%, 5.7% 99.0%, 3.4% 96.2%, 2.3% 92.1%, 2.4% 87.7%); }
+.table-side.side-left { left: 70rpx; top: 157rpx; width: 210rpx; height: 316rpx; clip-path: polygon(12.3% 2.4%, 7.9% 2.3%, 3.8% 3.4%, 1.0% 5.7%, 0.0% 8.5%, 0.0% 91.5%, 1.0% 94.3%, 3.8% 96.6%, 7.9% 97.7%, 12.3% 97.6%, 93.2% 81.4%, 95.9% 80.6%, 98.1% 79.2%, 99.5% 77.4%, 100.0% 75.4%, 100.0% 24.6%, 99.5% 22.6%, 98.1% 20.8%, 95.9% 19.4%, 93.2% 18.6%); }
+.table-side.side-right { left: 470rpx; top: 157rpx; width: 210rpx; height: 316rpx; clip-path: polygon(87.7% 2.4%, 92.1% 2.3%, 96.2% 3.4%, 99.0% 5.7%, 100.0% 8.5%, 100.0% 91.5%, 99.0% 94.3%, 96.2% 96.6%, 92.1% 97.7%, 87.7% 97.6%, 6.8% 81.4%, 4.1% 80.6%, 1.9% 79.2%, 0.5% 77.4%, 0.0% 75.4%, 0.0% 24.6%, 0.5% 22.6%, 1.9% 20.8%, 4.1% 19.4%, 6.8% 18.6%); }
 .side-fill { position: absolute; top: 3rpx; left: 3rpx; right: 3rpx; bottom: 3rpx; background: var(--surface-container-lowest); display: flex; align-items: center; justify-content: center; }
-.side-top .side-fill { clip-path: polygon(19.9% 100%, 80.1% 100%, 100% 0, 0 0); }
-.side-bottom .side-fill { clip-path: polygon(19.9% 0, 80.1% 0, 100% 100%, 0 100%); }
-.side-left .side-fill { clip-path: polygon(0 0, 0 100%, 100% 80.1%, 100% 19.9%); }
-.side-right .side-fill { clip-path: polygon(100% 0, 100% 100%, 0 80.1%, 0 19.9%); }
+.side-top .side-fill { clip-path: polygon(18.6% 93.2%, 19.4% 95.9%, 20.8% 98.1%, 22.6% 99.5%, 24.6% 100.0%, 75.4% 100.0%, 77.4% 99.5%, 79.2% 98.1%, 80.6% 95.9%, 81.4% 93.2%, 97.6% 12.3%, 97.7% 7.9%, 96.6% 3.8%, 94.3% 1.0%, 91.5% 0.0%, 8.5% 0.0%, 5.7% 1.0%, 3.4% 3.8%, 2.3% 7.9%, 2.4% 12.3%); }
+.side-bottom .side-fill { clip-path: polygon(18.6% 6.8%, 19.4% 4.1%, 20.8% 1.9%, 22.6% 0.5%, 24.6% 0.0%, 75.4% 0.0%, 77.4% 0.5%, 79.2% 1.9%, 80.6% 4.1%, 81.4% 6.8%, 97.6% 87.7%, 97.7% 92.1%, 96.6% 96.2%, 94.3% 99.0%, 91.5% 100.0%, 8.5% 100.0%, 5.7% 99.0%, 3.4% 96.2%, 2.3% 92.1%, 2.4% 87.7%); }
+.side-left .side-fill { clip-path: polygon(12.3% 2.4%, 7.9% 2.3%, 3.8% 3.4%, 1.0% 5.7%, 0.0% 8.5%, 0.0% 91.5%, 1.0% 94.3%, 3.8% 96.6%, 7.9% 97.7%, 12.3% 97.6%, 93.2% 81.4%, 95.9% 80.6%, 98.1% 79.2%, 99.5% 77.4%, 100.0% 75.4%, 100.0% 24.6%, 99.5% 22.6%, 98.1% 20.8%, 95.9% 19.4%, 93.2% 18.6%); }
+.side-right .side-fill { clip-path: polygon(87.7% 2.4%, 92.1% 2.3%, 96.2% 3.4%, 99.0% 5.7%, 100.0% 8.5%, 100.0% 91.5%, 99.0% 94.3%, 96.2% 96.6%, 92.1% 97.7%, 87.7% 97.6%, 6.8% 81.4%, 4.1% 80.6%, 1.9% 79.2%, 0.5% 77.4%, 0.0% 75.4%, 0.0% 24.6%, 0.5% 22.6%, 1.9% 20.8%, 4.1% 19.4%, 6.8% 18.6%); }
 /* 内容统一居中，宽度收在 180rpx 内，保证不顶到梯形的斜边 */
-.side-body { width: 100%; max-width: 170rpx; display: flex; flex-direction: column; align-items: center; gap: 6rpx; }
+.side-body { width: 100%; max-width: 170rpx; display: flex; flex-direction: column; align-items: center; gap: 4rpx; }
 .side-body-empty { gap: 10rpx; }
 .seat-head { display: flex; align-items: center; gap: 8rpx; width: 100%; min-width: 0; }
 .seat-avatar { width: 56rpx; height: 56rpx; border-radius: 50%; background: var(--surface-container); flex-shrink: 0; }
 .seat-avatar-ph { display: flex; align-items: center; justify-content: center; font-size: 26rpx; font-weight: 600; color: var(--on-surface); }
-.seat-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2rpx; }
+.seat-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
 .seat-owner-tag { align-self: flex-start; padding: 2rpx 10rpx; border-radius: var(--radius-sm); background: #f6eedc; color: #8a6a1f; font-size: 18rpx; font-weight: 700; }
-.seat-name { font-size: 24rpx; font-weight: 600; color: var(--on-surface); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.seat-score { font-size: 42rpx; font-weight: 700; line-height: 1.1; }
+.seat-name { font-size: 24rpx; font-weight: 600; line-height: 1.25; color: var(--on-surface); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seat-score { font-size: 42rpx; font-weight: 700; line-height: 1; }
+/* 风位圆点嵌在中心圆与梯形短边的交界上，会伸进座位内容约 26rpx（实测「台主」标签被盖 11.1rpx）。
+ * 座位内层只有 204rpx 高、内容块已占 180rpx，所以先把上面几处行距收紧腾出空间，
+ * 再让内容整体朝「远离中心」方向让开 12rpx —— 圆点留 8rpx、梯形边留 7rpx。 */
+.side-top .side-body { transform: translateY(-12rpx); }
+.side-bottom .side-body { transform: translateY(12rpx); }
+.side-left .side-body { transform: translateX(-12rpx); }
+.side-right .side-body { transform: translateX(12rpx); }
 
 /* 「＋ 给分」入口 */
 .give-btn { width: 100%; height: 56rpx; padding: 0 10rpx; border-radius: var(--radius-full); border: 2rpx solid rgba(27,107,74,0.35); color: var(--primary); display: flex; align-items: center; justify-content: center; gap: 2rpx; font-size: 22rpx; font-weight: 600; box-sizing: border-box; }
@@ -115,6 +130,14 @@
 .qr-modal-img { width: 384rpx; height: 384rpx; border-radius: var(--radius-default); background: var(--surface-container-lowest); padding: 16rpx; box-shadow: var(--shadow-card); }
 .qr-modal-img-placeholder { width: 384rpx; height: 384rpx; border-radius: var(--radius-default); background: var(--surface-container-lowest); display: flex; align-items: center; justify-content: center; font-size: 48rpx; color: var(--outline); }
 .qr-modal-tip { margin-top: 20rpx; font-size: 20rpx; color: var(--outline); }
+/* 台码加载中 / 加载失败（失败态整块可点重试） */
+.qr-modal-loading { width: 384rpx; height: 384rpx; border-radius: var(--radius-default); background: var(--surface-container-lowest); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24rpx; }
+.qr-modal-retry { flex-direction: column; gap: 16rpx; }
+.qr-modal-retry:active { opacity: 0.7; }
+.qr-modal-retry-icon { font-size: 64rpx; line-height: 1; color: var(--primary); }
+/* loading / 失败态内部已有 gap，去掉 tip 自带的 margin-top，避免间距叠加 */
+.qr-modal-loading .qr-modal-tip,
+.qr-modal-retry .qr-modal-tip { margin-top: 0; font-size: 24rpx; }
 .qr-modal-btn { position: relative; height: 88rpx; border-radius: var(--radius-md); background: var(--primary); color: var(--on-primary); display: flex; align-items: center; justify-content: center; gap: 12rpx; font-size: 28rpx; font-weight: 600; }
 .qr-modal-btn-icon { width: 48rpx; height: 48rpx; padding: 6rpx; background: #ffffff; border-radius: 50%; box-sizing: border-box; }
 .qr-modal-btn-active { opacity: 0.85; }
@@ -160,6 +183,9 @@
 .swap-modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gutter-grid); margin-top: var(--space-md); width: 100%; }
 .swap-cancel-btn { height: 80rpx; border-radius: var(--radius-md); background: var(--surface-container); color: var(--on-surface); display: flex; align-items: center; justify-content: center; font-size: 24rpx; font-weight: 500; }
 .swap-confirm-btn { height: 80rpx; border-radius: var(--radius-md); background: var(--primary); color: var(--on-primary); display: flex; align-items: center; justify-content: center; font-size: 24rpx; font-weight: 500; }
+/* 台主专用：移出牌台（次要、危险动作，放在换位弹窗底部） */
+.swap-kick-btn { width: 100%; height: 72rpx; margin-top: var(--space-xs); border-radius: var(--radius-md); background: var(--surface-container); color: var(--tertiary); display: flex; align-items: center; justify-content: center; font-size: 24rpx; font-weight: 500; }
+.swap-kick-btn:active { opacity: 0.75; }
 
 /* Toast */
 .toast { position: fixed; top: 160rpx; left: 50%; transform: translateX(-50%); z-index: 200; background: rgba(33, 49, 69, 0.9); color: var(--inverse-on-surface); padding: 16rpx 32rpx; border-radius: var(--radius-full); font-size: 24rpx; box-shadow: var(--shadow-modal); opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }

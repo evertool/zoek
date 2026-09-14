@@ -4,6 +4,7 @@ const api = require('../../utils/api')
 const util = require('../../utils/util')
 const guard = require('../../utils/guard')
 const tts = require('../../utils/tts')
+const prefs = require('../../utils/prefs')
 
 // 安全加载 lottie（npm 构建失败时不会阻断页面）
 let lottie = null
@@ -20,6 +21,22 @@ const WINDS = ['東', '南', '西', '北']
 // 即 南在上、東在左、西在右、北在下（沿用设计稿的方位，不要按通用罗盘翻成「北在上」）
 const SEAT_POS = ['left', 'top', 'right', 'bottom']
 
+// ArrayBuffer → base64：小程序没有全局 btoa，优先用官方能力，缺失时手工分块编码兜底
+function arrayBufferToBase64(buffer) {
+  if (wx.arrayBufferToBase64) {
+    try {
+      return wx.arrayBufferToBase64(buffer)
+    } catch (e) {}
+  }
+  var bytes = new Uint8Array(buffer)
+  var binary = ''
+  var CHUNK = 0x8000
+  for (var i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK))
+  }
+  return btoa(binary)
+}
+
 Page({
   data: {
     gameID: 0,
@@ -30,16 +47,20 @@ Page({
     inviteToken: '',
     qrPath: '',
     qrLoading: false,
+    qrError: false,
     loading: true,
     loadError: false,
     isOwner: false,
     hasScores: false,
+    // 是否出示台码（拉人入台）：牌局还在进行 + 成员没锁 + 没满 4 人，见 applyGame
+    canInvite: false,
     showQrModal: false,
     showScoreModal: false,
     ledgerShown: LEDGER_PAGE_SIZE,
     ledgerPageSize: LEDGER_PAGE_SIZE,
     showSwapModal: false,
     swapTargetSeat: 0,
+    swapTargetName: '',
     showIncomingSwap: false,
     incomingSwap: null,
     scoreTargetSeat: '',
@@ -150,9 +171,11 @@ Page({
   applyGame(res, poll) {
     // userID 统一转数字比较：本地缓存可能恢复出字符串类型，=== 会永远不相等
     var myID = Number(app.globalData.userID) || 0
+    // players 保留**全部**（含已离座）：流水账单要按 player_id 反查昵称头像
     var players = (res.players || []).map(function(p) {
       return {
         ...p,
+        status: p.status || 'active',
         isOwner: p.role === 'owner',
         isSelf: Number(p.user_id) === myID,
         avatarColor: util.avatarColor(p.nickname),
@@ -160,11 +183,21 @@ Page({
       }
     })
 
-    // 构建 2×2 座位：优先按玩家真实 seat 落位；后端未返回 seat 时回退按下标铺排，避免玩家消失
+    // 我已经不在台上（被台主移出，或自己的退出请求已生效）→ 提示后回首页
+    for (var mi = 0; mi < players.length; mi++) {
+      if (players[mi].isSelf && players[mi].status !== 'active') {
+        this.handleRemoved()
+        return
+      }
+    }
+
+    // 座位只铺「在座」的人；空出来的座位显示为虚位以待
+    var seated = players.filter(function(p) { return p.status === 'active' })
+
     var seatMap = [null, null, null, null]
     var hasSeat = false
-    for (var i = 0; i < players.length; i++) {
-      var sp = players[i]
+    for (var i = 0; i < seated.length; i++) {
+      var sp = seated[i]
       var sIdx = (sp.seat || 0) - 1
       if (sIdx >= 0 && sIdx < 4) {
         seatMap[sIdx] = sp
@@ -172,7 +205,7 @@ Page({
       }
     }
     if (!hasSeat) {
-      for (var i = 0; i < players.length; i++) seatMap[i] = players[i]
+      for (var i = 0; i < seated.length; i++) seatMap[i] = seated[i]
     }
     var seats = []
     for (var i = 0; i < 4; i++) {
@@ -201,6 +234,14 @@ Page({
       seats: seats,
       isOwner: Number(res.creator_id) === myID,
       hasScores: (res.completed_rounds || 0) > 0 || this.data.ledger.length > 0,
+      // 台码（拉人入台）出示条件，与后端 GetGameQRCode / JoinGame 的守卫保持一致：
+      //   牌局还在进行（forming=组桌中 / active=已开局）+ 成员没锁 + 还没满 4 人。
+      // 注意**不能用 hasScores**：那是「本局有没有流水账单」。房间页的「给分」走转分接口，
+      // 不锁成员（只有 legacy 的首次逐人提交第 1 局才会 LockMembers），
+      // 所以给过分之后照样能继续凑脚——拿 hasScores 当判据会让台码提前消失。
+      canInvite: (res.status === 'forming' || res.status === 'active') &&
+        !res.members_locked &&
+        (res.player_count || 0) < 4,
       loading: false,
       loadError: false
     }, () => {
@@ -268,8 +309,8 @@ Page({
         hasScores: this.data.hasScores || ledger.length > 0
       })
 
-      // 得分语音播报：只播「收到分」（转入我的新入账），转出去的不播
-      // 首次打开只记录水位不播报（避免进场把整段历史念一遍）
+      // 得分提示：只对「收到分」（转入我的新入账）触发，转出去的不提示
+      // 首次打开只记录水位不提示（避免进场把整段历史念一遍/震一遍）
       var mineAccepted = list.filter(function(a) {
         if (a.status !== 'accepted') return false
         return Number(a.to_player_id) === myPlayerID
@@ -278,11 +319,13 @@ Page({
       if (this._lastVoiceAdjId === undefined) {
         this._lastVoiceAdjId = maxMineId
       } else if (this.data.game && this.data.game.status === 'active') {
-        var voiceOn = tts.isEnabled() // 开关在「我的」页面，读全局 storage
+        var voiceOn = tts.isEnabled() // 开关在「我的」→ 牌局偏好设置，读全局 storage
         for (var vi = 0; vi < mineAccepted.length; vi++) {
           var va = mineAccepted[vi]
           if ((va.id || 0) <= this._lastVoiceAdjId) continue
           this._lastVoiceAdjId = va.id || this._lastVoiceAdjId
+          // 震动与语音是两个独立开关：语音关着也照样震
+          prefs.vibrateScore()
           if (!voiceOn) continue
           // 统一文案：收到N分
           tts.speak('收到' + va.amount + '分')
@@ -301,11 +344,68 @@ Page({
     this.setData({ ledgerShown: LEDGER_PAGE_SIZE })
   },
 
-  toggleQrModal(opening) {
-    this.setData({ showQrModal: opening })
-    if (opening && !this.data.qrPath && !this.data.qrLoading) {
+  // 台码弹窗：打开 / 关闭拆成两个方法。
+  // 注意：bindtap 会把「事件对象」当作第一个实参传进来（恒为 truthy），
+  // 所以绝不能写成 toggle(opening) { setData({ show: opening }) } ——
+  // 那样无论点遮罩还是点 ✕ 都只会把它设成 true，弹窗永远关不掉。
+  openQrModal() {
+    this.setData({ showQrModal: true })
+    if (!this.data.qrPath && !this.data.qrLoading) {
       this.loadQRCode()
     }
+  },
+
+  closeQrModal() {
+    this.setData({ showQrModal: false })
+  },
+
+  // 拉取小程序码（后端返回 image/png 二进制；getBinary 走 arraybuffer，不能复用普通 api.get）
+  loadQRCode() {
+    if (!this.data.gameID || this.data.qrLoading) return
+    var self = this
+
+    // 同局二维码内容固定（scene = game_id），本次启动内已生成过就直接复用，不再重复请求
+    this._qrCached = this._qrCached || {}
+    if (this._qrCached[this.data.gameID]) {
+      this.setData({ qrPath: this._qrCached[this.data.gameID], qrError: false })
+      return
+    }
+    var cachePath = wx.env.USER_DATA_PATH + '/game-qr-' + this.data.gameID + '.png'
+
+    this.setData({ qrLoading: true, qrError: false })
+    // 台码要打开哪个版本的小程序：按当前运行环境带上（develop / trial / release）。
+    // 不带这个参数微信默认给「正式版」的码 —— 在体验版里扫码会跳到正式版，
+    // 那边是另一套 baseURL，联调时会很迷惑。后端会白名单校验。
+    var envVersion = (app.globalData && app.globalData.envVersion) || 'release'
+    api.getBinary('/games/' + this.data.gameID + '/qrcode?env_version=' + encodeURIComponent(envVersion), {
+      errMsg: '台码生成失败'
+    }).then(function(buf) {
+      if (!buf || !buf.byteLength) throw new Error('empty qrcode')
+      // 优先写临时文件：<image src> 可直接读本地路径，且避免 base64 撑大 setData
+      var fs = wx.getFileSystemManager()
+      try {
+        try { fs.unlinkSync(cachePath) } catch (e) {}
+        fs.writeFileSync(cachePath, buf)
+        self._qrCached[self.data.gameID] = cachePath
+        self.setData({ qrPath: cachePath, qrLoading: false, qrError: false })
+      } catch (e) {
+        // 写入失败时退回 base64 data URI
+        self.setData({
+          qrPath: 'data:image/png;base64,' + arrayBufferToBase64(buf),
+          qrLoading: false,
+          qrError: false
+        })
+      }
+    }).catch(function() {
+      self.setData({ qrLoading: false, qrError: true })
+    })
+  },
+
+  // 台码加载失败后的重试入口：先清缓存再重新拉取
+  retryQRCode() {
+    if (this._qrCached) delete this._qrCached[this.data.gameID]
+    this.setData({ qrPath: '', qrError: false })
+    this.loadQRCode()
   },
 
   openScoringModal(e) {
@@ -380,6 +480,17 @@ Page({
     })
   },
 
+  // 本局是否已产生流水账单。口径与后端 CountAdjustments / 房间页流水列表一致
+  // （rejected / cancelled 的转分也算，列表里有多少笔就是多少笔）。
+  // 有流水 = 牌局已经开打，人不能单独走（账单会挂在半空），只能「结束散台」统一结算。
+  // 注意：只拦「离座」（自己退出 / 台主移出），**换位任何时候都放行**。
+  hasLedger() {
+    return (this.data.ledger || []).length > 0
+  },
+
+  // 长按座位：空位=即时换座（无需申请）/ 自己=退出牌台 / 他人=申请换位
+  // 长按他人座位一律走「申请换位」（台主也一样，见 PRD §8.7）；
+  // 台主额外能在换位弹窗里把对方「移出牌台」，那才是受流水账单限制的离座动作。
   onSeatLongPress(e) {
     var seat = Number(e.currentTarget.dataset.seat)
     var seatInfo = this.data.seats.find(function(s) { return s.seat === seat })
@@ -389,17 +500,106 @@ Page({
       this.swapToEmptySeat(seat)
       return
     }
-    // 自己的座位：无需换位
-    if (seatInfo.player.user_id === app.globalData.userID) {
-      this.showToast('这是你的座位')
+
+    // 自己的座位：退出牌台（离座 → 有流水账单就得走「结束散台」结算）
+    if (seatInfo.player.isSelf) {
+      if (this.hasLedger()) {
+        this.showToast('已有流水账单，要用「结束散台」结算')
+        return
+      }
+      this.confirmLeave()
       return
     }
-    // 已有玩家的座位：发起换位申请
+
+    // 他人座位：任何身份、任何阶段都能申请换位，不受流水账单影响
     this.setData({
       showSwapModal: true,
       swapTargetSeat: seat,
+      swapTargetName: seatInfo.player.nickname,
       swapTargetText: '与【' + seat + '位 · ' + seatInfo.player.nickname + '】互换座位'
     })
+  },
+
+  // ── 退出牌台（长按自己的座位）──
+  confirmLeave() {
+    var self = this
+    wx.showModal({
+      title: '退出牌台',
+      content: '确定要退出这张牌台吗？退出后座位会让出来给其他雀友。',
+      confirmText: '退出',
+      confirmColor: '#c0392b',
+      success: function(res) {
+        if (res.confirm) self.doLeave()
+      }
+    })
+  },
+
+  doLeave() {
+    if (this._leaving) return
+    this._leaving = true
+    api.post('/games/' + this.data.gameID + '/leave', {}, { silent: true }).then(res => {
+      this._leaving = false
+      this.stopPolling()
+      this.showToast((res && res.message) || '已退出牌台')
+      // 不要在页面栈里 back —— 扫码/分享进来的页面栈只有一层
+      setTimeout(function() { wx.reLaunch({ url: '/pages/index/index' }) }, 1200)
+    }).catch(err => {
+      this._leaving = false
+      this.showToast((err && err.message) || '退台失败，请重试')
+    })
+  },
+
+  // ── 移出牌台（台主在换位弹窗里点「移出」）──
+  // 换位弹窗对台主多出这个入口：长按他人座位现在一律是「申请换位」，
+  // 移出属于离座动作，所以要受「有流水账单必须结束散台结算」限制。
+  kickFromSwapModal() {
+    if (!this.data.isOwner) return
+    var seat = this.data.swapTargetSeat
+    var name = this.data.swapTargetName
+    if (!seat || !name) return
+    this.setData({ showSwapModal: false })
+    if (this.hasLedger()) {
+      this.showToast('已有流水账单，要用「结束散台」结算')
+      return
+    }
+    this.confirmKick(seat, name)
+  },
+
+  // ── 移出牌台确认弹窗 ──
+  confirmKick(seat, nickname) {
+    var self = this
+    wx.showModal({
+      title: '移出牌台',
+      content: '确定把「' + nickname + '」请出这张牌台吗？座位会腾出来给其他雀友。',
+      confirmText: '移出',
+      confirmColor: '#c0392b',
+      success: function(res) {
+        if (res.confirm) self.doKick(seat)
+      }
+    })
+  },
+
+  doKick(seat) {
+    if (this._kicking) return
+    this._kicking = true
+    api.post('/games/' + this.data.gameID + '/kick', { target_seat: seat }, { silent: true }).then(res => {
+      this._kicking = false
+      this.showToast((res && res.message) || '已移出牌台')
+      this.loadGame()
+    }).catch(err => {
+      this._kicking = false
+      this.showToast((err && err.message) || '移出失败，请重试')
+    })
+  },
+
+  // 轮询发现自己已不在台上（被台主移出）→ 提示并回首页。
+  // 只执行一次，避免每次轮询都弹提示。
+  handleRemoved() {
+    if (this._removedHandled) return
+    this._removedHandled = true
+    this.stopPolling()
+    this.showToast('你已经被移出牌台')
+    setTimeout(function() { wx.reLaunch({ url: '/pages/index/index' }) }, 1500)
   },
 
   // 发起换位申请（对方确认后才互换）
@@ -500,6 +700,8 @@ Page({
 
   /** 长按换座时的 Lottie 反馈动画（两个玩家色点沿弧线互换） */
   playSwapAnim() {
+    // 换座是手上真实发生的事，动画起手先给一次轻震（开关在「我的」→ 牌局偏好设置）
+    prefs.vibrateAnim()
     if (!lottie) return
     if (this._swapAnim) {
       this.setData({ showSwapAnim: true })
