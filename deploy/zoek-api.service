@@ -1,16 +1,24 @@
 [Unit]
 Description=Zoek API
-After=network.target mysqld.service
+After=network.target mysql.service mysqld.service mariadb.service
+# 崩溃循环保护：60 秒内失败 5 次就停下，避免无限重启刷日志
+# 恢复方式：修好配置后 `systemctl reset-failed zoek-api && systemctl start zoek-api`
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
 User=zoek
+Group=zoek
 WorkingDirectory=/opt/zoek
-ExecStart=/opt/zoek/api
+# ⚠ 必须显式传 -config：不加这个参数时 config.Load("") 会跳过读文件，
+#   服务会退回到内置默认值（端口 8080、数据库密码为空、JWT 用开发密钥）。
+ExecStart=/opt/zoek/api -config /opt/zoek/config.yaml
 Restart=on-failure
 RestartSec=3
-# 配置：/opt/zoek/config.yaml（-config 参数由 api 内部默认 ./config.yaml）
-# 也可用环境变量覆盖：ZOEK_DB_* / ZOEK_WECHAT_* 等
+# 也可用环境变量覆盖（空字符串不生效，见 internal/config/config.go）：
+#   ZOEK_SERVER_PORT / ZOEK_DB_HOST / ZOEK_DB_USER / ZOEK_DB_PASSWORD
+#   ZOEK_WECHAT_APPID / ZOEK_WECHAT_APP_SECRET / ZOEK_JWT_SECRET
 
 [Install]
 WantedBy=multi-user.target

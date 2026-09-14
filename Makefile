@@ -3,7 +3,7 @@
 # Makefile 提供统一验证入口 (PRD §10.2)
 # =============================================================================
 
-.PHONY: verify backend-test backend-build backend-vet backend-fmt backend-tidy backend-run release release-build clean
+.PHONY: verify backend-test backend-build backend-vet backend-fmt backend-tidy backend-run release release-build check-deploy clean
 
 ## verify: 执行全量验证流程（PRD §10.2）
 verify:
@@ -56,3 +56,9 @@ release:
 ## release-build: 仅构建发版产物，不上传
 release-build:
 	@bash scripts/release.sh --build-only backend
+
+## check-deploy: 远程部署自检（不构建不上传，读 deploy/release.env）
+# 检查：-config 参数 / config.yaml 端口与密码 / MySQL 连通与建库 / 监听端口 /
+#       uploads 权限 / Caddy 站点与 443 / https://<域名>/health
+check-deploy:
+	@bash scripts/release.sh --check

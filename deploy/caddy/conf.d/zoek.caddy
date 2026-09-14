@@ -1,14 +1,32 @@
 # 雀友记（zoek）站点：单域名反代（小程序后端）
-# 安装到：/etc/caddy/conf.d/zoek.caddy
+# 安装到：/etc/caddy/conf.d/zoek.246891.xyz.caddy
 #
 #   https://zoek.246891.xyz/api/*     → 后端     127.0.0.1:8090
 #   https://zoek.246891.xyz/uploads/* → 头像等   127.0.0.1:8090
 #   https://zoek.246891.xyz/health    → 健康检查 127.0.0.1:8090
 #
 # 换域名：改下面站点块第一行即可。小程序 request 合法域名需在微信公众平台配置本域名。
+#
+# ── 为什么源站用自签证书（tls internal），而不是 ACME ──
+# 链路是：客户端 → 阿里云 ESA 边缘 →(HTTPS 回源)→ 源站。
+# 客户端看到的是 **ESA 托管**的证书（当前 CN=*.246891.xyz，LE 签发、ESA 自动续期），
+# 源站证书只用于 ESA↔源站这一段，而实测 **ESA 不校验源站证书**，只要求握手能完成。
+#
+# 这台机器在国内，ACME 出网实测（都在这台机器上跑过）：
+#   Let's Encrypt   ❌ 超时（API 落在 Cloudflare，整段 CF 都不通）
+#   ZeroSSL         ✅ 可达，但强制 EAB；Caddy 2.6.2 自动取 EAB 的老接口已 404
+#   Actalis / Certum ✅ 可达，但 externalAccountRequired=true（同样要 EAB）
+#   SSL.com         ✅ 可达且不要求 EAB，但要绑定账单，返回 401
+#   Buypass / Google ❌ 不可达
+# 所以最省事、零维护的方案是 `tls internal`：Caddy 内部 CA 自动签发 + 自动轮转，
+# 不依赖任何外部 CA，也没有 90 天续期风险。
+# ⚠️ 前提：ESA 侧不要开启「源站证书校验」。若将来开启，需改用受信证书
+#    （那时可选 ZeroSSL：注册账号拿 API Key → 取 EAB → tls { ca ...; eab <kid> <hmac> }）。
 
 zoek.246891.xyz {
 	encode gzip
+
+	tls internal
 
 	handle /api/* {
 		reverse_proxy 127.0.0.1:8090 {

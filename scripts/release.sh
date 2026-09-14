@@ -6,6 +6,7 @@
 #   ./scripts/release.sh backend
 #   ./scripts/release.sh --build-only backend   # 只构建不上传
 #   ./scripts/release.sh --upload-only backend  # 只上传已有产物（需先 build）
+#   ./scripts/release.sh --check                # 只做服务器端部署自检，不构建不上传
 #
 # 配置：
 #   cp deploy/release.env.example deploy/release.env
@@ -16,6 +17,9 @@
 #   2. 建库：CREATE DATABASE zoek DEFAULT CHARACTER SET utf8mb4;
 #   3. Caddy 站点：拷 deploy/caddy/conf.d/zoek.caddy 到 /etc/caddy/conf.d/ 并改域名
 #   4. 小程序后台 request 合法域名配置为该域名
+#
+# 注意：systemd unit 必须带 `-config /opt/zoek/config.yaml`，否则服务会用内置默认值
+#       （端口 8080、数据库密码空）跑，表现为「健康检查端口不通 / Access denied」。
 
 set -euo pipefail
 
@@ -25,6 +29,7 @@ cd "$ROOT"
 ENV_FILE="${RELEASE_ENV_FILE:-$ROOT/deploy/release.env}"
 BUILD_ONLY=0
 UPLOAD_ONLY=0
+CHECK_ONLY=0
 DO_BACKEND=0
 TARGETS=()
 
@@ -35,13 +40,14 @@ info()  { printf '\033[36m==>\033[0m %s\n' "$*"; }
 die()   { red "错误: $*"; exit 1; }
 
 usage() {
-  sed -n '2,16p' "$0"
+  sed -n '2,22p' "$0"
 }
 
 # ---------- 参数 ----------
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -h|--help|help) usage; exit 0 ;;
+    --check)        CHECK_ONLY=1; shift ;;
     --build-only)   BUILD_ONLY=1; shift ;;
     --upload-only)  UPLOAD_ONLY=1; shift ;;
     all|backend|api) TARGETS+=(backend); shift ;;
@@ -68,7 +74,7 @@ is_allowed_key() {
   case "$1" in
     SSH_HOST|SSH_PORT|SSH_KEY|SSH_OPTS|\
     REMOTE_ROOT|REMOTE_API_NAME|REMOTE_API_SERVICE|REMOTE_API_PORT|REMOTE_API_HEALTH_URL|\
-    REMOTE_RELOAD_CADDY|UPLOAD_CONFIG|BACKEND_ARCH) return 0 ;;
+    REMOTE_SITE_DOMAIN|REMOTE_RELOAD_CADDY|UPLOAD_CONFIG|BACKEND_ARCH) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -126,6 +132,7 @@ fi
 : "${REMOTE_API_SERVICE:=zoek-api}"
 : "${REMOTE_API_PORT:=8090}"
 : "${REMOTE_API_HEALTH_URL:=}"
+: "${REMOTE_SITE_DOMAIN:=}"
 : "${REMOTE_RELOAD_CADDY:=0}"
 : "${UPLOAD_CONFIG:=0}"
 : "${BACKEND_ARCH:=amd64}"
@@ -203,6 +210,15 @@ ensure_remote_api_service() {
   [[ -f "$unit_src" ]] || { yellow "本地无 $unit_src，跳过自动安装 unit"; return 0; }
 
   if run_ssh "systemctl cat '${svc}.service' >/dev/null 2>&1"; then
+    # unit 已存在：不覆盖用户自定义，但必须检查 -config（漏了会整台服务跑默认值）
+    if run_ssh "systemctl cat '${svc}.service' | grep -q -- '-config'"; then
+      return 0
+    fi
+    yellow "服务器上的 ${svc}.service 没有带 -config 参数 —— 服务不会读取 ${REMOTE_ROOT}/config.yaml"
+    yellow "  症状：端口退回 8080、数据库密码为空（Access denied (using password: NO)）"
+    yellow "  修正：sudo systemctl edit --full ${svc}"
+    yellow "        把 ExecStart 改为： ${REMOTE_ROOT}/${REMOTE_API_NAME} -config ${REMOTE_ROOT}/config.yaml"
+    yellow "        sudo systemctl daemon-reload && sudo systemctl reset-failed ${svc} && sudo systemctl restart ${svc}"
     return 0
   fi
 
@@ -216,16 +232,18 @@ ensure_remote_api_service() {
   cat >"$tmp_unit" <<EOF
 [Unit]
 Description=Zoek API
-After=network.target
+After=network.target mysql.service mysqld.service mariadb.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=${REMOTE_ROOT}
-ExecStart=${REMOTE_ROOT}/${REMOTE_API_NAME}
+ExecStart=${REMOTE_ROOT}/${REMOTE_API_NAME} -config ${REMOTE_ROOT}/config.yaml
 Restart=on-failure
 RestartSec=3
-# 配置：${REMOTE_ROOT}/config.yaml（或用 ZOEK_* 环境变量覆盖）
+# 配置由 -config 指定；也可用 ZOEK_* 环境变量覆盖（空值不生效）
 
 [Install]
 WantedBy=multi-user.target
@@ -238,6 +256,16 @@ EOF
     sudo systemctl daemon-reload && sudo systemctl enable '${svc}.service'"
   green "已安装并 enable ${svc}.service"
   yellow "请确认服务器上存在 ${REMOTE_ROOT}/config.yaml（首次需自备，参考 backend/config.yaml）"
+}
+
+# 远程部署自检：上传 deploy/remote-check.sh 并在服务器上跑一遍
+remote_diagnose() {
+  [[ -n "$SSH_HOST" ]] || { yellow "未配置 SSH_HOST，无法远程自检"; return 0; }
+  local script="$ROOT/deploy/remote-check.sh"
+  [[ -f "$script" ]] || { yellow "缺少 $script，跳过自检"; return 0; }
+  upload_file "$script" "/tmp/zoek-remote-check.sh" >/dev/null 2>&1 \
+    || { yellow "上传自检脚本失败"; return 0; }
+  run_ssh "bash /tmp/zoek-remote-check.sh '${REMOTE_ROOT}' '${REMOTE_API_SERVICE}' '${REMOTE_API_PORT}' '${REMOTE_SITE_DOMAIN}'" || true
 }
 
 upload_backend() {
@@ -254,7 +282,11 @@ upload_backend() {
     upload_file "$ROOT/backend/config.yaml" "${REMOTE_ROOT}/config.yaml"
   else
     if ! run_ssh "test -f '${REMOTE_ROOT}/config.yaml'"; then
-      yellow "警告: 服务器缺少 ${REMOTE_ROOT}/config.yaml（或设置 UPLOAD_CONFIG=1 上传本地配置）"
+      yellow "警告: 服务器缺少 ${REMOTE_ROOT}/config.yaml"
+      yellow "  服务带 -config 启动时会直接退出（加载配置失败），请先创建该文件："
+      yellow "  ssh ${SSH_HOST} \"sudo cp /opt/zoek/config.yaml.example ${REMOTE_ROOT}/config.yaml\""
+      yellow "  参考 backend/config.yaml，改 server.port=${REMOTE_API_PORT}、database.*、jwt.secret、wechat.*"
+      yellow "  （或设 UPLOAD_CONFIG=1 直接上传本地 backend/config.yaml，注意本地是开发配置）"
     fi
   fi
 
@@ -281,9 +313,10 @@ upload_backend() {
       green "健康检查 OK: ${REMOTE_API_HEALTH_URL}"
     else
       yellow "警告: 健康检查失败 (${REMOTE_API_HEALTH_URL})"
-      yellow "  请确认服务器 config.yaml 的 server.port=${REMOTE_API_PORT} 与 release.env 的 REMOTE_API_PORT 一致"
       yellow "  最近日志："
       run_ssh "journalctl -u '${REMOTE_API_SERVICE}' -n 40 --no-pager" 2>/dev/null || true
+      yellow "  自动跑一次部署自检："
+      remote_diagnose
     fi
   else
     yellow "REMOTE_API_SERVICE 为空，跳过重启"
@@ -298,6 +331,15 @@ reload_caddy_if_needed() {
 }
 
 # ---------- 主流程 ----------
+if [[ "$CHECK_ONLY" -eq 1 ]]; then
+  [[ -n "$SSH_HOST" ]] || die "--check 需要配置 SSH_HOST（deploy/release.env）"
+  command -v ssh >/dev/null 2>&1 || die "需要 ssh"
+  command -v scp >/dev/null 2>&1 || die "需要 scp"
+  info "部署自检: ${SSH_HOST} → ${REMOTE_ROOT}（服务 ${REMOTE_API_SERVICE}，端口 ${REMOTE_API_PORT}）"
+  remote_diagnose
+  exit 0
+fi
+
 info "目标: ${TARGETS[*]}"
 if can_upload; then
   info "将上传到 SSH: ${SSH_HOST} 端口 ${SSH_PORT} → ${REMOTE_ROOT}"
