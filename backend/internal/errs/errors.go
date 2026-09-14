@@ -62,4 +62,14 @@ var (
 	ErrSeatEmpty      = New("SEAT_EMPTY", "目标座位为空，可直接换座", ActionRetry)
 	ErrInvalidInput   = New("INVALID_INPUT", "输入参数有误", ActionRetry)
 	ErrInternal       = New("INTERNAL", "服务器内部错误", ActionRetry)
+
+	// 离座相关（自己退出 / 台主移除雀友）
+	ErrNotInGame       = New("NOT_IN_GAME", "你已经不在牌台上了", ActionBackToRoom)
+	ErrOwnerOnly       = New("OWNER_ONLY", "只有台主先可以移除雀友", ActionBackToRoom)
+	ErrTargetNotSeated = New("TARGET_NOT_SEATED", "该座位冇人坐", ActionRefreshGame)
+	ErrKickSelf        = New("KICK_SELF", "唔使自己踢自己，用「退出房间」就得", ActionRetry)
+	ErrGameNotJoinable = New("GAME_NOT_JOINABLE", "已经散台啦，冇得退出", ActionBackToRoom)
+	// 有流水账单之后不允许离座（自己退出 / 被移出），必须走「结束散台」统一结算，
+	// 否则人走了账单挂在半空（有人该收/该欠却不在台上），没人能对得上账。
+	ErrGameHasLedger = New("GAME_HAS_LEDGER", "已有流水账单，请用「结束散台」结算后再离台", ActionRetry)
 )

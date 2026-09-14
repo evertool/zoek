@@ -144,6 +144,10 @@ func main() {
 			auth.POST("/games/:game_id/hide", gameHandler.HideGame)
 			auth.POST("/games/:game_id/swap_seat", gameHandler.SwapSeat)
 
+			// 离座（房间页长按座位）：自己退出 / 台主移除雀友
+			auth.POST("/games/:game_id/leave", gameHandler.LeaveGame)
+			auth.POST("/games/:game_id/kick", gameHandler.KickPlayer)
+
 			// 换位申请（长按他人座位，需对方确认）
 			auth.POST("/games/:game_id/swap_requests", swapHandler.CreateSwapRequest)
 			auth.GET("/games/:game_id/swap_requests/pending", swapHandler.GetPendingSwapRequest)

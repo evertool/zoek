@@ -3,8 +3,8 @@ package handler
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -69,12 +69,16 @@ type GameDetailResponse struct {
 }
 
 type PlayerInfo struct {
-	PlayerID   int64     `json:"player_id"`
-	UserID     int64     `json:"user_id"`
-	Nickname   string    `json:"nickname"`
-	AvatarURL  string    `json:"avatar_url"`
-	Role       string    `json:"role"`
-	Seat       int       `json:"seat"`
+	PlayerID  int64  `json:"player_id"`
+	UserID    int64  `json:"user_id"`
+	Nickname  string `json:"nickname"`
+	AvatarURL string `json:"avatar_url"`
+	Role      string `json:"role"`
+	Seat      int    `json:"seat"`
+	// Status 在台状态：active=在座 | left=已离座。
+	// Players 里会**同时返回离座玩家**（流水账单要按 player_id 反查昵称头像），
+	// 前端渲染座位时必须只取 status=active 的。
+	Status     string    `json:"status"`
 	TotalScore int       `json:"total_score"`
 	JoinedAt   time.Time `json:"joined_at"`
 }
@@ -91,9 +95,11 @@ type SimpleResponse struct {
 // Handlers
 // ---------------------------------------------------------------------------
 
-// defaultGameName returns the auto-generated table name, e.g. "得闲开台 9月9日".
+// defaultGameName returns the auto-generated table name, e.g. "9月9日"。
+// 只保留「月日」——「得闲开台」是品牌名，不该固定塞进每一张台的标题里。
 func defaultGameName() string {
-	return "得闲开台 " + strconv.Itoa(int(time.Now().Month())) + "月" + strconv.Itoa(time.Now().Day()) + "日"
+	now := time.Now()
+	return strconv.Itoa(int(now.Month())) + "月" + strconv.Itoa(now.Day()) + "日"
 }
 
 // CreateGame handles POST /api/v1/games (PRD §4.2-A: 开桌)
@@ -116,7 +122,7 @@ func (h *GameHandler) CreateGame(c *gin.Context) {
 		return
 	}
 
-	// PRD v1.0 §4.2-A: 开台零摩擦，不填台名，自动生成"得闲开台 M月D日"
+	// PRD v1.0 §4.2-A: 开台零摩擦，不填台名，自动生成"M月D日"
 	name := req.Name
 	if name == "" {
 		name = defaultGameName()
@@ -160,7 +166,8 @@ func (h *GameHandler) GetActiveGames(c *gin.Context) {
 		}
 		completed, _ := h.Store.CountLockedRounds(g.ID)
 
-		players, _ := h.Store.GetGamePlayers(g.ID)
+		// 只列在座玩家：离座的人不该继续占着座位显示
+		players, _ := h.Store.GetActiveGamePlayers(g.ID)
 		playerItems := make([]gin.H, 0, len(players))
 		for _, p := range players {
 			wind := ""
@@ -288,7 +295,7 @@ func (h *GameHandler) GetHistoryGames(c *gin.Context) {
 			}
 			items = append(items, histItem{
 				game: g, myScore: myScore, myRank: myRank, tag: tag,
-				rounds: roundCounts[g.ID],
+				rounds:  roundCounts[g.ID],
 				players: players, hasAdjustment: adjCount[g.ID] > 0,
 			})
 		}
@@ -382,9 +389,8 @@ func (h *GameHandler) GetGame(c *gin.Context) {
 		return
 	}
 
-	// Check user is a player
-	_, pErr := h.Store.GetGamePlayer(gameID, userID)
-	if pErr != nil {
+	// Check user is a player（含已离座：他们仍要看得到详情，被踢的人也要能读到 status 后自动退出）
+	if ok, mErr := h.Store.HasGamePlayerRow(gameID, userID); mErr != nil || !ok {
 		c.JSON(http.StatusForbidden, errs.ErrForbidden)
 		return
 	}
@@ -425,7 +431,11 @@ func (h *GameHandler) GetGame(c *gin.Context) {
 	playerInfos := make([]PlayerInfo, 0, len(players))
 	// 批量获取用户信息以填充头像
 	userCache := map[int64]*model.User{}
+	activeCount := 0
 	for _, p := range players {
+		if p.Status == model.PlayerStatusActive {
+			activeCount++
+		}
 		var user *model.User
 		if u, ok := userCache[p.UserID]; ok {
 			user = u
@@ -444,6 +454,7 @@ func (h *GameHandler) GetGame(c *gin.Context) {
 			AvatarURL:  avatarURL,
 			Role:       p.Role,
 			Seat:       p.Seat,
+			Status:     p.Status,
 			TotalScore: totalByPlayer[p.ID],
 			JoinedAt:   p.JoinedAt,
 		})
@@ -454,7 +465,7 @@ func (h *GameHandler) GetGame(c *gin.Context) {
 		Name:               game.Name,
 		Status:             game.Status,
 		CreatorID:          game.CreatorID,
-		PlayerCount:        len(players),
+		PlayerCount:        activeCount, // 在座人数（不含已离座）
 		MaxPlayers:         4,
 		MembersLocked:      game.MembersLocked,
 		CurrentRoundNumber: nil, // 局概念已移除
@@ -501,9 +512,9 @@ func (h *GameHandler) JoinGame(c *gin.Context) {
 		return
 	}
 
-	// Check if already a player (handles re-join for any status)
-	existing, _ := h.Store.GetGamePlayer(game.ID, userID)
-	if existing != nil {
+	// 已经在座 → 幂等返回；曾经离座的行交给 store.JoinGame 复用并重新入座
+	existing, _ := h.Store.GetGamePlayerRow(game.ID, userID)
+	if existing != nil && existing.Status == model.PlayerStatusActive {
 		c.JSON(http.StatusOK, gin.H{
 			"game_id":   game.ID,
 			"message":   "已加入牌桌",
@@ -626,9 +637,9 @@ func (h *GameHandler) SwapSeat(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"game_id":   gameID,
-		"seat":      player.Seat,
-		"message":   "已换座",
+		"game_id": gameID,
+		"seat":    player.Seat,
+		"message": "已换座",
 	})
 }
 
@@ -854,9 +865,21 @@ func (h *GameHandler) GetGameQRCode(c *gin.Context) {
 		return
 	}
 
+	// 二维码要打开哪个版本的小程序：微信默认 release（正式版）。
+	// 体验版/开发版必须显式指定，否则在体验版里扫出来的台码会跳到正式版
+	// （前端按自身 wx.getAccountInfoSync().miniProgram.envVersion 带过来）。
+	envVersion := c.Query("env_version")
+	if envVersion == "" {
+		envVersion = wechat.EnvVersionRelease
+	}
+	if !wechat.ValidEnvVersion(envVersion) {
+		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
+		return
+	}
+
 	// Generate QR code with scene = game_id
 	scene := strconv.FormatInt(gameID, 10)
-	pngData, err := h.WxClient.GetMiniProgramCode("pages/join/join", scene)
+	pngData, err := h.WxClient.GetMiniProgramCode("pages/join/join", scene, envVersion)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errs.New("QR_FAILED", "生成小程序码失败", errs.ActionRetry))
 		return
@@ -881,8 +904,8 @@ func (h *GameHandler) HideGame(c *gin.Context) {
 		return
 	}
 
-	// Must be a participant
-	if _, pErr := h.Store.GetGamePlayer(gameID, userID); pErr != nil {
+	// Must be a participant（含已离座：他打过的局应该能从自己记录里删掉）
+	if ok, mErr := h.Store.HasGamePlayerRow(gameID, userID); mErr != nil || !ok {
 		c.JSON(http.StatusForbidden, errs.ErrForbidden)
 		return
 	}

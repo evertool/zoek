@@ -1,8 +1,9 @@
 // cmd/seed/main.go — 生成雀友榜/个人数据用的模拟数据
 // 用法: cd backend && go run ./cmd/seed
 // 幂等: 以 openid=seed_* 识别模拟用户，重复执行会跳过已存在的用户和牌局。
-//       进行中牌台以 invite_token_hash 里的 seed-live-* 标记做幂等。
-//       已结束牌局不幂等，只想补进行中牌台时加 -games 0。
+//
+//	进行中牌台以 invite_token_hash 里的 seed-live-* 标记做幂等。
+//	已结束牌局不幂等，只想补进行中牌台时加 -games 0。
 package main
 
 import (

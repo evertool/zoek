@@ -89,15 +89,19 @@ func (s *Store) AutoMigrate() error {
 	return s.backfillPlayerSeats()
 }
 
-// backfillPlayerSeats 为 seat=0 的旧数据按加入顺序分配 1..4 中未被占用的最小编号。
+// backfillPlayerSeats 为 seat=0 的**在座**玩家按加入顺序分配 1..4 中未被占用的最小编号。
+// 只看 status=active：离座玩家的 seat 也是 0，但那是释放掉的座位，不该被回填。
 func (s *Store) backfillPlayerSeats() error {
 	var gameIDs []int64
-	if err := s.DB.Model(&model.GamePlayer{}).Where("seat = 0").Distinct().Pluck("game_id", &gameIDs).Error; err != nil {
+	if err := s.DB.Model(&model.GamePlayer{}).
+		Where("seat = 0 AND status = ?", model.PlayerStatusActive).
+		Distinct().Pluck("game_id", &gameIDs).Error; err != nil {
 		return err
 	}
 	for _, gameID := range gameIDs {
 		var players []model.GamePlayer
-		if err := s.DB.Where("game_id = ?", gameID).Order("joined_at ASC, id ASC").Find(&players).Error; err != nil {
+		if err := s.DB.Where("game_id = ? AND status = ?", gameID, model.PlayerStatusActive).
+			Order("joined_at ASC, id ASC").Find(&players).Error; err != nil {
 			return err
 		}
 		used := map[int]bool{}
@@ -264,7 +268,8 @@ func (s *Store) GetActiveGames(userID int64) ([]model.Game, error) {
 // 「加入该局本身不算冲突」的场景；没有进行中的牌局返回 0。
 func (s *Store) GetUserActiveGameID(userID, excludeGameID int64) (int64, error) {
 	query := s.DB.Model(&model.Game{}).Where(
-		"status IN ('forming', 'active') AND id IN (SELECT game_id FROM game_players WHERE user_id = ?)", userID)
+		"status IN ('forming', 'active') AND id IN (SELECT game_id FROM game_players WHERE user_id = ? AND status = ?)",
+		userID, model.PlayerStatusActive)
 	if excludeGameID > 0 {
 		query = query.Where("id <> ?", excludeGameID)
 	}
@@ -302,7 +307,10 @@ func (s *Store) GetHistoryGamesAll(userID int64, f HistoryGameFilters) ([]model.
 	return games, nil
 }
 
-// GetGamePlayers returns all players in a game.
+// GetGamePlayers returns 本局所有玩家行，**包含已离座（status=left）的**。
+// 保留离座行的用途：流水账单 / 结算要按 player_id 反查昵称头像，
+// 这些历史记录的外键还指着他（见 model.GamePlayer.Status 的说明）。
+// 需要「此刻在座的都有谁」时用 GetActiveGamePlayers。
 func (s *Store) GetGamePlayers(gameID int64) ([]model.GamePlayer, error) {
 	var players []model.GamePlayer
 	if err := s.DB.Where("game_id = ?", gameID).Order("seat ASC, joined_at ASC").Find(&players).Error; err != nil {
@@ -311,8 +319,35 @@ func (s *Store) GetGamePlayers(gameID int64) ([]model.GamePlayer, error) {
 	return players, nil
 }
 
-// GetGamePlayer retrieves a specific game player.
+// GetActiveGamePlayers returns 在座玩家（status=active），按座位排序。
+func (s *Store) GetActiveGamePlayers(gameID int64) ([]model.GamePlayer, error) {
+	var players []model.GamePlayer
+	if err := s.DB.Where("game_id = ? AND status = ?", gameID, model.PlayerStatusActive).
+		Order("seat ASC, joined_at ASC").Find(&players).Error; err != nil {
+		return nil, err
+	}
+	return players, nil
+}
+
+// GetGamePlayer retrieves 当前在座的玩家行。
+// 已离座的玩家视为「不在台上」，返回 ErrForbidden —— 这样退出/被踢之后
+// 所有依赖 GetGamePlayer 做权限判断的接口都会自动拒绝他。
 func (s *Store) GetGamePlayer(gameID, userID int64) (*model.GamePlayer, error) {
+	var player model.GamePlayer
+	if err := s.DB.Where("game_id = ? AND user_id = ? AND status = ?", gameID, userID, model.PlayerStatusActive).
+		First(&player).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errs.ErrForbidden
+		}
+		return nil, err
+	}
+	return &player, nil
+}
+
+// GetGamePlayerRow 取玩家行，**不管在座与否**。
+// 用途：唯一的 uk_game_user 索引决定同一 (game,user) 只能有一行，
+// 所以离座后重新入座必须复用旧行，不能新建。
+func (s *Store) GetGamePlayerRow(gameID, userID int64) (*model.GamePlayer, error) {
 	var player model.GamePlayer
 	if err := s.DB.Where("game_id = ? AND user_id = ?", gameID, userID).First(&player).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -323,11 +358,81 @@ func (s *Store) GetGamePlayer(gameID, userID int64) (*model.GamePlayer, error) {
 	return &player, nil
 }
 
-// CountGamePlayers returns the number of players in a game.
+// CountGamePlayers returns 在座人数（不含已离座）。
 func (s *Store) CountGamePlayers(gameID int64) (int64, error) {
 	var count int64
-	err := s.DB.Model(&model.GamePlayer{}).Where("game_id = ?", gameID).Count(&count).Error
+	err := s.DB.Model(&model.GamePlayer{}).
+		Where("game_id = ? AND status = ?", gameID, model.PlayerStatusActive).Count(&count).Error
 	return count, err
+}
+
+// CountAdjustments 本局有几条转分（流水账单），**不限状态**。
+// 与房间页流水账单列表同口径（rejected/cancelled 也会显示在列表里）。
+// 用途：一旦有流水就不允许「退出房间 / 移出雀友」——必须走「结束散台」结算，
+// 否则人走了账单挂在半空，没人能对得上账。
+func (s *Store) CountAdjustments(gameID int64) (int64, error) {
+	var count int64
+	err := s.DB.Model(&model.ScoreAdjustment{}).Where("game_id = ?", gameID).Count(&count).Error
+	return count, err
+}
+
+// HasGamePlayerRow 该用户在本局是否有玩家行——**包含已离座**的。
+// 给「能不能看」的读接口用：离座的人仍应看得到牌台详情与最终找数；
+// 而「能不能改」的写接口一律用 GetGamePlayer（只看在座）。
+func (s *Store) HasGamePlayerRow(gameID, userID int64) (bool, error) {
+	var count int64
+	err := s.DB.Model(&model.GamePlayer{}).
+		Where("game_id = ? AND user_id = ?", gameID, userID).Count(&count).Error
+	return count > 0, err
+}
+
+// LeaveGamePlayer 把玩家标记为已离座并释放座位（自己退出 / 被台主移除都走这里）。
+// 用软删除而不是 DELETE：round_submissions 与 score_adjustments 都有外键指向
+// game_players(id)，物理删除会撞外键且丢失历史记分归属。
+func (s *Store) LeaveGamePlayer(gameID, playerID int64) error {
+	res := s.DB.Model(&model.GamePlayer{}).
+		Where("id = ? AND game_id = ? AND status = ?", playerID, gameID, model.PlayerStatusActive).
+		Updates(map[string]interface{}{
+			"status": model.PlayerStatusLeft,
+			"seat":   0, // 释放座位，freeSeat 才能重新分配
+		})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return errs.ErrNotInGame
+	}
+	return nil
+}
+
+// TransferGameOwner 换台主：同时改 games.creator_id 和两行的 role。
+// 后端权限判断统一看 games.creator_id（CancelGame / EndGame / HideGame），
+// 而 UI 上的「台主」金标看 game_players.role，两者必须同步，否则会出现
+// 「没人能结束散台」或「金标和张冠李戴」的状态。
+func (s *Store) TransferGameOwner(gameID, oldPlayerID, newPlayerID, newOwnerUserID int64) error {
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&model.Game{}).Where("id = ?", gameID).
+			Update("creator_id", newOwnerUserID).Error; err != nil {
+			return err
+		}
+		if oldPlayerID > 0 {
+			if err := tx.Model(&model.GamePlayer{}).Where("id = ?", oldPlayerID).
+				Update("role", "player").Error; err != nil {
+				return err
+			}
+		}
+		return tx.Model(&model.GamePlayer{}).Where("id = ?", newPlayerID).
+			Update("role", "owner").Error
+	})
+}
+
+// CancelPendingAdjustmentsForPlayer 把该玩家参与的「待确认」转分全部置为已取消。
+// 玩家离座后没人能替他确认，留着就是永远处理不掉的僵尸项。
+func (s *Store) CancelPendingAdjustmentsForPlayer(gameID, playerID int64) error {
+	return s.DB.Model(&model.ScoreAdjustment{}).
+		Where("game_id = ? AND status = ? AND (from_player_id = ? OR to_player_id = ?)",
+			gameID, "pending", playerID, playerID).
+		Update("status", "cancelled").Error
 }
 
 // GamePlayerTotal 一位玩家在一场牌局里的总得分（仅统计已锁定局）。
@@ -733,9 +838,9 @@ func maxInt(a, b int) int {
 	return b
 }
 
-// JoinGame adds a user to a game as a player.
+// JoinGame adds a user to a game as a player. 曾经离座的人会复用原来那一行重新入座。
 func (s *Store) JoinGame(gameID, userID int64, nickname string) (*model.GamePlayer, error) {
-	// Check existing
+	// 已经在座 → 幂等返回
 	existing, err := s.GetGamePlayer(gameID, userID)
 	if err == nil {
 		return existing, nil
@@ -743,6 +848,10 @@ func (s *Store) JoinGame(gameID, userID int64, nickname string) (*model.GamePlay
 	if !errors.Is(err, errs.ErrForbidden) {
 		return nil, err
 	}
+
+	// 曾经离座的行：uk_game_user 决定同一 (game,user) 不能再插一行，只能复用
+	prev, prevErr := s.GetGamePlayerRow(gameID, userID)
+	rejoin := prevErr == nil && prev.Status == model.PlayerStatusLeft
 
 	// Check capacity
 	count, err := s.CountGamePlayers(gameID)
@@ -757,12 +866,30 @@ func (s *Store) JoinGame(gameID, userID int64, nickname string) (*model.GamePlay
 	if err != nil {
 		return nil, err
 	}
+
+	if rejoin {
+		if err := s.DB.Model(&model.GamePlayer{}).Where("id = ?", prev.ID).
+			Updates(map[string]interface{}{
+				"status":            model.PlayerStatusActive,
+				"seat":              seat,
+				"nickname_snapshot": nickname,
+				"joined_at":         time.Now(),
+			}).Error; err != nil {
+			return nil, err
+		}
+		prev.Status = model.PlayerStatusActive
+		prev.Seat = seat
+		prev.NicknameSnapshot = nickname
+		return prev, nil
+	}
+
 	player := model.GamePlayer{
 		GameID:           gameID,
 		UserID:           userID,
 		NicknameSnapshot: nickname,
 		Role:             "player",
 		Seat:             seat,
+		Status:           model.PlayerStatusActive,
 		JoinedAt:         time.Now(),
 	}
 	if err := s.DB.Create(&player).Error; err != nil {
@@ -773,9 +900,12 @@ func (s *Store) JoinGame(gameID, userID int64, nickname string) (*model.GamePlay
 }
 
 // freeSeat returns the lowest unoccupied seat number (1-4) in the game.
+// 只统计在座玩家：离座玩家的 seat 已归零，不会占位。
 func (s *Store) freeSeat(gameID int64) (int, error) {
 	var taken []int
-	if err := s.DB.Model(&model.GamePlayer{}).Where("game_id = ?", gameID).Pluck("seat", &taken).Error; err != nil {
+	if err := s.DB.Model(&model.GamePlayer{}).
+		Where("game_id = ? AND status = ?", gameID, model.PlayerStatusActive).
+		Pluck("seat", &taken).Error; err != nil {
 		return 0, err
 	}
 	used := make(map[int]bool, len(taken))
@@ -1100,8 +1230,9 @@ func (s *Store) GetCurrentRound(gameID int64) (*model.Round, error) {
 const gameAutoCleanAfter = 5 * time.Hour
 
 // AutoExpireStaleGame 进行中牌局的 5 小时超时处理：
-//   1) 没记过账的废弃空台 → 物理删除（同取消开台语义），以开局/创建时间起算
-//   2) 有记账 → 以**最新记账时间**起算，5 小时后自动散台结算（数据保留，进入结算页）
+//  1. 没记过账的废弃空台 → 物理删除（同取消开台语义），以开局/创建时间起算
+//  2. 有记账 → 以**最新记账时间**起算，5 小时后自动散台结算（数据保留，进入结算页）
+//
 // 返回 (expired bool, cleaned bool, err)。
 func (s *Store) AutoExpireStaleGame(gameID int64) (bool, bool, error) {
 	game, err := s.GetGame(gameID)
@@ -1537,7 +1668,7 @@ type UserStats struct {
 	Top3Rate   float64      `json:"top3_rate"`
 	AvgRank    float64      `json:"avg_rank"`
 	BestScore  int64        `json:"best_score"`
-	AvgScore   float64      `json:"avg_score"`  // 平均每场净得分（总净积分/场次）
+	AvgScore   float64      `json:"avg_score"`   // 平均每场净得分（总净积分/场次）
 	RecentWins int          `json:"recent_wins"` // 最近 7 场里净分 > 0 的场数
 	TotalScore int64        `json:"total_score"` // 净胜分（正负均返回）
 	Trend      []TrendPoint `json:"trend"`
@@ -1831,7 +1962,9 @@ func (s *Store) GetUserBadges(userID int64) (*UserBadges, error) {
 			continue
 		}
 		gamesCount++
-		if mine.Rank == 1 {
+		// 胜场口径与积分榜 / 我的页胜率保持一致：单场第 1 名且净分 > 0；
+		// 净分为 0 的平场（四人全 0 结算也会排出第 1 名）不计入胜场与连胜
+		if mine.Rank == 1 && mine.TotalScore > 0 {
 			wins++
 			curStreak++
 			if curStreak > bestStreak {

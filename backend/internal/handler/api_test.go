@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lk/zoek/backend/internal/logger"
@@ -16,6 +18,10 @@ import (
 	"gorm.io/driver/sqlite" // test-only: in-memory SQLite for fast tests
 	"gorm.io/gorm"
 )
+
+// qrEnvVersionSeen 记录 mock 小程序码接口最近一次收到的 env_version。
+// 仅测试用（本包测试不并行）—— 用于断言 env_version 有没有正确透传给微信。
+var qrEnvVersionSeen string
 
 // testSetup creates a fully wired test environment with an in-memory SQLite DB.
 // Note: production uses MySQL exclusively; SQLite is test-only for speed.
@@ -40,7 +46,10 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 	}))
 	gameH := NewGameHandler(s, jwt, wechat.NewMockQRClient(
 		func(code string) (string, string, error) { return "wx_openid_" + code, "", nil },
-		func(page, scene string) ([]byte, error) { return []byte("mock-png-data"), nil },
+		func(page, scene, envVersion string) ([]byte, error) {
+			qrEnvVersionSeen = envVersion
+			return []byte("mock-png-data"), nil
+		},
 	))
 	roundH := NewRoundHandler(s)
 	adjH := NewAdjustmentHandler(s)
@@ -65,8 +74,11 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 			auth.POST("/games/:game_id/start", gameH.StartGame)
 			auth.POST("/games/:game_id/cancel", gameH.CancelGame)
 			auth.POST("/games/:game_id/end", gameH.EndGame)
+			auth.GET("/games/:game_id/qrcode", gameH.GetGameQRCode)
 			auth.POST("/games/:game_id/hide", gameH.HideGame)
 			auth.POST("/games/:game_id/swap_seat", gameH.SwapSeat)
+			auth.POST("/games/:game_id/leave", gameH.LeaveGame)
+			auth.POST("/games/:game_id/kick", gameH.KickPlayer)
 			auth.POST("/games/:game_id/swap_requests", swapH.CreateSwapRequest)
 			auth.GET("/games/:game_id/swap_requests/pending", swapH.GetPendingSwapRequest)
 			auth.POST("/games/:game_id/swap_requests/:id/:action", swapH.ResolveSwapRequest)
@@ -307,9 +319,11 @@ func TestCreateGameDefaultName(t *testing.T) {
 	w := doRequest(t, r, "POST", "/api/v1/games", auth, map[string]string{"request_id": "r1"})
 	assertStatus(t, w, http.StatusCreated)
 	m := parseJSON(t, w)
-	// PRD v1.0 §4.2-A: 空台名自动生成"得闲开台 M月D日"
-	if m["name"].(string) == "" {
-		t.Fatal("name should not be empty")
+	// 开台零摩擦：不填台名时自动生成「M月D日」，标题里不带固定的「得闲开台」前缀
+	now := time.Now()
+	want := strconv.Itoa(int(now.Month())) + "月" + strconv.Itoa(now.Day()) + "日"
+	if m["name"] != want {
+		t.Fatalf("name = %v, want %v", m["name"], want)
 	}
 }
 
@@ -1248,4 +1262,35 @@ func TestLeaderboardAndUserStats(t *testing.T) {
 	if len(m["leaderboard"].([]interface{})) != 4 {
 		t.Fatalf("leaderboard days=7 size = %v, want 4", m["leaderboard"])
 	}
+}
+
+// 台码要指向哪个版本的小程序：`?env_version=` 透传给微信，非法值直接拒。
+// 微信默认是 release（正式版），所以不传/传空都按正式版处理。
+func TestGameQRCodeEnvVersion(t *testing.T) {
+	r, _, _ := testSetup(t)
+	gameID, auths := createGame4P(t, r)
+	base := fmt.Sprintf("/api/v1/games/%d/qrcode", gameID)
+
+	cases := []struct {
+		query string
+		want  string
+	}{
+		{"", wechat.EnvVersionRelease},                     // 不传 → 正式版
+		{"?env_version=", wechat.EnvVersionRelease},        // 空串 → 正式版
+		{"?env_version=release", wechat.EnvVersionRelease}, // 正式版
+		{"?env_version=trial", wechat.EnvVersionTrial},     // 体验版
+		{"?env_version=develop", wechat.EnvVersionDevelop}, // 开发版
+	}
+	for _, tc := range cases {
+		qrEnvVersionSeen = ""
+		w := doRequest(t, r, "GET", base+tc.query, auths[0], nil)
+		assertStatus(t, w, http.StatusOK)
+		if qrEnvVersionSeen != tc.want {
+			t.Errorf("query %q: env_version = %q, want %q", tc.query, qrEnvVersionSeen, tc.want)
+		}
+	}
+
+	// 非法值直接拒，不要把垃圾丢给微信（微信会回 40097 invalid args）
+	w := doRequest(t, r, "GET", base+"?env_version=release_error", auths[0], nil)
+	assertStatus(t, w, http.StatusBadRequest)
 }

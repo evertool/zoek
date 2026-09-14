@@ -4,7 +4,8 @@
 //   - 一场 4 人局结束，按总得分排名：最高分者胜 +1 星，最低分者输 -1 星，其余为平不扣星；
 //   - 连胜奖励：胜场后连胜达到 3~5 场额外 +1 星，达到 6 场及以上额外 +2 星（平/输清零连胜）；
 //   - 保底保护：星星最低为 0，九品 0 星时输了不掉星；
-//   - 段位：六品雀位，九品→八品→六品→四品→二品→至尊，星满自动升段，至尊无上限。
+//   - 段位：六品雀位，九品→八品→六品→四品→二品→至尊，星满自动升段，至尊无上限；
+//   - 晋圣：至尊·无双雀神累计满 50 星后晋为「至尊·最强雀圣」（段内进阶，段位序号不变）。
 package rank
 
 import "fmt"
@@ -39,6 +40,15 @@ const (
 	StreakBigAt      = 6 // 大奖励起点连胜数
 )
 
+// 至尊晋圣：至尊·无双雀神累计满 PeakStarsNeeded 星后晋为「至尊·最强雀圣」。
+// 这是最高段内的进阶（段位序号仍为 6），不是第 7 个段位；晋圣后依然无星上限。
+const (
+	PeakStarsNeeded = 50
+	PeakTierName    = "至尊·最强雀圣"
+	PeakTierShort   = "雀圣"
+	PeakTierTile    = "圣"
+)
+
 // Info 一个用户的段位展示信息。
 type Info struct {
 	TierIndex   int    `json:"tier_index"`
@@ -49,7 +59,10 @@ type Info struct {
 	StarsInTier int    `json:"stars_in_tier"`
 	StarsNeeded int    `json:"stars_needed"` // 0 表示至尊无上限
 	TotalStars  int    `json:"total_stars"`
-	Roman       string `json:"roman"` // 段内小段：初/I/II/III/IV/V
+	Roman       string `json:"roman"`         // 段内小段：初/I/II/III/IV/V
+	IsPeak      bool   `json:"is_peak"`       // 是否已晋为「至尊·最强雀圣」
+	PeakStars   int    `json:"peak_stars"`    // 晋圣门槛（累计星数）；仅至尊段返回，其余为 0
+	StarsToPeak int    `json:"stars_to_peak"` // 距晋圣还差几星；仅「至尊但未晋圣」时 > 0
 }
 
 // InfoFromStars 由累计星数推导段位信息。
@@ -58,26 +71,43 @@ func InfoFromStars(total int) Info {
 	for i := 0; i < len(Tiers); i++ {
 		t := Tiers[i]
 		if t.StarsNeeded == 0 || remaining < t.StarsNeeded {
-			return Info{
-				TierIndex:   t.Index,
-				TierName:    t.Name,
-				TierShort:   t.Short,
-				Grade:       t.Grade,
-				Tile:        t.Tile,
-				StarsInTier: remaining,
-				StarsNeeded: t.StarsNeeded,
-				TotalStars:  total,
-				Roman:       roman(remaining),
-			}
+			return peakAware(tierInfo(t, remaining, total))
 		}
 		remaining -= t.StarsNeeded
 	}
 	// 不会到达：最后一段无上限
 	t := Tiers[len(Tiers)-1]
+	return peakAware(tierInfo(t, total, total))
+}
+
+// tierInfo 组装某一段的展示信息；starsInTier 同时决定段内小段（罗马数字）。
+func tierInfo(t Tier, starsInTier, total int) Info {
 	return Info{
-		TierIndex: t.Index, TierName: t.Name, TierShort: t.Short, Grade: t.Grade,
-		Tile: t.Tile, StarsNeeded: 0, TotalStars: total, Roman: roman(total),
+		TierIndex:   t.Index,
+		TierName:    t.Name,
+		TierShort:   t.Short,
+		Grade:       t.Grade,
+		Tile:        t.Tile,
+		StarsInTier: starsInTier,
+		StarsNeeded: t.StarsNeeded,
+		TotalStars:  total,
+		Roman:       roman(starsInTier),
 	}
+}
+
+// peakAware 处理最高段（至尊）的晋圣进阶：累计星满 PeakStarsNeeded 后换成雀圣称号。
+func peakAware(in Info) Info {
+	if in.StarsNeeded != 0 { // 非最高段，无晋圣概念
+		return in
+	}
+	in.PeakStars = PeakStarsNeeded
+	if in.TotalStars >= PeakStarsNeeded {
+		in.IsPeak = true
+		in.TierName, in.TierShort, in.Tile = PeakTierName, PeakTierShort, PeakTierTile
+	} else {
+		in.StarsToPeak = PeakStarsNeeded - in.TotalStars
+	}
+	return in
 }
 
 // roman 段内小段罗马数字，0 星显示「初」。

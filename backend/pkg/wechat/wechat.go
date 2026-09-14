@@ -13,7 +13,25 @@ import (
 type Code2SessionFunc func(code string) (openID, unionID string, err error)
 
 // QRCodeFunc is the function signature for getting a mini program QR code.
-type QRCodeFunc func(page string, scene string) ([]byte, error)
+// envVersion 为小程序版本（release / trial / develop），见 GetMiniProgramCode。
+type QRCodeFunc func(page, scene, envVersion string) ([]byte, error)
+
+// getwxacodeunlimit 的 env_version 取值：决定扫码后打开哪个版本的小程序。
+// 参考 https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/qrcode-link/qr-code/getUnlimitedQRCode.html
+const (
+	EnvVersionRelease = "release" // 正式版（微信默认值）
+	EnvVersionTrial   = "trial"   // 体验版
+	EnvVersionDevelop = "develop" // 开发版
+)
+
+// ValidEnvVersion reports whether v is a value getwxacodeunlimit accepts.
+func ValidEnvVersion(v string) bool {
+	switch v {
+	case EnvVersionRelease, EnvVersionTrial, EnvVersionDevelop:
+		return true
+	}
+	return false
+}
 
 // Client is a WeChat Mini Program API client.
 type Client struct {
@@ -129,13 +147,16 @@ func (c *Client) getAccessToken() (string, error) {
 
 // GetMiniProgramCode generates a mini program QR code (小程序码) via getwxacodeunlimit API.
 // page: the page to land on (e.g. "pages/join/join")
-// scene: the scene parameter (e.g. "t=<invite_token>"), max 32 chars
+// scene: the scene parameter (e.g. "12345"), max 32 chars
+// envVersion: which mini program build the code opens — EnvVersionRelease / EnvVersionTrial /
+// EnvVersionDevelop。**空串时微信默认按 release（正式版）处理**，所以体验版/开发版调试
+// 必须显式传值，否则在体验版里扫出来的台码会跳到正式版。
 // Returns PNG image bytes.
 // https://developers.weixin.qq.com/miniprogram/dev/api-backend/open-api/qr-code/wxacode.getUnlimited.html
-func (c *Client) GetMiniProgramCode(page, scene string) ([]byte, error) {
+func (c *Client) GetMiniProgramCode(page, scene, envVersion string) ([]byte, error) {
 	// Use mock if set (testing)
 	if c.mockQRFunc != nil {
-		return c.mockQRFunc(page, scene)
+		return c.mockQRFunc(page, scene, envVersion)
 	}
 
 	if c.AppID == "" || c.AppSecret == "" {
@@ -149,37 +170,44 @@ func (c *Client) GetMiniProgramCode(page, scene string) ([]byte, error) {
 
 	url := fmt.Sprintf("https://api.weixin.qq.com/wxa/getwxacodeunlimit?access_token=%s", accessToken)
 
-	payload, _ := json.Marshal(map[string]interface{}{
+	payload := map[string]interface{}{
 		"scene":      scene,
 		"page":       page,
 		"width":      430,
 		"check_path": false,
-	})
+	}
+	if envVersion != "" {
+		payload["env_version"] = envVersion
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshal qrcode payload: %w", err)
+	}
 
-	resp, err := c.HTTP.Post(url, "application/json", bytes.NewReader(payload))
+	resp, err := c.HTTP.Post(url, "application/json", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("call getwxacodeunlimit: %w", err)
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read qrcode response: %w", err)
 	}
 
 	// Check if the response is an error JSON (WeChat returns JSON on error, PNG on success)
 	contentType := resp.Header.Get("Content-Type")
-	if contentType == "application/json" || (len(body) > 0 && body[0] == '{') {
+	if contentType == "application/json" || (len(respBody) > 0 && respBody[0] == '{') {
 		var result struct {
 			ErrCode int    `json:"errcode"`
 			ErrMsg  string `json:"errmsg"`
 		}
-		if err := json.Unmarshal(body, &result); err == nil && result.ErrCode != 0 {
+		if err := json.Unmarshal(respBody, &result); err == nil && result.ErrCode != 0 {
 			return nil, fmt.Errorf("getwxacodeunlimit error: code=%d msg=%s", result.ErrCode, result.ErrMsg)
 		}
 	}
 
-	return body, nil
+	return respBody, nil
 }
 
 // NewMockQRClient creates a WeChat client with mock functions for both

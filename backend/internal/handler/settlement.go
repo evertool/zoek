@@ -106,8 +106,8 @@ func (h *SettlementHandler) GetSettlement(c *gin.Context) {
 		return
 	}
 
-	_, pErr := h.Store.GetGamePlayer(gameID, userID)
-	if pErr != nil {
+	ok, mErr := h.Store.HasGamePlayerRow(gameID, userID)
+	if mErr != nil || !ok {
 		c.JSON(http.StatusForbidden, errs.ErrForbidden)
 		return
 	}
@@ -172,8 +172,8 @@ func (h *SettlementHandler) GetHistoryDetail(c *gin.Context) {
 		return
 	}
 
-	_, pErr := h.Store.GetGamePlayer(gameID, userID)
-	if pErr != nil {
+	ok, mErr := h.Store.HasGamePlayerRow(gameID, userID)
+	if mErr != nil || !ok {
 		c.JSON(http.StatusForbidden, errs.ErrForbidden)
 		return
 	}

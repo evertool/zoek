@@ -37,8 +37,13 @@ func (h *RankHandler) GetMyRank(c *gin.Context) {
 	}
 
 	nextTier := ""
-	if info.TierIndex < len(rank.Tiers) {
+	switch {
+	case info.IsPeak:
+		// 已晋「至尊·最强雀圣」，无下一段
+	case info.TierIndex < len(rank.Tiers):
 		nextTier = rank.Tiers[info.TierIndex].Name // Tiers[info.TierIndex] 即下一段
+	case info.StarsToPeak > 0:
+		nextTier = rank.PeakTierName // 至尊段：下一个里程碑是晋圣
 	}
 	bestScore, _ := h.Store.RankBestScore(userID)
 

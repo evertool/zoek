@@ -17,7 +17,8 @@ func TestSynthesizeSmoke(t *testing.T) {
 	}
 	cfg := config.TTSConfig{SecretID: sid, SecretKey: skey, Region: "ap-guangzhou", VoiceType: 101019, Codec: "mp3"}
 	c := New(cfg)
-	audio, err := c.Synthesize("阿强转给你八分，快啲落座啦")
+	// voiceType 传 0 → 用配置里的默认音色（101019 智彤·粤语女声）
+	audio, err := c.Synthesize("阿强转给你八分，快啲落座啦", 0)
 	if err != nil {
 		t.Fatalf("Synthesize: %v", err)
 	}

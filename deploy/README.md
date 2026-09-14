@@ -176,3 +176,26 @@ zoek.246891.xyz {
 ## 数据库迁移
 
 表结构由程序 AutoMigrate 维护（含历史迁移 006 等），新库首启自动建表；无独立迁移脚本需要手动执行。
+
+`backend/migrations/*.sql` 只是**变更留档**，SQL 不会被程序执行。其中纯数据订正类的脚本
+（如 `008_game_name_date_only.sql`）需要时在服务器上手动跑一次，文件头有说明。
+
+## 台码（小程序码）打开哪个版本：`env_version`
+
+`GET /api/v1/games/:id/qrcode` 支持可选查询参数 `env_version`，取值 `release` / `trial` / `develop`
+（白名单校验，非法值返回 400 `INVALID_INPUT`），直接透传给微信 `getwxacodeunlimit`。
+
+**微信默认是 `release`（正式版）** —— 不显式指定的话，在体验版里扫出来的台码会跳到**正式版**，
+那边连的是正式域名/正式库，联调时很容易看半天才发现走错环境。所以小程序端
+（`pages/room/room.js: loadQRCode`）会带上自己的
+`wx.getAccountInfoSync().miniProgram.envVersion`，后端按它生成对应版本的码：
+
+| 小程序运行环境 | `envVersion` | 台码打开 |
+|---|---|---|
+| 开发者工具 / 开发版 | `develop` | 开发版 |
+| 体验版 | `trial` | 体验版 |
+| 正式版 | `release` | 正式版 |
+
+注意：`develop` / `trial` 的码**只有该小程序的开发者、体验成员扫了才生效**，
+且需要小程序管理后台里确实存在对应版本（已上传代码 / 已设为体验版）。
+后端还固定带了 `check_path: false`，这样 `pages/join/join` 在尚未发布时也能出码。

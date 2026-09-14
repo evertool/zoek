@@ -51,10 +51,14 @@ func (c *Client) Enabled() bool {
 }
 
 // Synthesize converts text to speech, returning base64-encoded audio.
+// voiceType 指定音色；传 0 或负数时用配置里的默认音色（cfg.VoiceType，默认 101019 智彤·粤语女声）。
 // 文本上限：中文 150 汉字（接口限制）。
-func (c *Client) Synthesize(text string) (string, error) {
+func (c *Client) Synthesize(text string, voiceType int) (string, error) {
 	if !c.Enabled() {
 		return "", fmt.Errorf("tts not configured")
+	}
+	if voiceType <= 0 {
+		voiceType = c.cfg.VoiceType
 	}
 	text = strings.TrimSpace(text)
 	if text == "" {
@@ -71,7 +75,7 @@ func (c *Client) Synthesize(text string) (string, error) {
 	payload, err := json.Marshal(map[string]interface{}{
 		"Text":      text,
 		"SessionId": sessionID,
-		"VoiceType": c.cfg.VoiceType,
+		"VoiceType": voiceType,
 		"Codec":     c.cfg.Codec,
 		"Volume":    0,
 		"Speed":     0,

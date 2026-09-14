@@ -17,13 +17,13 @@ type User struct {
 	// 登录时直接读此字段，避免每次重新推导；保存资料时置 true。
 	ProfileCompleted bool `gorm:"not null;default:false" json:"profile_completed"`
 	// 排位数据（4 人局散台时结算），段位由 RankStars 推导，见 internal/rank。
-	RankStars      int `gorm:"not null;default:0" json:"rank_stars"`
-	RankWins       int `gorm:"not null;default:0" json:"rank_wins"`
-	RankDraws      int `gorm:"not null;default:0" json:"rank_draws"`
-	RankLosses     int `gorm:"not null;default:0" json:"rank_losses"`
-	RankStreak     int `gorm:"not null;default:0" json:"rank_streak"`
-	RankBestStreak int `gorm:"not null;default:0" json:"rank_best_streak"`
-	RankPoints     int `gorm:"not null;default:0" json:"rank_points"` // 赛季净胜分
+	RankStars      int            `gorm:"not null;default:0" json:"rank_stars"`
+	RankWins       int            `gorm:"not null;default:0" json:"rank_wins"`
+	RankDraws      int            `gorm:"not null;default:0" json:"rank_draws"`
+	RankLosses     int            `gorm:"not null;default:0" json:"rank_losses"`
+	RankStreak     int            `gorm:"not null;default:0" json:"rank_streak"`
+	RankBestStreak int            `gorm:"not null;default:0" json:"rank_best_streak"`
+	RankPoints     int            `gorm:"not null;default:0" json:"rank_points"` // 赛季净胜分
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
 	DeletedAt      gorm.DeletedAt `gorm:"index" json:"-"`
@@ -69,16 +69,26 @@ func (Game) TableName() string { return "games" }
 
 // GamePlayer maps to the game_players table (PRD §7.2).
 type GamePlayer struct {
-	ID               int64     `gorm:"primaryKey;autoIncrement" json:"id"`
-	GameID           int64     `gorm:"not null;uniqueIndex:uk_game_user" json:"game_id"`
-	UserID           int64     `gorm:"not null;uniqueIndex:uk_game_user" json:"user_id"`
-	NicknameSnapshot string    `gorm:"type:varchar(32);not null" json:"nickname_snapshot"`
-	Role             string    `gorm:"type:varchar(16);not null;default:player" json:"role"`
-	Seat             int       `gorm:"not null;default:0" json:"seat"` // 座位号 1-4（東南西北），0=旧数据未分配
-	JoinedAt         time.Time `gorm:"autoCreateTime" json:"joined_at"`
+	ID               int64  `gorm:"primaryKey;autoIncrement" json:"id"`
+	GameID           int64  `gorm:"not null;uniqueIndex:uk_game_user;index:idx_gp_game_status,priority:1" json:"game_id"`
+	UserID           int64  `gorm:"not null;uniqueIndex:uk_game_user" json:"user_id"`
+	NicknameSnapshot string `gorm:"type:varchar(32);not null" json:"nickname_snapshot"`
+	Role             string `gorm:"type:varchar(16);not null;default:player" json:"role"`
+	Seat             int    `gorm:"not null;default:0" json:"seat"` // 座位号 1-4（東南西北），0=旧数据未分配/已离座
+	// Status 玩家在台状态：active=在座 | left=已离座（自己退出或被台主移除）
+	// ⚠️ 只能软删除：round_submissions / score_adjustments 都有外键指向 game_players(id)，
+	//    物理删除既会撞外键，也会丢掉历史记分的归属。
+	Status   string    `gorm:"type:varchar(16);not null;default:active;index:idx_gp_game_status,priority:2" json:"status"`
+	JoinedAt time.Time `gorm:"autoCreateTime" json:"joined_at"`
 }
 
 func (GamePlayer) TableName() string { return "game_players" }
+
+// 玩家在台状态（GamePlayer.Status）
+const (
+	PlayerStatusActive = "active" // 在座
+	PlayerStatusLeft   = "left"   // 已离座（自己退出 / 被台主移除）
+)
 
 // Round maps to the rounds table (PRD §7.2).
 type Round struct {
