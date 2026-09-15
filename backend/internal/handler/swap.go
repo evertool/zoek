@@ -11,6 +11,7 @@ import (
 	"github.com/lk/zoek/backend/internal/middleware"
 	"github.com/lk/zoek/backend/internal/model"
 	"github.com/lk/zoek/backend/internal/store"
+	"github.com/lk/zoek/backend/internal/ws"
 )
 
 // SwapHandler handles seat swap requests between two seated players (PRD §8.7).
@@ -109,6 +110,9 @@ func (h *SwapHandler) CreateSwapRequest(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 		return
 	}
+
+	// 即时推送：目标玩家秒弹确认框（不再等轮询）
+	ws.Emit(gameID, "swap", gin.H{"request_id": swapReq.ID, "to_player_id": swapReq.ToPlayerID})
 
 	c.JSON(http.StatusCreated, gin.H{
 		"request": SwapRequestResponse{
@@ -261,6 +265,9 @@ func (h *SwapHandler) ResolveSwapRequest(c *gin.Context) {
 	} else if newStatus == "cancelled" {
 		message = "已取消换位申请"
 	}
+
+	// 即时推送：申请方秒看结果（accept/reject/cancel 都推）
+	ws.Emit(gameID, "swap", gin.H{"request_id": resolved.ID, "status": newStatus})
 
 	c.JSON(http.StatusOK, gin.H{
 		"request_id": resolved.ID,

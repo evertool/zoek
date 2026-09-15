@@ -89,7 +89,7 @@ Page({
       kick: null,     // 台下猛踢 { style, cx, cy, footX, footY, run, hit }
       flower: null,   // 花儿谢了 { x, y, on, wither, bubble }
       tea: null,      // 斟杯靓茶 { potX, potY, cupX, cupY, streamX, streamY, streamH, tilt, pour }
-      dimsum: null,   // 送件点心 { x, y, run }
+      tomato: null,   // 丢番茄 { x, y, run, hit }（服务端 type 仍为 dimsum）
       banner: null    // 踢击私密暗号气泡 { title, desc, on }
     }
   },
@@ -222,11 +222,23 @@ Page({
     }
     if (msg.type === 'game') {
       this.loadGame() // applyGame 会顺带刷新流水/道具轮询
+      this.checkIncomingSwapGuarded()
       return
     }
     if (msg.type === 'ledger') {
       this.loadLedger()
+      return
     }
+    if (msg.type === 'swap') {
+      // 换位申请/结果即时推送：秒弹确认框 / 秒看结果
+      this.checkIncomingSwapGuarded()
+    }
+  },
+
+  // 换位弹窗拉取（已有弹窗时不打断用户操作）
+  checkIncomingSwapGuarded() {
+    if (this.data.showIncomingSwap || this.data.showSwapModal) return
+    this.checkIncomingSwap()
   },
 
   startPolling(interval) {
@@ -598,7 +610,7 @@ Page({
     // 自己的座位：退出牌台（离座 → 有流水账单就得走「结束散台」结算）
     if (seatInfo.player.isSelf) {
       if (this.hasLedger()) {
-        this.showToast('已有流水账单，要用「结束散台」结算')
+        this.showToast('你点自己做咩呢？')
         return
       }
       this.confirmLeave()
@@ -921,19 +933,23 @@ Page({
     var targets = []
     for (var i = 0; i < seats.length; i++) {
       var s = seats[i]
-      if (s.player && !s.isSelf) {
-        targets.push({ pos: s.pos, name: s.player.nickname, wind: WINDS[i] })
-      }
+      if (s.player && !s.isSelf) targets.push({ pos: s.pos, name: s.player.nickname, pid: Number(s.player.player_id) })
     }
     if (!targets.length) {
       this.showToast('仲未有其他雀友在座，暂无互动目标')
       return
     }
+    // 记住本局上次选中的目标（按牌局存 storage），还在座则默认选他
+    var saved = Number(wx.getStorageSync('prop_target_' + this.data.gameID)) || 0
+    var def = targets[0]
+    for (var j = 0; j < targets.length; j++) {
+      if (saved && targets[j].pid === saved) def = targets[j]
+    }
     this.setData({
       showPropModal: true,
       propTargets: targets,
-      propTarget: targets[0].pos,
-      propTargetName: targets[0].name
+      propTarget: def.pos,
+      propTargetName: def.name
     })
   },
 
@@ -943,6 +959,9 @@ Page({
 
   selectPropTarget(e) {
     this.setData({ propTarget: e.currentTarget.dataset.pos, propTargetName: e.currentTarget.dataset.name })
+    try {
+      wx.setStorageSync('prop_target_' + this.data.gameID, Number(e.currentTarget.dataset.pid) || 0)
+    } catch (err) {}
   },
 
   useProp(e) {
@@ -1029,7 +1048,7 @@ Page({
         else if (type === 'tea') that.fxTea(ctx)
         else if (type === 'kick') that.fxKick(ctx)
         else if (type === 'flower') that.fxFlower(ctx)
-        else if (type === 'dimsum') that.fxDimsum(ctx)
+        else if (type === 'dimsum') that.fxTomato(ctx)
       })
     })
   },
@@ -1100,7 +1119,7 @@ Page({
   },
 
   initialFx() {
-    return { quake: false, target: '', hit: false, kicked: false, slipper: null, stars: null, kick: null, flower: null, tea: null, dimsum: null, banner: null }
+    return { quake: false, target: '', hit: false, kicked: false, slipper: null, stars: null, kick: null, flower: null, tea: null, tomato: null, banner: null }
   },
 
   vibrate(long) {
@@ -1239,18 +1258,41 @@ Page({
     }, 2800)
   },
 
-  // 5. 送件点心 🥟：竹蒸笼送到目标席位 → 掀盖白雾
-  fxDimsum(ctx) {
+  // 5. 丢番茄 🍅：番茄砸中目标头像并糊满（元素锚定头像正中心）→ 果汁飞溅
+  fxTomato(ctx) {
     var that = this
-    var center = ctx.center
     var pos = ctx.pos
-    var name = ctx.targetName
-    var x = center.x
-    var y = pos === 'top' ? center.y + 30 : center.y - 150
-    this.setData({ 'fx.dimsum': { x: x, y: y, run: true } })
-    this.fxTimeout(function() {
-      that.setData({ 'fx.dimsum': null })
-    }, 2700)
+    var fallback = ctx.center
+    // 精确定位头像中心（席位中心包含昵称/分数，会偏）
+    this.getAvatarCenter(pos, function(av) {
+      var c = av || fallback
+      if (!c) return
+      that.setData({ 'fx.tomato': { x: c.x, y: c.y, run: false, hit: false } })
+      that.vibrate(false)
+      that.fxTimeout(function() {
+        that.setData({ 'fx.tomato.run': true })
+      }, 60)
+      that.fxTimeout(function() {
+        that.setData({ 'fx.tomato.hit': true })
+        that.vibrate(true)
+      }, 420)
+      that.fxTimeout(function() {
+        that.setData({ 'fx.tomato': null })
+      }, 2600)
+    })
+  },
+
+  // 头像中心坐标（px，相对 .table-stage 左上角）
+  getAvatarCenter(pos, cb) {
+    var q = wx.createSelectorQuery().in(this)
+    q.select('.table-stage').boundingClientRect()
+    q.select('.side-' + pos + ' .seat-avatar').boundingClientRect()
+    q.exec(function(res) {
+      var stage = res && res[0]
+      var av = res && res[1]
+      if (!stage || !av) return cb(null)
+      cb({ x: av.left + av.width / 2 - stage.left, y: av.top + av.height / 2 - stage.top })
+    })
   },
 
   showToast(msg) {

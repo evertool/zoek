@@ -340,7 +340,10 @@ func (h *GameHandler) GetHistoryGames(c *gin.Context) {
 		g := it.game
 		playerItems := make([]gin.H, 0, len(it.players))
 		for _, p := range it.players {
-			playerItems = append(playerItems, gin.H{"nickname": p.NicknameSnapshot})
+			playerItems = append(playerItems, gin.H{
+				"nickname": p.NicknameSnapshot,
+				"is_me":    p.UserID == userID,
+			})
 		}
 		// 时长散台时已落库，直接读字段
 		duration := g.DurationMinutes
