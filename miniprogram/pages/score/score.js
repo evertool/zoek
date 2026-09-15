@@ -191,14 +191,14 @@ Page({
   doEnd() {
     wx.showModal({
       title: '散台',
-      content: '确定要散台吗？结束后进入结算页面。',
+      content: '确定要散台吗？结束后进入记录详情。',
       success: (res) => {
         if (res.confirm) {
           api.post(`/games/${this.data.gameID}/end`, {
             request_id: api.genRequestID()
           }).then(() => {
             wx.redirectTo({
-              url: `/pages/settlement/settlement?game_id=${this.data.gameID}`
+              url: `/pages/game-detail/game-detail?game_id=${this.data.gameID}`
             })
           })
         }

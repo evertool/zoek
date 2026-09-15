@@ -238,7 +238,7 @@ Page({
   onShareAppMessage() {
     if (this._shareGameId) {
       return {
-        title: '开咗张台，快啲上桌！',
+        title: '开咗张台，快啲埋位！',
         path: '/pages/join/join?invite_token=' + this._shareGameId
       }
     }

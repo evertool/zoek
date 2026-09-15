@@ -17,14 +17,14 @@
       </view>
     </view>
     <view class="hero-brand anim-fade-up delay-5">得闲开台</view>
-    <view class="hero-slogan anim-fade-up delay-6">粤语麻雀记分神器</view>
-    <!-- <view class="hero-sub anim-fade-up delay-7">自己记自己嘅分，零和校验唔使争拗</view> -->
+    <!-- <view class="hero-slogan anim-fade-up delay-6">粤语麻雀记分神器</view> -->
+    <view class="hero-sub anim-fade-up delay-7">粤式麻雀｜记分・排位・牌局分析</view>
     <view class="login-btn-wrap anim-fade-up delay-8">
       <button class="btn-primary login-btn" bindtap="doLogin">微信授权</button>
     </view>
     <view class="hero-footer anim-fade-up delay-8">
       <view class="footer-line"></view>
-      <text class="footer-text">雀友一齐打，唔使数牌</text>
+      <text class="footer-text">老友围埋开台，排位记分，牌势有得睇</text>
       <view class="footer-line"></view>
     </view>
   </view>
@@ -75,7 +75,7 @@
             <view class="create-desc">无需复杂设置 · 扫码秒速入座</view>
           </view>
           <view class="create-icon">
-            <image class="create-icon-img" src="/assets/icons/table-settle.svg" mode="aspectFit" />
+            <image class="create-icon-img" src="/assets/icons/app-icon-hongzhong.svg" mode="aspectFit" />
           </view>
         </view>
         <view class="create-btn-wrap">

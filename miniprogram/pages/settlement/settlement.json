@@ -1,9 +1,0 @@
-{
-  "usingComponents": {},
-  "navigationStyle": "custom",
-  "navigationBarTitleText": "找数",
-  "navigationBarBackgroundColor": "#f8f9ff",
-  "navigationBarTextStyle": "black",
-  "backgroundColor": "#f8f9ff",
-  "enableShareAppMessage": true
-}

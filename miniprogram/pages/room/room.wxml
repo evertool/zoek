@@ -245,7 +245,7 @@
       <view class="score-sheet-header">
         <view class="score-sheet-icon"><image src="/assets/icons/arrows-split-up-and-left-solid-full.svg" mode="aspectFit" /></view>
         <view class="score-sheet-heading">
-          <text class="score-sheet-title">比分转入给 <text class="score-sheet-name">{{scoreTargetName}}（{{scoreTargetWind}}位）</text></text>
+          <text class="score-sheet-title">比分 <text class="score-sheet-name">{{scoreTargetName}}（{{scoreTargetWind}}位）</text></text>
           <text class="score-sheet-sub">你扣除对应分数，对方增加对应分数</text>
         </view>
         <view class="modal-close-btn" bindtap="closeScoringModal"><text>✕</text></view>
@@ -270,7 +270,7 @@
 
       <view class="score-submit-btn {{currentScore <= 0 ? 'score-submit-btn-off' : ''}}" bindtap="submitScore">
         <image class="score-submit-icon" src="/assets/icons/status-check-on-primary.svg" mode="aspectFit" />
-        <text>确认比分：转出 {{currentScore}} 分</text>
+        <text>确认转出 {{currentScore}} 分</text>
       </view>
     </view>
   </view>
@@ -377,6 +377,6 @@
     <view class="foot-soft foot-soft-right" wx:elif="{{isOwner && game.status === 'active'}}" bindtap="doEnd">
       <image class="foot-soft-icon" src="/assets/icons/action-exit.svg" mode="aspectFit" /><text>结束散台</text>
     </view>
-    <view class="foot-soft foot-soft-right" wx:elif="{{game.status === 'ended'}}" bindtap="goSettlement"><text>查看找数</text></view>
+    <view class="foot-soft foot-soft-right" wx:elif="{{game.status === 'ended'}}" bindtap="goRecordDetail"><text>睇翻记录</text></view>
   </view>
 </view>

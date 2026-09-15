@@ -4,7 +4,6 @@
     "pages/room/room",
     "pages/score/score",
     "pages/adjustment/adjustment",
-    "pages/settlement/settlement",
     "pages/history/history",
     "pages/detail/detail",
     "pages/game-detail/game-detail",
@@ -24,15 +23,15 @@
   "window": {
     "navigationStyle": "custom",
     "backgroundTextStyle": "dark",
-    "navigationBarBackgroundColor": "#f8f9ff",
+    "navigationBarBackgroundColor": "#f4f7f4",
     "navigationBarTitleText": "得闲开台",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#f8f9ff"
+    "backgroundColor": "#f4f7f4"
   },
   "tabBar": {
     "color": "#3f4943",
     "selectedColor": "#1b6b4a",
-    "backgroundColor": "#f8f9ff",
+    "backgroundColor": "#f4f7f4",
     "borderStyle": "white",
     "list": [
       {

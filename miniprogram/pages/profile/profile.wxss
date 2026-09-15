@@ -1,6 +1,11 @@
 /* pages/profile/profile.wxss — 我的页 v7 · docs/design/me 100% 还原 */
-.page { min-height: 100vh; background: #f4f7f4; padding-bottom: 160rpx; }
-.main-content { padding-bottom: 80rpx; display: flex; flex-direction: column; gap: 32rpx; }
+/* 原生 tabBar 会把页面视口收到 tabBar 上沿，页面内容不会伸到它底下，
+   所以这里不需要为 tabBar 留 padding（160rpx 会在签名下面留出一大截空位）。
+   24rpx 只是让签名不贴死 tabBar 上沿。 */
+.page { min-height: 100vh; background: #f4f7f4; padding-bottom: 24rpx; }
+/* 底部空白只由 .page 的 160rpx 兜底（让出原生 tabBar，与其他 tab 页一致）——
+   这里别再加 padding-bottom，不然签名下面会多出一大截空位 */
+.main-content { display: flex; flex-direction: column; gap: 32rpx; }
 .pf-page-title { font-size: 40rpx; font-weight: 800; color: #111827; letter-spacing: -1rpx; padding: 0 40rpx; }
 
 /* Toast */
@@ -137,7 +142,7 @@
 .pf-bottom-actions { margin: 16rpx 32rpx 0; }
 .pf-logout-btn { height: 88rpx; border-radius: 24rpx; background: transparent; border: 2rpx solid #e5e7eb; display: flex; align-items: center; justify-content: center; font-size: 24rpx; color: #9ca3af; }
 .pf-logout-btn:active { background: #f3f4f6; }
-.pf-footer { margin-top: 56rpx; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8rpx; }
+.pf-footer { margin-top: 32rpx; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8rpx; }
 .pf-footer-text { font-size: 20rpx; color: #9ca3af; }
 
 /* ========== 牌局偏好设置面板 ========== */

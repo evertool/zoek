@@ -2,9 +2,9 @@
   "usingComponents": {},
   "navigationStyle": "custom",
   "navigationBarTitleText": "台间",
-  "navigationBarBackgroundColor": "#f8f9ff",
+  "navigationBarBackgroundColor": "#f4f7f4",
   "navigationBarTextStyle": "black",
-  "backgroundColor": "#f8f9ff",
+  "backgroundColor": "#f4f7f4",
   "enableShareAppMessage": true,
   "enableShareTimeline": true
 }

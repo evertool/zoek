@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%" fill="none">
+                <defs>
+                  <linearGradient id="iron_badge_bg" x1="10" y1="10" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#3A3F47"></stop>
+                    <stop offset="35%" stop-color="#24272D"></stop>
+                    <stop offset="70%" stop-color="#1A1C20"></stop>
+                    <stop offset="100%" stop-color="#111315"></stop>
+                  </linearGradient>
+                  <linearGradient id="iron_metal_rim" x1="20" y1="10" x2="100" y2="110" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#717985"></stop>
+                    <stop offset="50%" stop-color="#4B515D"></stop>
+                    <stop offset="100%" stop-color="#2B2F36"></stop>
+                  </linearGradient>
+                  <linearGradient id="iron_rivet" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#9AA3B0"></stop>
+                    <stop offset="100%" stop-color="#333842"></stop>
+                  </linearGradient>
+                  <linearGradient id="iron_emblem" x1="40" y1="20" x2="80" y2="50" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#5A6270"></stop>
+                    <stop offset="50%" stop-color="#3D434D"></stop>
+                    <stop offset="100%" stop-color="#272B32"></stop>
+                  </linearGradient>
+                  <linearGradient id="iron_ribbon" x1="20" y1="80" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#4B515D"></stop>
+                    <stop offset="50%" stop-color="#353A42"></stop>
+                    <stop offset="100%" stop-color="#22262C"></stop>
+                  </linearGradient>
+                  <filter id="iron_shadow" x="0" y="0" width="120" height="120" filterUnits="userSpaceOnUse">
+                    <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#090A0D" flood-opacity="0.45"></feDropShadow>
+                  </filter>
+                </defs>
+                <circle cx="60" cy="60" r="52" fill="url(#iron_badge_bg)" stroke="url(#iron_metal_rim)" stroke-width="3" filter="url(#iron_shadow)"></circle>
+                <circle cx="60" cy="60" r="45" fill="none" stroke="#525B69" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.8"></circle>
+                <circle cx="34" cy="34" r="2.2" fill="url(#iron_rivet)" stroke="#111315" stroke-width="0.8"></circle>
+                <circle cx="86" cy="34" r="2.2" fill="url(#iron_rivet)" stroke="#111315" stroke-width="0.8"></circle>
+                <circle cx="34" cy="86" r="2.2" fill="url(#iron_rivet)" stroke="#111315" stroke-width="0.8"></circle>
+                <circle cx="86" cy="86" r="2.2" fill="url(#iron_rivet)" stroke="#111315" stroke-width="0.8"></circle>
+                <rect x="52" y="24" width="16" height="18" rx="3.5" fill="url(#iron_emblem)" stroke="#717985" stroke-width="1.2"></rect>
+                <circle cx="60" cy="33" r="2.8" fill="#9AA3B0" stroke="#1A1C20" stroke-width="0.8"></circle>
+                <text x="60" y="82" font-family="Plus Jakarta Sans, sans-serif" font-size="38" font-weight="900" fill="#E2E8F0" text-anchor="middle" letter-spacing="-1">4</text>
+                <text x="59.5" y="81.5" font-family="Plus Jakarta Sans, sans-serif" font-size="38" font-weight="900" fill="#F8FAFC" text-anchor="middle" letter-spacing="-1" opacity="0.35">4</text>
+                <path d="M38 94 Q60 102 82 94 Q60 98 38 94 Z" fill="url(#iron_ribbon)" stroke="#525B69" stroke-width="0.8"></path>
+                <path d="M48 97 L36 103 L38 93 Z" fill="#1A1C20" stroke="#3D434D" stroke-width="0.8"></path>
+                <path d="M72 97 L84 103 L82 93 Z" fill="#1A1C20" stroke="#3D434D" stroke-width="0.8"></path>
+                <path d="M83 40 L84.5 36 L86 40 L90 41.5 L86 43 L84.5 47 L83 43 L79 41.5 Z" fill="#8892A0" opacity="0.85"></path>
+              </svg>

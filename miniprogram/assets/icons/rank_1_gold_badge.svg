@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%" fill="none">
+                <defs>
+                  <linearGradient id="gold_badge_bg" x1="10" y1="10" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#FFF8E7"></stop>
+                    <stop offset="50%" stop-color="#FFE8A3"></stop>
+                    <stop offset="100%" stop-color="#FCD34D"></stop>
+                  </linearGradient>
+                  <linearGradient id="gold_crown" x1="30" y1="20" x2="90" y2="60" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#FDE047"></stop>
+                    <stop offset="50%" stop-color="#EAB308"></stop>
+                    <stop offset="100%" stop-color="#CA8A04"></stop>
+                  </linearGradient>
+                  <linearGradient id="gold_ribbon" x1="20" y1="80" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#D97706"></stop>
+                    <stop offset="100%" stop-color="#B45309"></stop>
+                  </linearGradient>
+                  <filter id="gold_shadow" x="0" y="0" width="120" height="120" filterUnits="userSpaceOnUse">
+                    <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#D97706" flood-opacity="0.25"></feDropShadow>
+                  </filter>
+                </defs>
+                <circle cx="60" cy="60" r="52" fill="url(#gold_badge_bg)" stroke="#F59E0B" stroke-width="3" filter="url(#gold_shadow)"></circle>
+                <circle cx="60" cy="60" r="45" fill="#FFFFFF" fill-opacity="0.6" stroke="#FDE68A" stroke-width="1.5" stroke-dasharray="3 2"></circle>
+                <path d="M40 40 L48 26 L60 35 L72 26 L80 40 L76 48 L44 48 Z" fill="url(#gold_crown)" stroke="#B45309" stroke-width="1.5" stroke-linejoin="round"></path>
+                <circle cx="48" cy="25" r="2.5" fill="#EF4444"></circle>
+                <circle cx="60" cy="33" r="3" fill="#3B82F6"></circle>
+                <circle cx="72" cy="25" r="2.5" fill="#EF4444"></circle>
+                <circle cx="60" cy="42" r="2" fill="#FFFFFF"></circle>
+                <text x="60" y="82" font-family="Plus Jakarta Sans, sans-serif" font-size="38" font-weight="900" fill="#B45309" text-anchor="middle">1</text>
+                <path d="M36 94 Q60 102 84 94 Q60 98 36 94 Z" fill="url(#gold_ribbon)"></path>
+                <path d="M48 97 L34 104 L37 92 Z" fill="#92400E"></path>
+                <path d="M72 97 L86 104 L83 92 Z" fill="#92400E"></path>
+                <path d="M85 36 L87 31 L89 36 L94 38 L89 40 L87 45 L85 40 L80 38 Z" fill="#F59E0B"></path>
+                <path d="M31 52 L32.5 48 L34 52 L38 53.5 L34 55 L32.5 59 L31 55 L27 53.5 Z" fill="#FBBF24"></path>
+              </svg>

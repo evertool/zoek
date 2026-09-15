@@ -871,7 +871,7 @@ Page({
     var path = '/pages/room/room?game_id=' + this.data.gameID
     if (this.data.inviteToken) path += '&invite_token=' + this.data.inviteToken
     return {
-      title: '速来入座！一起搓一桌',
+      title: '开台差你一个，快啲入来！',
       path: path
     }
   },
@@ -890,8 +890,10 @@ Page({
     }
   },
 
-  goSettlement() {
-    wx.navigateTo({ url: '/pages/settlement/settlement?game_id=' + this.data.gameID })
+  // 睇翻记录（牌局已 ended 时的底栏按钮）：直接去记录详情（game-detail），
+  // 与翻记录列表点进某场的去向保持一致（原独立「圆满散台」结算页已删除）。
+  goRecordDetail() {
+    wx.navigateTo({ url: '/pages/game-detail/game-detail?game_id=' + this.data.gameID })
   },
 
   doCancel() {
@@ -921,7 +923,7 @@ Page({
   doEnd() {
     wx.showModal({
       title: '散台',
-      content: '确定要散台吗？结束后进入结算页面。',
+      content: '确定要散台吗？结束后进入记录详情。',
       success: (res) => {
         if (res.confirm) {
           api.post('/games/' + this.data.gameID + '/end', {
@@ -931,7 +933,7 @@ Page({
             this.closeRoomWS()
             this.stopPolling()
             wx.showToast({ title: '已散台', icon: 'success' })
-            wx.redirectTo({ url: '/pages/settlement/settlement?game_id=' + this.data.gameID })
+            wx.redirectTo({ url: '/pages/game-detail/game-detail?game_id=' + this.data.gameID })
           })
         }
       }

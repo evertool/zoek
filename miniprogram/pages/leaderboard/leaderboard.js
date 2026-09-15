@@ -201,11 +201,11 @@ Page({
     return ready.then(game => {
       if (game && game.gameId) {
         return {
-          title: '约起！开咗张台，等你上桌',
+          title: '走起！开咗张台，就等你喇',
           path: '/pages/join/join?invite_token=' + (game.inviteToken || game.gameId)
         }
       }
-      return { title: '得闲开台 — 粤语麻雀记分神器', path: '/pages/index/index' }
+      return { title: '得闲开台 — 粤式麻雀记分助手', path: '/pages/index/index' }
     })
   },
 

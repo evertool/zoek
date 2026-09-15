@@ -61,7 +61,7 @@ Page({
 
   goSettlement() {
     wx.navigateTo({
-      url: `/pages/settlement/settlement?game_id=${this.data.gameID}`
+      url: `/pages/game-detail/game-detail?game_id=${this.data.gameID}`
     })
   }
 })

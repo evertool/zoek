@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%" fill="none">
+                <defs>
+                  <linearGradient id="bronze_badge_bg" x1="10" y1="10" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#FFF7ED"></stop>
+                    <stop offset="50%" stop-color="#FFEDD5"></stop>
+                    <stop offset="100%" stop-color="#FDBA74"></stop>
+                  </linearGradient>
+                  <linearGradient id="bronze_medal" x1="30" y1="20" x2="90" y2="60" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#FB923C"></stop>
+                    <stop offset="50%" stop-color="#EA580C"></stop>
+                    <stop offset="100%" stop-color="#C2410C"></stop>
+                  </linearGradient>
+                  <linearGradient id="bronze_ribbon" x1="20" y1="80" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#C2410C"></stop>
+                    <stop offset="100%" stop-color="#9A3412"></stop>
+                  </linearGradient>
+                  <filter id="bronze_shadow" x="0" y="0" width="120" height="120" filterUnits="userSpaceOnUse">
+                    <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#9A3412" flood-opacity="0.2"></feDropShadow>
+                  </filter>
+                </defs>
+                <circle cx="60" cy="60" r="52" fill="url(#bronze_badge_bg)" stroke="#F97316" stroke-width="3" filter="url(#bronze_shadow)"></circle>
+                <circle cx="60" cy="60" r="45" fill="#FFFFFF" fill-opacity="0.6" stroke="#FED7AA" stroke-width="1.5" stroke-dasharray="3 2"></circle>
+                <path d="M48 38 L60 26 L72 38 L60 34 Z" fill="url(#bronze_medal)" stroke="#9A3412" stroke-width="1.2" stroke-linejoin="round"></path>
+                <circle cx="60" cy="33" r="2.5" fill="#FFF7ED"></circle>
+                <text x="60" y="82" font-family="Plus Jakarta Sans, sans-serif" font-size="38" font-weight="900" fill="#9A3412" text-anchor="middle">3</text>
+                <path d="M36 94 Q60 102 84 94 Q60 98 36 94 Z" fill="url(#bronze_ribbon)"></path>
+                <path d="M48 97 L34 104 L37 92 Z" fill="#7C2D12"></path>
+                <path d="M72 97 L86 104 L83 92 Z" fill="#7C2D12"></path>
+                <path d="M84 42 L85.5 38 L87 42 L91 43.5 L87 45 L85.5 49 L84 45 L80 43.5 Z" fill="#FB923C"></path>
+              </svg>

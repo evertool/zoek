@@ -3,7 +3,7 @@
   "navigationStyle": "custom",
   "enablePullDownRefresh": true,
   "navigationBarTitleText": "得闲开台",
-  "navigationBarBackgroundColor": "#f8f9ff",
+  "navigationBarBackgroundColor": "#f4f7f4",
   "navigationBarTextStyle": "black",
-  "backgroundColor": "#f8f9ff"
+  "backgroundColor": "#f4f7f4"
 }

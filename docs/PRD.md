@@ -434,9 +434,9 @@ pages/
 ├── room/        房间、二维码和成员列表
 ├── score/       当前局提交和复核
 ├── adjustment/  补分/退分
-├── settlement/  结算
 ├── history/     历史列表
 ├── detail/      单场详情
+├── game-detail/ 记录详情（散台后统一落点，原独立结算页已并入）
 └── profile/     登录状态和昵称
 ```
 

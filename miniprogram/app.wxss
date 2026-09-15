@@ -55,7 +55,7 @@ page {
   --error-container: #ffdad6;
   --on-error-container: #93000a;
 
-  --background: #f8f9ff;
+  --background: #f4f7f4; /* 我的页 v7 起全局统一灰绿底（docs/design/me） */
   --on-background: #0b1c30;
 
   /* === 间距系统 (Stitch px→rpx ×2) === */

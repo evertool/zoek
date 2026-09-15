@@ -44,6 +44,6 @@
   </view>
 
   <view class="action-bar safe-bottom">
-    <button class="btn-primary" bindtap="goSettlement">查看找数</button>
+    <button class="btn-primary" bindtap="goSettlement">睇翻记录</button>
   </view>
 </view>

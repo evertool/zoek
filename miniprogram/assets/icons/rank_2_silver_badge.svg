@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="100%" height="100%" fill="none">
+                <defs>
+                  <linearGradient id="silver_badge_bg" x1="10" y1="10" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#F8FAFC"></stop>
+                    <stop offset="50%" stop-color="#E2E8F0"></stop>
+                    <stop offset="100%" stop-color="#CBD5E1"></stop>
+                  </linearGradient>
+                  <linearGradient id="silver_medal" x1="30" y1="20" x2="90" y2="60" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#F1F5F9"></stop>
+                    <stop offset="50%" stop-color="#94A3B8"></stop>
+                    <stop offset="100%" stop-color="#64748B"></stop>
+                  </linearGradient>
+                  <linearGradient id="silver_ribbon" x1="20" y1="80" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#64748B"></stop>
+                    <stop offset="100%" stop-color="#475569"></stop>
+                  </linearGradient>
+                  <filter id="silver_shadow" x="0" y="0" width="120" height="120" filterUnits="userSpaceOnUse">
+                    <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#475569" flood-opacity="0.2"></feDropShadow>
+                  </filter>
+                </defs>
+                <circle cx="60" cy="60" r="52" fill="url(#silver_badge_bg)" stroke="#94A3B8" stroke-width="3" filter="url(#silver_shadow)"></circle>
+                <circle cx="60" cy="60" r="45" fill="#FFFFFF" fill-opacity="0.6" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="3 2"></circle>
+                <path d="M42 38 C42 32 46 28 52 27 C49 32 50 36 54 39 Z" fill="#94A3B8"></path>
+                <path d="M78 38 C78 32 74 28 68 27 C71 32 70 36 66 39 Z" fill="#94A3B8"></path>
+                <circle cx="60" cy="30" r="4" fill="#64748B"></circle>
+                <circle cx="60" cy="30" r="2" fill="#F8FAFC"></circle>
+                <text x="60" y="82" font-family="Plus Jakarta Sans, sans-serif" font-size="38" font-weight="900" fill="#475569" text-anchor="middle">2</text>
+                <path d="M36 94 Q60 102 84 94 Q60 98 36 94 Z" fill="url(#silver_ribbon)"></path>
+                <path d="M48 97 L34 104 L37 92 Z" fill="#334155"></path>
+                <path d="M72 97 L86 104 L83 92 Z" fill="#334155"></path>
+                <path d="M84 40 L85.5 36 L87 40 L91 41.5 L87 43 L85.5 47 L84 43 L80 41.5 Z" fill="#94A3B8"></path>
+                <path d="M32 50 L33.5 46 L35 50 L39 51.5 L35 53 L33.5 57 L32 53 L28 51.5 Z" fill="#CBD5E1"></path>
+              </svg>
