@@ -1,5 +1,7 @@
 /* pages/game-chart/game-chart.wxss — 图表分析页 */
-.page { min-height: 100vh; background: var(--background); }
+/* 禁止整页被左右拖动（与房间页同款控制） */
+page { overflow-x: hidden; overscroll-behavior-x: none; }
+.page { min-height: 100vh; background: var(--background); overflow-x: hidden; }
 .main-content { padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: 60rpx; display: flex; flex-direction: column; gap: var(--space-md); }
 .top-bar { display: flex; align-items: center; padding-left: var(--margin-screen); padding-right: var(--margin-screen); }
 .nav-back-btn { border-radius: 50%; background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
@@ -57,12 +59,8 @@
 .gc-insight-highlight { font-size: 22rpx; font-weight: 700; color: var(--primary); }
 .gc-insight-desc { font-size: 22rpx; color: var(--on-surface-variant); }
 
-/* 柱状 */
-.gc-bar-canvas { width: 100%; height: 360rpx; }
-.gc-bar-note { display: flex; gap: 24rpx; }
+/* 逐笔条形图：高度随笔数动态内联设置，这里只兜底 */
+.gc-bar-canvas { width: 100%; }
+.gc-bar-note { display: flex; gap: 24rpx; flex-wrap: wrap; }
 .gc-note-item { display: flex; align-items: center; gap: 8rpx; font-size: 20rpx; color: var(--on-surface-variant); }
 .gc-note-dot { width: 12rpx; height: 12rpx; border-radius: 50%; }
-
-/* 底部 */
-.gc-actions { display: flex; flex-direction: column; gap: 16rpx; }
-.gc-share-btn, .gc-back-ledger { display: flex; align-items: center; justify-content: center; margin: 0; }

@@ -6,6 +6,10 @@ const guard = require('../../utils/guard')
 
 const FLOW_PAGE_SIZE = 5 // 流水默认展示条数，其余折叠
 
+// 风位文字 → SVG 图标名（assets/icons/seat-wind-*.svg），与首页同套资源
+const WIND_CLASS_MAP = { '東': 'east', '东': 'east', '南': 'south', '西': 'west', '北': 'north' }
+const SEAT_WINDS = ['東', '南', '西', '北'] // seat 1-4 对应风位，wind 文字缺失时兜底
+
 Page({
   data: {
     capsuleTop: 0,
@@ -44,12 +48,14 @@ Page({
         sum += score
         var isMe = Number(p.user_id) === myID
         if (isMe) myPlayerID = Number(p.player_id)
+        var windText = p.wind || SEAT_WINDS[(Number(p.seat) || 1) - 1] || ''
         return {
           ...p,
           nickname: p.nickname || '雀友',
           avatar_url: util.resolveAvatarURL(p.avatar_url || ''),
           avatarColor: util.avatarColor(p.nickname),
-          wind: p.wind || '',
+          wind: windText,
+          windClass: WIND_CLASS_MAP[windText] || '',
           isMe: isMe,
           isChampion: p.rank === 1,
           isNegative: score < 0,

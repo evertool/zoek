@@ -1,10 +1,12 @@
-// pages/game-chart/game-chart.js — 图表分析页（积分走势 + 战局复盘 + 逐局净胜负）
+// pages/game-chart/game-chart.js — 图表分析页（累计走势 + 战局复盘 + 逐笔流水条形图）
+// 局概念已移除：走势与条形图全部以「逐笔转分流水」为步进，不再按局取数
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
 const guard = require('../../utils/guard')
 
 const LINE_COLORS = ['#1b6b4a', '#0284c7', '#d97706', '#b91c1c']
+const SEAT_WINDS = ['東', '南', '西', '北']
 
 Page({
   data: {
@@ -16,6 +18,8 @@ Page({
     insights: [],
     diffText: '0.00',
     pressureText: '',
+    flowCount: 0,
+    flowBarHeight: 240, // 逐笔条形图 canvas 高度（px，随笔数伸缩）
     loading: true,
     navPadding: 0,
     // 图例筛选（点击隐藏/显示某玩家折线）
@@ -41,52 +45,67 @@ Page({
     this.setData({ loading: true })
     api.get(`/games/${this.data.gameID}/history`).then(res => {
       var players = (res.players || []).map(function(p, idx) {
-        return { ...p, color: LINE_COLORS[idx % 4], show: true }
+        var windText = p.wind || SEAT_WINDS[(Number(p.seat) || 1) - 1] || ''
+        return { ...p, wind: windText, color: LINE_COLORS[idx % 4], show: true }
       })
-      var byUser = {}
-      players.forEach(function(p) { byUser[p.user_id] = p })
+      var byPlayerID = {}
+      players.forEach(function(p) { byPlayerID[Number(p.player_id)] = p })
 
-      // 按局号升序，取每位玩家每局得分 → 累计序列
-      var rounds = (res.rounds || []).slice().sort(function(a, b) { return a.round_number - b.round_number })
-      var series = {}
-      players.forEach(function(p) { series[p.user_id] = [0] })
-      var roundScores = []
-      rounds.forEach(function(r) {
-        var rs = { round: r.round_number, scores: {} }
-        ;(r.submissions || []).forEach(function(s) {
-          if (!series[s.user_id]) return
-          var next = series[s.user_id][series[s.user_id].length - 1] + s.score
-          series[s.user_id].push(next)
-          rs.scores[s.user_id] = s.score
-        })
-        roundScores.push(rs)
+      // 逐笔流水（旧→新）：每笔转分是走势图的一个步进
+      var entries = (res.adjustments || []).filter(function(a) { return a.status === 'accepted' })
+      entries.sort(function(a, b) {
+        var ta = new Date(a.created_at || 0).getTime() || (a.id || 0)
+        var tb = new Date(b.created_at || 0).getTime() || (b.id || 0)
+        return ta - tb
       })
+
+      var cum = {}
+      players.forEach(function(p) { cum[Number(p.player_id)] = [0] })
+      var flowSteps = []
+      entries.forEach(function(a) {
+        var fromP = byPlayerID[Number(a.from_player_id)]
+        var toP = byPlayerID[Number(a.to_player_id)]
+        var amount = Number(a.amount) || 0
+        // 每个玩家都推进一个点（未参与的保持原值），保证各序列等长、x 轴对齐
+        Object.keys(cum).forEach(function(pid) {
+          var v = cum[pid][cum[pid].length - 1]
+          if (fromP && Number(pid) === Number(fromP.player_id)) v -= amount
+          if (toP && Number(pid) === Number(toP.player_id)) v += amount
+          cum[pid].push(v)
+        })
+        flowSteps.push({ from: fromP, to: toP, amount: amount })
+      })
+
       players.forEach(function(p) {
-        p.cum = series[p.user_id] || [0]
+        p.cum = cum[Number(p.player_id)] || [0]
         p.finalScore = p.cum[p.cum.length - 1] || 0
         p.scoreClass = p.finalScore > 0 ? 'text-positive' : (p.finalScore < 0 ? 'text-negative' : '')
-        p.tag = this.playerTag(p, roundScores)
+        p.tag = this.playerTag(p, flowSteps)
       }, this)
+      // 条形图绘制时直接取用（不进 data，避免 setData 大对象）
+      this._flowSteps = flowSteps
 
       var totalFinal = players.reduce(function(s, p) { return s + p.finalScore }, 0)
       var winners = players.filter(function(p) { return p.finalScore === Math.max.apply(null, players.map(function(x) { return x.finalScore })) })
       var pressure = ''
       if (winners.length && winners[0].finalScore > 0) {
-        var leadRounds = this.leadingRounds(winners[0], players)
-        pressure = '水上赢面：' + winners[0].nickname + '（全场压制 ' + leadRounds + '/' + rounds.length + ' 局）'
+        var leadSteps = this.leadingSteps(winners[0], players)
+        pressure = '水上赢面：' + winners[0].nickname + '（全程压制 ' + leadSteps + '/' + flowSteps.length + ' 笔）'
       }
 
       this.setData({
         detail: {
           gameName: res.game_name || '未命名牌局',
           dateText: this.dateText(res.ended_at || res.created_at),
-          roundsText: (res.completed_rounds || rounds.length) + '局满编',
+          flowText: '共 ' + flowSteps.length + ' 笔流水',
           zeroSum: totalFinal === 0
         },
         players: players,
-        insights: this.buildInsights(players, roundScores),
+        insights: this.buildInsights(players, flowSteps),
         diffText: Math.abs(totalFinal).toFixed(2),
         pressureText: pressure,
+        flowCount: flowSteps.length,
+        flowBarHeight: Math.min(640, Math.max(240, flowSteps.length * 30 + 50)),
         loading: false
       })
       // 等节点渲染完成后画图
@@ -96,8 +115,8 @@ Page({
     })
   },
 
-  // 玩家小卡标签：全场压制 / 后盘逆袭 / 逆风韧性 / 尾盘吃炮 / 峰值
-  playerTag(p, roundScores) {
+  // 玩家小卡标签：全场压制 / 后盘逆袭 / 逆风韧性 / 尾盘失血 / 峰值
+  playerTag(p) {
     var cum = p.cum
     var maxCum = Math.max.apply(null, cum)
     var minCum = Math.min.apply(null, cum)
@@ -109,18 +128,18 @@ Page({
     }
     if (crossed && finalScore > 0) return '后盘逆袭'
     if (finalScore < 0) {
-      var lastRound = null
-      for (var j = roundScores.length - 1; j >= 0; j--) {
-        if (roundScores[j].scores[p.user_id] !== undefined) { lastRound = roundScores[j].scores[p.user_id]; break }
+      var lastStep = null
+      for (var j = cum.length - 1; j >= 1; j--) {
+        if (cum[j] !== cum[j - 1]) { lastStep = cum[j] - cum[j - 1]; break }
       }
-      if (lastRound !== null && lastRound < 0) return '尾盘吃炮'
+      if (lastStep !== null && lastStep < 0) return '尾盘失血'
       return '逆风韧性'
     }
     return '峰值 +' + maxCum
   },
 
-  // 控盘王的领先局数（累计分严格第一的局数）
-  leadingRounds(p, players) {
+  // 控盘王的领先笔数（累计分严格第一的步数）
+  leadingSteps(p, players) {
     var count = 0
     for (var i = 0; i < p.cum.length; i++) {
       var lead = true
@@ -132,26 +151,22 @@ Page({
     return count
   },
 
-  buildInsights(players, roundScores) {
+  buildInsights(players, flowSteps) {
     var insights = []
-    // 1. 单局最大爆发
-    var burst = { score: -999, user: null, round: 0 }
-    roundScores.forEach(function(rs) {
-      Object.keys(rs.scores).forEach(function(uid) {
-        if (rs.scores[uid] > burst.score) burst = { score: rs.scores[uid], user: uid, round: rs.round }
-      })
+    if (!flowSteps.length) return insights
+    // 1. 单笔最大进账
+    var burst = { amount: -1, step: null }
+    flowSteps.forEach(function(fs, i) {
+      if (fs.amount > burst.amount) burst = { amount: fs.amount, step: fs, idx: i }
     })
-    if (burst.user) {
-      var bp = players.filter(function(p) { return String(p.user_id) === String(burst.user) })[0]
-      if (bp) {
-        insights.push({
-          icon: '⚡', title: '单局最大爆发',
-          highlight: '第' + burst.round + '局 · ' + bp.nickname + ' (+' + burst.score + ')',
-          desc: '单局斩获三家进账，直接扭转开局赤字。'
-        })
-      }
+    if (burst.step && burst.step.to) {
+      insights.push({
+        icon: '⚡', title: '单笔最大进账',
+        highlight: '第' + (burst.idx + 1) + '笔 · ' + burst.step.to.nickname + ' (+' + burst.amount + ')',
+        desc: '最大单笔转分进账，账面直接被这一笔拉起。'
+      })
     }
-    // 2. 全场控盘王：最终赢家连续正收益局数
+    // 2. 全场控盘王：最终赢家连续正收益笔数
     var champion = players.slice().sort(function(a, b) { return b.finalScore - a.finalScore })[0]
     if (champion && champion.finalScore > 0) {
       var streak = 0, best = 0
@@ -161,23 +176,24 @@ Page({
       }
       insights.push({
         icon: '📈', title: '全场控盘王',
-        highlight: champion.nickname + ' (连续' + best + '局正收益)',
+        highlight: champion.nickname + ' (连续' + best + '笔正收益)',
         desc: '全程稳居水面零轴之上，保持绝对优势跑赢全场。'
       })
     }
-    // 3. 局间振幅极差分析：单局得分摆幅最小者最稳健
+    // 3. 笔间振幅极差分析：单笔得失摆幅最小者最稳健
     var swings = players.map(function(p) {
-      var mine = roundScores.map(function(rs) { return rs.scores[p.user_id] }).filter(function(s) { return s !== undefined })
+      var mine = []
+      for (var i = 1; i < p.cum.length; i++) mine.push(p.cum[i] - p.cum[i - 1])
       if (!mine.length) return { p: p, swing: 0 }
       return { p: p, swing: Math.max.apply(null, mine) - Math.min.apply(null, mine) }
-    }).filter(function(x) { return x.p.finalScore !== 0 || true })
+    })
     swings.sort(function(a, b) { return a.swing - b.swing })
     if (swings.length) {
       var maxSwing = Math.max.apply(null, swings.map(function(x) { return x.swing }))
       insights.push({
-        icon: '🎴', title: '局间振幅极差分析',
+        icon: '🎴', title: '笔间振幅极差分析',
         highlight: '极差 ' + maxSwing + '分 / 稳健度首位 ' + swings[0].p.nickname,
-        desc: swings[0].p.nickname + '：局间振幅仅 ±' + Math.round(swings[0].swing / 2) + ' 分，打法防守滴水不漏。'
+        desc: swings[0].p.nickname + '：笔间振幅仅 ±' + Math.round(swings[0].swing / 2) + ' 分，打法防守滴水不漏。'
       })
     }
     return insights
@@ -196,7 +212,7 @@ Page({
     this.drawCharts()
   },
 
-  // Canvas 2D 折线图 + 柱状图（节点可能晚于首查渲染，重试兜底）
+  // Canvas 2D 折线图 + 逐笔条形图（节点可能晚于首查渲染，重试兜底）
   drawCharts(retry) {
     retry = retry || 0
     const query = wx.createSelectorQuery().in(this)
@@ -209,7 +225,7 @@ Page({
       }
       query.select('#bar-chart').fields({ node: true, size: true }).exec(res2 => {
         if (res2 && res2[0] && res2[0].node) {
-          this.drawBarChart(res2[0].node, res2[0].width, res2[0].height)
+          this.drawFlowBarChart(res2[0].node, res2[0].width, res2[0].height)
         }
       })
     })
@@ -230,7 +246,7 @@ Page({
     if (!players.length) return
     var padL = 34, padR = 34, padT = 16, padB = 22
     var w = width - padL - padR, h = height - padT - padB
-    var n = players[0].cum.length // 局数 + 1（含起手 0）
+    var n = players[0].cum.length // 笔数 + 1（含起手 0）
     var all = []
     players.forEach(function(p) { all = all.concat(p.cum) })
     var maxV = Math.max.apply(null, all), minV = Math.min.apply(null, all)
@@ -249,10 +265,10 @@ Page({
         ctx.fillStyle = '#6f7a72'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right'
         ctx.fillText('0基准', padL - 4, y(0) + 3)
       }
-      // x 轴标签
+      // x 轴标签：逐笔
       ctx.fillStyle = '#6f7a72'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center'
       ctx.fillText('起手', x(0), height - 6)
-      for (var i = 1; i < n; i++) ctx.fillText(i + '局', x(i), height - 6)
+      for (var i = 1; i < n; i++) ctx.fillText(i + '笔', x(i), height - 6)
     }
 
     var drawLines = function() {
@@ -294,56 +310,55 @@ Page({
     }
   },
 
-  drawBarChart(node, width, height) {
+  // 逐笔流水条形图（水平条，旧→新自上而下）：
+  // 我收到 → 绿条向右；我转出 → 红条向左；他人互转 → 灰条向右弱显示
+  drawFlowBarChart(node, width, height) {
     const ctx = this.chartContext(node, width, height)
-    var players = this.data.players
-    var rounds = players[0] ? players[0].cum.length - 1 : 0
-    if (rounds <= 0 || players.length === 0) {
-      // 无已锁定局：明确画空态，而不是留白
+    var myID = Number(app.globalData.userID)
+    var steps = this._flowSteps || []
+    if (!steps.length) {
       ctx.fillStyle = '#6f7a72'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center'
-      ctx.fillText('暂无已入账的局，完成记分后展示', width / 2, height / 2)
+      ctx.fillText('暂无转分流水', width / 2, height / 2)
       return
     }
-    var padL = 6, padR = 6, padT = 10, padB = 26
-    var w = width - padL - padR, h = height - padT - padB
-    var allScores = []
-    // 每局各玩家单局分
-    var grid = []
-    for (var r = 1; r <= rounds; r++) {
-      var row = players.map(function(p) { return p.cum[r] - p.cum[r - 1] })
-      grid.push(row)
-      allScores = allScores.concat(row)
-    }
-    var maxAbs = Math.max.apply(null, allScores.map(function(s) { return Math.abs(s) })) || 1
-    var zeroY = padT + h / 2
-    var groupW = w / rounds
-    var barW = Math.max(4, Math.min(9, groupW / (players.length + 2)))
+    var padL = 14, padR = 52, padT = 8, padB = 8
+    var w = width - padL - padR
+    var rows = steps.length
+    var rowH = (height - padT - padB) / rows
+    var maxAbs = Math.max.apply(null, steps.map(function(s) { return s.amount })) || 1
+    // 0 轴位置：给左向红条留 1/3 空间；条长上限取两侧剩余宽度的较小者，避免画出画布
+    var x0 = padL + w * 0.62
+    var maxW = w * 0.34
 
     // 0 轴
     ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1
-    ctx.beginPath(); ctx.moveTo(padL, zeroY); ctx.lineTo(width - padR, zeroY); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(x0, padT); ctx.lineTo(x0, height - padB); ctx.stroke()
 
-    grid.forEach(function(row, ri) {
-      var gx = padL + ri * groupW + groupW / 2
-      row.forEach(function(score, pi) {
-        var p = players[pi]
-        var bx = gx - (players.length * barW) / 2 + pi * barW
-        var bh = (Math.abs(score) / maxAbs) * (h / 2 - 4)
-        ctx.fillStyle = score >= 0 ? '#1b6b4a' : '#b91c1c'
-        if (score >= 0) ctx.fillRect(bx, zeroY - bh, barW - 1.5, bh)
-        else ctx.fillRect(bx, zeroY, barW - 1.5, bh)
-      })
-      // 每局赢家分值
-      var best = Math.max.apply(null, row)
-      if (best > 0) {
-        ctx.fillStyle = '#1b6b4a'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'
-        ctx.fillText('+' + best, gx, height - 14)
+    steps.forEach(function(s, i) {
+      var cy = padT + rowH * i + rowH / 2
+      var barH = Math.min(14, rowH - 6)
+      var outgoing = s.fromP && Number(s.fromP.user_id) === myID
+      var incoming = s.toP && Number(s.toP.user_id) === myID
+      // 行号
+      ctx.fillStyle = '#9ca3af'; ctx.font = '9px sans-serif'; ctx.textAlign = 'left'
+      ctx.fillText(String(i + 1), padL, cy + 3)
+      // 条
+      var bw = Math.max(2, (s.amount / maxAbs) * maxW)
+      if (incoming) {
+        ctx.fillStyle = '#1b6b4a'
+        ctx.fillRect(x0, cy - barH / 2, bw, barH)
+      } else if (outgoing) {
+        ctx.fillStyle = '#b91c1c'
+        ctx.fillRect(x0 - bw, cy - barH / 2, bw, barH)
       } else {
-        ctx.fillStyle = '#6f7a72'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center'
-        ctx.fillText('荒庄', gx, height - 14)
+        ctx.fillStyle = '#cbd5e1'
+        ctx.fillRect(x0, cy - barH / 2, bw, barH)
       }
-      ctx.fillStyle = '#6f7a72'; ctx.font = '8px sans-serif'
-      ctx.fillText('G' + (ri + 1), gx, height - 4)
+      // 金额
+      ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'right'
+      if (incoming) { ctx.fillStyle = '#1b6b4a'; ctx.fillText('+' + s.amount, width - padR + 46, cy + 3) }
+      else if (outgoing) { ctx.fillStyle = '#b91c1c'; ctx.fillText('-' + s.amount, width - padR + 46, cy + 3) }
+      else { ctx.fillStyle = '#6f7a72'; ctx.fillText(String(s.amount), width - padR + 46, cy + 3) }
     })
   },
 

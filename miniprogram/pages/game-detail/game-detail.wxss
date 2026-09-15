@@ -1,11 +1,13 @@
 /* pages/game-detail/game-detail.wxss — 牌局结算明细（queyou-mingxi 设计稿还原） */
-.page { min-height: 100vh; background: var(--background); }
+/* 禁止整页被左右拖动（与房间页同款控制）：内容横向哪怕溢出亚像素，
+ * iOS/安卓都允许把整页拖走；overscroll-behavior 再关掉边缘回弹。竖向滚动不受影响。 */
+page { overflow-x: hidden; overscroll-behavior-x: none; }
+.page { min-height: 100vh; background: var(--background); overflow-x: hidden; }
 
 /* ========== 导航 ========== */
 .top-bar { position: relative; display: flex; align-items: center; padding-left: var(--margin-screen); padding-right: var(--margin-screen); }
 .nav-back-btn { border-radius: 50%; background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; z-index: 2; }
 .nav-back-icon { font-size: 40rpx; color: var(--on-surface); line-height: 1; }
-.nav-title { position: absolute; left: 0; right: 0; text-align: center; font-size: 32rpx; font-weight: 700; color: var(--on-surface); letter-spacing: -0.5rpx; pointer-events: none; }
 
 /* ========== 主体 ========== */
 .main-content { padding: var(--space-xs) var(--margin-screen) 200rpx; display: flex; flex-direction: column; gap: var(--space-md); }
@@ -30,7 +32,9 @@
 
 /* ========== 全场收支总览 ========== */
 .gd-players-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20rpx; }
-.gd-player { position: relative; background: var(--surface-container-lowest); border: 2rpx solid rgba(0, 0, 0, 0.03); border-radius: var(--radius-lg); padding: 28rpx; min-height: 208rpx; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; box-shadow: var(--shadow-card); }
+/* min-width: 0 关键：grid item 默认 min-width:auto，长昵称+大号分数会把 1fr 轨道
+ * 撑破屏幕（真机上字体渲染更宽），导致卡片超出、整页可横向拖动 */
+.gd-player { position: relative; min-width: 0; width: 100%; background: var(--surface-container-lowest); border: 2rpx solid rgba(0, 0, 0, 0.03); border-radius: var(--radius-lg); padding: 28rpx 20rpx; min-height: 208rpx; box-sizing: border-box; display: flex; flex-direction: column; justify-content: center; box-shadow: var(--shadow-card); overflow: hidden; }
 .gd-player-champion { background: linear-gradient(180deg, rgba(166, 243, 201, 0.18) 0%, var(--surface-container-lowest) 100%); border-color: rgba(166, 243, 201, 0.8); }
 .gd-player-negative { border-color: rgba(176, 45, 41, 0.18); }
 .gd-player-crown { position: absolute; top: -14rpx; right: -10rpx; padding: 2rpx 14rpx; border-radius: var(--radius-full); background: #fbbf24; color: #451a03; font-size: 18rpx; font-weight: 700; border: 2rpx solid #ffffff; box-shadow: var(--shadow-card); z-index: 2; }
@@ -39,7 +43,7 @@
 .gd-player-avatar-wrap { position: relative; flex-shrink: 0; }
 .gd-player-avatar { width: 64rpx; height: 64rpx; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 26rpx; font-weight: 700; overflow: visible; position: relative; }
 .gd-player-avatar-img { width: 64rpx; height: 64rpx; border-radius: 50%; position: absolute; top: 0; left: 0; }
-.gd-player-wind { position: absolute; bottom: -10rpx; right: -10rpx; padding: 0 8rpx; border-radius: var(--radius-sm); background: rgba(166, 243, 201, 0.5); color: var(--primary); border: 2rpx solid rgba(166, 243, 201, 0.9); font-size: 18rpx; font-weight: 700; line-height: 1.4; }
+.gd-player-wind-svg { position: absolute; bottom: -12rpx; right: -12rpx; width: 40rpx; height: 40rpx; border-radius: 50%; background: #ffffff; box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.08); }
 .gd-player-name { display: flex; align-items: baseline; gap: 4rpx; min-width: 0; }
 .gd-player-name-text { font-size: 24rpx; font-weight: 700; color: var(--on-surface); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gd-player-me { font-size: 20rpx; color: var(--primary); flex-shrink: 0; }

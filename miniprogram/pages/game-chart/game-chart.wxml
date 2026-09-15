@@ -21,7 +21,7 @@
         <view class="gc-hero-sub">
           <view class="gc-hero-date">
             <text class="gc-date-big">{{detail.dateText}}</text>
-            <view class="gc-round-tag">{{detail.roundsText}}</view>
+            <view class="gc-round-tag">{{detail.flowText}}</view>
           </view>
           <view class="gc-diff">
             <text class="gc-diff-label">校对差额</text>
@@ -77,23 +77,18 @@
         </view>
       </view>
 
-      <!-- 逐局净胜负柱状 -->
+      <!-- 逐笔流水条形图 -->
       <view class="gc-section card anim-fade-up delay-2">
         <view class="gc-section-head">
-          <text class="gc-section-title">📊 逐局单局净胜负</text>
-          <text class="gc-section-sub">单位：分</text>
+          <text class="gc-section-title">📊 逐笔流水条形图</text>
+          <text class="gc-section-sub">共 {{flowCount}} 笔 · 单位：分</text>
         </view>
-        <canvas type="2d" id="bar-chart" class="gc-bar-canvas"></canvas>
+        <canvas type="2d" id="bar-chart" class="gc-bar-canvas" style="height: {{flowBarHeight}}px;"></canvas>
         <view class="gc-bar-note">
-          <view class="gc-note-item"><view class="gc-note-dot" style="background:#1b6b4a;"></view><text>绿色代表赢家单局净入</text></view>
-          <view class="gc-note-item"><view class="gc-note-dot" style="background:#b91c1c;"></view><text>红色代表出铳/被自摸扣减</text></view>
+          <view class="gc-note-item"><view class="gc-note-dot" style="background:#1b6b4a;"></view><text>绿色=我收到</text></view>
+          <view class="gc-note-item"><view class="gc-note-dot" style="background:#b91c1c;"></view><text>红色=我转出</text></view>
+          <view class="gc-note-item"><view class="gc-note-dot" style="background:#cbd5e1;"></view><text>灰色=他人互转</text></view>
         </view>
-      </view>
-
-      <!-- 底部动作 -->
-      <view class="gc-actions">
-        <button class="btn-primary gc-share-btn" open-type="share"><text>私密分享走势图卡片</text></button>
-        <view class="btn-secondary gc-back-ledger" bindtap="goBack"><text>📋 返回手帐明细表</text></view>
       </view>
     </block>
 

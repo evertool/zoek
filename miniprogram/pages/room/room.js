@@ -222,7 +222,7 @@ Page({
       // 自己发的道具本地已即时播放过（useProp 已把水位推到该 id），广播推回来自身时跳过
       if ((Number(d.id) || 0) <= (this._lastPropId || 0)) return
       this.bumpPropWM(d.id)
-      this.playProp(d.type, Number(d.from_player_id), Number(d.to_player_id), Number(d.id) || 0)
+      this.enqueueProp(d.type, Number(d.from_player_id), Number(d.to_player_id), Number(d.id) || 0, false)
       return
     }
     if (msg.type === 'game') {
@@ -1006,7 +1006,7 @@ Page({
     // 上报后端 → 同步给同桌；本人立即本地播放（不等轮询）
     api.post('/games/' + this.data.gameID + '/props', { to_player_id: toPID, type: type }).then(function(res) {
       that.bumpPropWM(res.id)
-      that.playProp(type, myPID, toPID, Number(res.id) || 0)
+      that.enqueueProp(type, myPID, toPID, Number(res.id) || 0, true)
     }).catch(function(err) {
       that.showToast((err && err.message) || '道具发送失败，请重试')
     })
@@ -1021,11 +1021,18 @@ Page({
     return 0
   },
 
-  // 回放一次道具动画（本地发送与远端轮询共用）
-  // 可见性：kick 仅发送者与目标两人看到；其余道具全桌可见
-  // id 去重：同一事件只播一次（WS 推送可能先于 useProp 的 HTTP 响应到达，
-  // 或与轮询响应竞态，仅靠水位比较无法覆盖所有时序）
-  playProp(type, fromPID, toPID, evID) {
+  // 各道具动画总时长（含收尾），用于串行队列解锁
+  propDurations: { slipper: 1800, tea: 2900, kick: 4400, flower: 3900, dimsum: 3400 },
+
+  // 并发处理：道具事件入队串行播放。
+  // ① 事件 ID 去重 ② 队列内「同人+同目标+同类」合并（短时重复投掷只播一次）
+  // ③ 队列上限 4 条，超出丢最旧 ④ kick 可见性在入队前过滤（不占队列）
+  // isOwn=自己发的：插队最前（本地即时反馈优先）
+  enqueueProp(type, fromPID, toPID, evID, isOwn) {
+    if (type === 'kick') {
+      var me = this.myPlayerID()
+      if (Number(fromPID) !== me && Number(toPID) !== me) return
+    }
     if (evID) {
       this._playedPropIds = this._playedPropIds || {}
       if (this._playedPropIds[evID]) return
@@ -1033,6 +1040,37 @@ Page({
       var keys = Object.keys(this._playedPropIds)
       if (keys.length > 20) delete this._playedPropIds[keys[0]] // 只留最近 20 条防膨胀
     }
+    var q = this._fxQueue = this._fxQueue || []
+    for (var i = 0; i < q.length; i++) {
+      if (q[i].type === type && Number(q[i].from) === Number(fromPID) && Number(q[i].to) === Number(toPID)) return
+    }
+    var item = { type: type, from: Number(fromPID), to: Number(toPID) }
+    if (isOwn) q.unshift(item)
+    else {
+      if (q.length >= 4) q.shift()
+      q.push(item)
+    }
+    this.playNextProp()
+  },
+
+  playNextProp() {
+    if (this._fxPlaying) return
+    var q = this._fxQueue || []
+    if (!q.length) return
+    var item = q.shift()
+    this._fxPlaying = true
+    var that = this
+    var dur = this.propDurations[item.type] || 3000
+    this.playProp(item.type, item.from, item.to)
+    this.fxTimeout(function() {
+      that._fxPlaying = false
+      that.playNextProp()
+    }, dur + 150)
+  },
+
+  // 回放一次道具动画（仅被队列调用，不做并发假设）
+  // 可见性：kick 仅发送者与目标两人看到；其余道具全桌可见
+  playProp(type, fromPID, toPID) {
     if (type === 'kick') {
       var me = this.myPlayerID()
       if (Number(fromPID) !== me && Number(toPID) !== me) return
@@ -1109,7 +1147,7 @@ Page({
         that.bumpPropWM(ev.id)
         // 保险：只播 2 分钟内的「活」事件——storage 水位落后时（换设备/清缓存）旧账静默吞掉
         var fresh = ev.created_at && (Date.now() - new Date(ev.created_at).getTime() < 120000)
-        if (fresh) that.playProp(ev.type, Number(ev.from_player_id), Number(ev.to_player_id), Number(ev.id) || 0)
+        if (fresh) that.enqueueProp(ev.type, Number(ev.from_player_id), Number(ev.to_player_id), Number(ev.id) || 0, false)
       }
     }).catch(function() {
       that._propsFetching = false
@@ -1129,6 +1167,9 @@ Page({
       for (var i = 0; i < this._fxTimers.length; i++) clearTimeout(this._fxTimers[i])
       this._fxTimers = []
     }
+    // 动画队列一并清空解锁：隐藏/退出后回来不残留半截状态
+    this._fxPlaying = false
+    this._fxQueue = []
     if (reset) this.setData({ fx: this.initialFx() })
   },
 
