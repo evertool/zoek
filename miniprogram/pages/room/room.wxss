@@ -254,6 +254,8 @@ page { overflow-x: hidden; overscroll-behavior-x: none; }
   75% { transform: translateY(calc(var(--sy) + (var(--dy) - var(--sy)) * 0.75 - 155rpx)) rotate(540deg) scale(0.95); }
   100% { transform: translateY(var(--dy)) rotate(720deg) scale(0.6); }
 }
+.fx-stars-label { position: absolute; top: 96rpx; left: 50%; transform: translateX(-50%); padding: 6rpx 20rpx; border-radius: 999rpx; background: rgba(0,0,0,0.75); white-space: nowrap; z-index: 3; }
+.fx-stars-label text { font-size: 20rpx; color: #fef08a; font-weight: 700; }
 /* 命中星芒 */
 .fx-stars { position: absolute; width: 180rpx; height: 180rpx; margin-left: -90rpx; margin-top: -90rpx; display: flex; align-items: center; justify-content: center; opacity: 0; z-index: 6; }
 .fx-stars.fx-on { opacity: 1; }

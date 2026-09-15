@@ -86,6 +86,7 @@
           <text class="fx-star">⭐</text>
           <text class="fx-star-b">💥</text>
           <text class="fx-star-c">✨</text>
+          <view class="fx-stars-label"><text>嗱嗱声出牌啦，唔好谂咁耐！</text></view>
         </view>
         <!-- 台下猛踢：三重冲击波 + 大脚 + 火花 -->
         <block wx:if="{{fx.kick}}">
@@ -117,7 +118,7 @@
               <text class="p2 {{fx.flower.wither ? 'fx-run' : ''}}">🍂</text>
               <text class="p3 {{fx.flower.wither ? 'fx-run' : ''}}">🍁</text>
             </view>
-            <view class="fx-flower-bubble {{fx.flower.bubble ? 'fx-on' : ''}}"><text>等得我花儿都谢了... 🥀</text></view>
+            <view class="fx-flower-bubble {{fx.flower.bubble ? 'fx-on' : ''}}"><text>快脆啲，呢铺等住赢！🥀</text></view>
           </view>
         </block>
         <!-- 斟杯靓茶 -->
@@ -131,7 +132,7 @@
             <view class="cup-body">
               <view class="cup-water {{fx.tea.pour ? 'fx-on' : ''}}"><text>茶香</text></view>
             </view>
-            <view class="cup-label"><text>敬上一杯高山靓乌龙</text></view>
+            <view class="cup-label"><text>轻啲嚟，手下留情唔好咁狠！</text></view>
           </view>
         </block>
         <!-- 丢番茄：抛物线飞行 → 冲击闪光 + 碎块爆散 + 剧震震屏 → 大爆浆糊脸 -->
@@ -148,7 +149,7 @@
             <view class="fx-frag" style="--tx:20rpx;--ty:-180rpx;--rot:90deg;"><view class="fx-frag-stem"></view></view>
             <view class="fx-frag" style="--tx:-40rpx;--ty:170rpx;--rot:-45deg;"><text class="fx-frag-emoji">💥</text></view>
             <image class="fx-tomato-big" src="/assets/icons/fx-tomato-splatter.svg" mode="aspectFit" />
-            <view class="fx-tomato-bubble"><text>轰！成面都系番茄汁！出只牌快啲啦！</text></view>
+            <view class="fx-tomato-bubble"><text>食番茄啦，乱咁出牌！🍅</text></view>
           </view>
         </block>
         <!-- 踢击私密暗号气泡 -->
@@ -339,13 +340,13 @@
         </view>
         <view class="prop-card prop-card-warm" data-type="flower" bindtap="useProp">
           <view class="prop-card-top"><text class="prop-card-emoji">🥀</text><text class="prop-card-tag">萧瑟催牌</text></view>
-          <view><text class="prop-card-name">花都谢啦</text><text class="prop-card-desc">快脆啲，呢铺等住赢！</text></view>
+          <view><text class="prop-card-name">花嘟谢埋</text><text class="prop-card-desc">快脆啲，呢铺等住赢！</text></view>
         </view>
         <view class="prop-card prop-card-wide" data-type="dimsum" bindtap="useProp">
           <text class="prop-card-emoji">🍅</text>
           <view style="flex: 1; min-width: 0;">
             <text class="prop-card-name">丢番茄</text>
-            <text class="prop-card-desc">熟透番茄迎面糊 · 汁水四溅</text>
+            <text class="prop-card-desc">食番茄啦，乱咁出牌！</text>
           </view>
           <text class="prop-card-tag">番茄暴击</text>
         </view>

@@ -1211,7 +1211,7 @@ Page({
         'fx.banner': {
           on: true,
           title: '大力踢！哎呀！踢咗【' + name + '】一脚！',
-          desc: '台底踢咁大啖，脚趾尾都抽筋！'
+          desc: '识做啦，猛咁踢脚喇！'
         }
       })
       that.vibrate(true)
