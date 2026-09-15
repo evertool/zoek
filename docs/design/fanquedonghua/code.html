@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<title>得闲开台 · 牌台</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "outline": "#6f7a72",
+            "error-container": "#ffdad6",
+            "on-tertiary-fixed": "#410002",
+            "primary": "#005235",
+            "secondary": "#904d00",
+            "error": "#ba1a1a",
+            "tertiary-fixed-dim": "#ffb4ac",
+            "surface-bright": "#f8f9ff",
+            "on-primary-fixed-variant": "#005235",
+            "background": "#f8f9ff",
+            "primary-fixed": "#a6f3c9",
+            "on-secondary": "#ffffff",
+            "secondary-fixed": "#ffdcc3",
+            "secondary-container": "#fe932c",
+            "tertiary-container": "#b02d29",
+            "inverse-on-surface": "#eaf1ff",
+            "on-secondary-fixed": "#2f1500",
+            "on-error-container": "#93000a",
+            "surface-variant": "#d3e4fe",
+            "on-surface-variant": "#3f4943",
+            "on-tertiary-fixed-variant": "#8e1214",
+            "surface-container-lowest": "#ffffff",
+            "surface-container-low": "#eff4ff",
+            "surface-dim": "#cbdbf5",
+            "tertiary-fixed": "#ffdad6",
+            "surface-tint": "#1b6b4a",
+            "surface-container-high": "#dce9ff",
+            "on-secondary-container": "#663500",
+            "outline-variant": "#bfc9c0",
+            "on-tertiary-container": "#ffcdc7",
+            "surface-container": "#e5eeff",
+            "on-primary": "#ffffff",
+            "tertiary": "#8e1215",
+            "inverse-surface": "#213145",
+            "on-primary-fixed": "#002113",
+            "primary-fixed-dim": "#8ad6ae",
+            "on-secondary-fixed-variant": "#6e3900",
+            "surface-container-highest": "#d3e4fe",
+            "secondary-fixed-dim": "#ffb77d",
+            "primary-container": "#1b6b4a",
+            "on-primary-container": "#9ce9bf",
+            "on-tertiary": "#ffffff",
+            "inverse-primary": "#8ad6ae",
+            "surface": "#f8f9ff",
+            "on-error": "#ffffff",
+            "on-background": "#0b1c30",
+            "on-surface": "#0b1c30"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          spacing: {
+            "space-lg": "1.25rem",
+            "space-xs": "0.5rem",
+            "space-2xs": "0.25rem",
+            "margin-screen": "1.25rem",
+            "space-md": "1rem",
+            "space-2xl": "2rem",
+            "space-3xl": "2.5rem",
+            "space-sm": "0.75rem",
+            "space-xl": "1.5rem",
+            "gutter-grid": "0.75rem"
+          },
+          fontFamily: {
+            "label-sm": ["Plus Jakarta Sans"],
+            "label-md": ["Plus Jakarta Sans"],
+            "body-sm": ["Be Vietnam Pro"],
+            "display-lg": ["Plus Jakarta Sans"],
+            "body-lg": ["Be Vietnam Pro"],
+            "body-md": ["Be Vietnam Pro"],
+            "display-lg-mobile": ["Plus Jakarta Sans"],
+            "headline-sm": ["Plus Jakarta Sans"],
+            "label-lg": ["Plus Jakarta Sans"],
+            "score-numeral": ["Plus Jakarta Sans"],
+            "headline-md": ["Plus Jakarta Sans"],
+            "headline-lg": ["Plus Jakarta Sans"]
+          },
+          fontSize: {
+            "label-sm": ["10px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "500" }],
+            "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }],
+            "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+            "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+            "display-lg-mobile": ["28px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+            "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+            "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "600" }],
+            "score-numeral": ["22px", { "lineHeight": "26px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+            "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.015em", "fontWeight": "600" }]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    @layer base {
+      html, body {
+        width: 100vw;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        overscroll-behavior: none;
+      }
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom, 16px);
+      }
+      .pt-safe {
+        padding-top: env(safe-area-inset-top, 0px);
+      }
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* 物理受击震动 (一般道具) */
+    @keyframes headHitShake {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      15% { transform: translate(-8px, 6px) rotate(-12deg) scale(0.92); }
+      30% { transform: translate(7px, -4px) rotate(10deg); }
+      45% { transform: translate(-5px, 3px) rotate(-6deg); }
+      60% { transform: translate(4px, -2px) rotate(4deg); }
+      80% { transform: translate(-2px, 1px) rotate(-1deg); }
+      100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    }
+    .animate-hit-shake {
+      animation: headHitShake 0.65s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    /* 番茄剧烈重击后仰与颠簸剧震动效 */
+    @keyframes heavyTomatoImpact {
+      0% { transform: scale(1) translate(0, 0) rotate(0deg); }
+      10% { transform: scale(0.72) translate(4px, 12px) rotate(18deg); filter: brightness(1.4); }
+      20% { transform: scale(1.15) translate(-14px, -8px) rotate(-16deg); }
+      32% { transform: scale(0.92) translate(10px, 8px) rotate(12deg); }
+      45% { transform: scale(1.06) translate(-8px, -6px) rotate(-8deg); }
+      60% { transform: scale(0.97) translate(6px, 4px) rotate(6deg); }
+      75% { transform: scale(1.02) translate(-3px, -2px) rotate(-3deg); }
+      90% { transform: scale(0.99) translate(1px, 1px) rotate(1deg); }
+      100% { transform: scale(1) translate(0, 0) rotate(0deg); filter: brightness(1); }
+    }
+    .animate-tomato-heavy-hit {
+      animation: heavyTomatoImpact 1.1s cubic-bezier(.2,.85,.3,1.1) both;
+    }
+
+    /* 牌桌震颤动效 */
+    @keyframes tableEarthquake {
+      0% { transform: translate(0, 0) rotate(0deg); }
+      10% { transform: translate(-6px, -8px) rotate(-1.5deg); }
+      25% { transform: translate(8px, 6px) rotate(1.5deg); }
+      40% { transform: translate(-6px, 4px) rotate(-1deg); }
+      55% { transform: translate(5px, -3px) rotate(0.8deg); }
+      70% { transform: translate(-3px, 2px) rotate(-0.4deg); }
+      100% { transform: translate(0, 0) rotate(0deg); }
+    }
+    .animate-table-earthquake {
+      animation: tableEarthquake 0.65s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    /* 霸气大脚丫 */
+    @keyframes megaFootSweep {
+      0% { transform: translate3d(160px, 120px, 0) rotate(-50deg) scale(0.4); opacity: 0; }
+      30% { opacity: 1; transform: translate3d(40px, 20px, 0) rotate(-20deg) scale(1.3); }
+      50% { transform: translate3d(0, 0, 0) rotate(5deg) scale(1.5); }
+      70% { transform: translate3d(-15px, -10px) rotate(10deg) scale(1.2); opacity: 1; }
+      100% { transform: translate3d(-100px, -50px, 0) rotate(25deg) scale(0.5); opacity: 0; }
+    }
+    .animate-mega-kick {
+      animation: megaFootSweep 0.75s cubic-bezier(.17,.89,.32,1.28) forwards;
+    }
+
+    /* 番茄爆浆瞬间冲击闪光 */
+    @keyframes flashBlast {
+      0% { transform: scale(0.1); opacity: 0; }
+      20% { transform: scale(1.6); opacity: 0.95; }
+      100% { transform: scale(2.8); opacity: 0; }
+    }
+    .animate-blast-flash {
+      animation: flashBlast 0.45s ease-out forwards;
+    }
+
+    /* 汁水与碎块四散飞溅粒子 */
+    @keyframes particleBurst1 {
+      0% { transform: translate(0, 0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--tw-tx, 65px), var(--tw-ty, -75px)) scale(0.2); opacity: 0; }
+    }
+
+    /* 浓稠番茄汁缓缓往下流淌 */
+    @keyframes dripDown {
+      0% { transform: translateY(0) scaleY(1); }
+      60% { transform: translateY(14px) scaleY(1.35); }
+      80% { transform: translateY(22px) scaleY(1.5); }
+      100% { transform: translateY(28px) scaleY(1.2); }
+    }
+    .animate-drip-flow {
+      animation: dripDown 2.2s cubic-bezier(.25,.46,.45,.94) forwards;
+    }
+
+    /* 脸上残余番茄酱渍与肉渣显现并缓慢流淌 */
+    @keyframes faceStainReveal {
+      0% { transform: scale(0.3) rotate(-15deg); opacity: 0; }
+      20% { transform: scale(1.15) rotate(4deg); opacity: 1; }
+      40% { transform: scale(1) rotate(0deg); opacity: 1; }
+      85% { opacity: 0.95; }
+      100% { opacity: 0; transform: scale(0.96) translateY(6px); }
+    }
+    .animate-face-stain {
+      animation: faceStainReveal 3.2s cubic-bezier(.16,1,.3,1) forwards;
+    }
+
+    /* 花瓣飘落 */
+    @keyframes petalFall {
+      0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+      50% { transform: translate(-12px, 25px) rotate(90deg); opacity: 0.9; }
+      100% { transform: translate(8px, 50px) rotate(180deg); opacity: 0; }
+    }
+    .animate-petal {
+      animation: petalFall 2s ease-out forwards;
+    }
+
+    @keyframes stemDroop {
+      0% { transform: rotate(0deg); filter: saturate(1.2); }
+      50% { transform: rotate(25deg); filter: saturate(0.6); }
+      100% { transform: rotate(45deg); filter: grayscale(0.8); }
+    }
+    .animate-stem-droop {
+      animation: stemDroop 2.2s forwards;
+    }
+  </style>
+</head>
+<body class="bg-[#f8f9ff] font-body-md text-body-md text-on-surface flex flex-col min-h-screen antialiased">
+<!-- 顶部导航栏 -->
+<header class="sticky top-0 w-full z-40 bg-[#f8f9ff]/90 backdrop-blur-md pt-safe">
+<div class="h-14 px-4 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<button aria-label="返回" class="w-10 h-10 -ml-2 flex items-center justify-center rounded-full text-primary hover:bg-surface-container active:scale-95 transition-transform" onclick="history.back()" type="button">
+<span class="material-symbols-outlined text-[24px]">arrow_back_ios_new</span>
+</button>
+<h1 class="font-headline-sm text-[19px] text-primary tracking-tight font-bold">得闲开台 · 牌台</h1>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-xs">
+<span class="material-symbols-outlined text-white text-[18px]">person</span>
+</div>
+<!-- 微信胶囊 -->
+<div aria-hidden="true" class="w-[84px] h-8 flex items-center justify-center shrink-0">
+<div class="w-full h-7 rounded-full bg-surface-container-high/70 border border-outline-variant/40 flex items-center justify-around px-2">
+<div class="w-1.5 h-1.5 rounded-full bg-outline/70"></div>
+<div class="w-1.5 h-1.5 rounded-full bg-outline/70"></div>
+<div class="w-2.5 h-2.5 rounded-full border-[1.5px] border-outline/80"></div>
+</div>
+</div>
+</div>
+</div>
+</header>
+<!-- 主体流式内容区域（单列规整自上而下排列） -->
+<main class="flex-1 w-full max-w-[430px] mx-auto px-4 pb-6 flex flex-col gap-3">
+<!-- 顶部状态条 -->
+<div class="flex items-center justify-between mt-1">
+<div class="flex items-center gap-1.5 bg-[#e8f2ec] px-3 py-1.5 rounded-full shadow-xs">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-md text-xs text-primary font-bold">凑脚中 · 3/4人</span>
+<span class="text-xs text-outline font-normal">| 广东推倒胡</span>
+</div>
+<button class="flex items-center gap-1 bg-white px-3 py-1.5 rounded-full shadow-xs border border-surface-container active:scale-95 transition-transform" id="btn-show-code" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary">qr_code_2</span>
+<span class="font-label-md text-xs text-on-surface font-semibold">出示台码</span>
+</button>
+</div>
+<!-- 墨绿色圆角麻雀茶台卡片 -->
+<div class="relative w-full aspect-square bg-gradient-to-b from-[#1b6b4a] to-[#005235] rounded-[28px] p-4 shadow-lg flex items-center justify-center overflow-hidden transition-transform duration-300" id="mahjong-table">
+<!-- 柔光底纹 -->
+<div class="absolute inset-2 rounded-2xl bg-black/10 pointer-events-none"></div>
+<!-- 四角氛围小标签 -->
+<!-- 左上：台号 -->
+<div class="absolute top-3 left-3.5 flex items-center gap-1 opacity-85 z-10">
+<span class="text-[12px] text-primary-fixed font-bold tracking-wider"># 台号 #0842</span>
+</div>
+<!-- 右上：聚宝 -->
+<div class="absolute top-3 right-3.5 flex items-center gap-1 opacity-80 z-10">
+<span class="text-[12px] text-[#ffdcc3] font-semibold tracking-wider">✦ 聚宝 ✦</span>
+</div>
+<!-- 左下：品牌微印 -->
+<div class="absolute bottom-3 left-3.5 flex items-center gap-1.5 opacity-75 z-10">
+<span class="w-4 h-4 rounded-xs bg-[#8e1215]/80 flex items-center justify-center text-[9px] text-white font-bold">闲</span>
+<span class="text-[11px] text-primary-fixed">得闲开台 · 雀欢</span>
+</div>
+<!-- 右下：开台时长 -->
+<div class="absolute bottom-3 right-3.5 flex items-center gap-1 opacity-85 z-10">
+<span class="material-symbols-outlined text-primary-fixed text-[13px]">schedule</span>
+<span class="text-[11px] text-primary-fixed font-medium">已开台 32分</span>
+</div>
+<!-- 十字席位布局与中心发财 -->
+<!-- 中心发财牌 -->
+<div class="w-24 h-24 rounded-2xl bg-white/95 shadow-md flex flex-col items-center justify-center z-10 border border-emerald-100">
+<div class="w-16 h-14 flex items-center justify-center">
+<span class="text-[38px] font-bold text-primary font-headline-lg leading-none select-none">發</span>
+</div>
+<div class="flex items-center gap-1 mt-0.5">
+<span class="w-1.5 h-1.5 rounded-full bg-[#fe932c] animate-ping"></span>
+<span class="text-[10px] text-outline font-medium">摸牌中</span>
+</div>
+</div>
+<!-- 北位：虚位以待 (顶部) -->
+<div class="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center z-20" id="seat-north">
+<button class="w-13 h-13 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center text-primary-fixed shadow-xs active:scale-95 transition-transform" id="btn-invite" type="button">
+<span class="material-symbols-outlined text-[26px]">person_add</span>
+</button>
+<div class="mt-1 px-2.5 py-0.5 rounded-full bg-black/35 backdrop-blur-xs">
+<span class="text-[11px] text-primary-fixed font-medium">北 · 虚位以待</span>
+</div>
+</div>
+<!-- 南位：阿强 (底部) -->
+<div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center z-20" id="seat-south">
+<div class="relative transition-transform duration-200" id="avatar-aq-wrap">
+<div class="w-13 h-13 rounded-full bg-white p-0.5 shadow-md flex items-center justify-center relative overflow-visible">
+<div class="w-full h-full rounded-full bg-[#eff4ff] flex items-center justify-center overflow-hidden relative">
+<span class="text-[18px] font-bold text-primary" id="aq-avatar-text">强</span>
+<!-- 头像脸上流淌番茄酱层 (南位) -->
+<div class="absolute inset-0 pointer-events-none opacity-0 z-20" id="face-sauce-aq">
+<svg class="w-full h-full" fill="none" viewbox="0 0 52 52">
+<path d="M12 8C18 6 36 7 42 12C38 18 36 26 38 34C32 30 26 32 20 28C16 22 13 16 12 8Z" fill="#b91c1c" fill-opacity="0.92"></path>
+<path d="M16 12C21 11 32 13 36 17C33 22 31 28 32 32C28 29 23 30 19 26C17 21 15 16 16 12Z" fill="#dc2626"></path>
+<!-- 流下的番茄汁长滴 -->
+<path d="M22 26C22 34 20 40 19 46C18 47.5 20.5 48.5 21.5 47C23 44 25 35 25 26Z" fill="#991b1b"></path>
+<path d="M32 28C32 35 34 38 33.5 43C33 44.5 35 45.2 36 43.8C37 40 36 34 35 28Z" fill="#b91c1c"></path>
+<circle cx="19" cy="48" fill="#dc2626" r="1.6"></circle>
+<circle cx="34.5" cy="45" fill="#dc2626" r="1.4"></circle>
+<!-- 黄色番茄籽粒 -->
+<ellipse cx="23" cy="18" fill="#fef08a" rx="1.6" ry="2.2" transform="rotate(25 23 18)"></ellipse>
+<ellipse cx="32" cy="22" fill="#fef08a" rx="1.5" ry="2" transform="rotate(-30 32 22)"></ellipse>
+<ellipse cx="27" cy="27" fill="#fef08a" rx="1.3" ry="1.8" transform="rotate(10 27 27)"></ellipse>
+</svg>
+</div>
+</div>
+</div>
+<span class="absolute -bottom-1 -right-0.5 px-1.5 py-0.2 rounded bg-[#fe932c] text-white text-[10px] font-bold shadow-xs">南</span>
+<button class="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-secondary text-white shadow-xs flex items-center justify-center active:scale-90 transition-transform" onclick="openInteractionSheet('阿强')" type="button">
+<span class="material-symbols-outlined text-[13px]">auto_fix_high</span>
+</button>
+</div>
+<div class="mt-1 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-black/45 backdrop-blur-xs">
+<span class="text-[11px] text-white font-medium">阿强</span>
+<span class="text-[11px] text-primary-fixed font-bold">+19</span>
+</div>
+</div>
+<!-- 西位：卡窿二 (左侧) -->
+<div class="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col items-center z-20" id="seat-west">
+<div class="relative transition-transform duration-200" id="avatar-kl-wrap">
+<div class="w-13 h-13 rounded-full bg-white p-0.5 shadow-md flex items-center justify-center relative overflow-visible">
+<div class="w-full h-full rounded-full bg-[#eff4ff] flex items-center justify-center overflow-hidden relative">
+<span class="text-[18px] font-bold text-secondary" id="kl-avatar-text">窿</span>
+<!-- 头像脸上流淌番茄酱层 (西位) -->
+<div class="absolute inset-0 pointer-events-none opacity-0 z-20" id="face-sauce-kl">
+<svg class="w-full h-full" fill="none" viewbox="0 0 52 52">
+<path d="M12 8C18 6 36 7 42 12C38 18 36 26 38 34C32 30 26 32 20 28C16 22 13 16 12 8Z" fill="#b91c1c" fill-opacity="0.92"></path>
+<path d="M16 12C21 11 32 13 36 17C33 22 31 28 32 32C28 29 23 30 19 26C17 21 15 16 16 12Z" fill="#dc2626"></path>
+<!-- 流下的番茄汁长滴 -->
+<path d="M22 26C22 34 20 40 19 46C18 47.5 20.5 48.5 21.5 47C23 44 25 35 25 26Z" fill="#991b1b"></path>
+<path d="M32 28C32 35 34 38 33.5 43C33 44.5 35 45.2 36 43.8C37 40 36 34 35 28Z" fill="#b91c1c"></path>
+<circle cx="19" cy="48" fill="#dc2626" r="1.6"></circle>
+<circle cx="34.5" cy="45" fill="#dc2626" r="1.4"></circle>
+<!-- 黄色番茄籽粒 -->
+<ellipse cx="23" cy="18" fill="#fef08a" rx="1.6" ry="2.2" transform="rotate(25 23 18)"></ellipse>
+<ellipse cx="32" cy="22" fill="#fef08a" rx="1.5" ry="2" transform="rotate(-30 32 22)"></ellipse>
+<ellipse cx="27" cy="27" fill="#fef08a" rx="1.3" ry="1.8" transform="rotate(10 27 27)"></ellipse>
+</svg>
+</div>
+</div>
+</div>
+<span class="absolute -bottom-1 -right-0.5 px-1.5 py-0.2 rounded bg-surface-container-highest text-on-surface-variant text-[10px] font-bold">西</span>
+<button class="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white text-primary shadow-xs flex items-center justify-center active:scale-90 transition-transform" onclick="openInteractionSheet('卡窿二')" type="button">
+<span class="material-symbols-outlined text-[13px]">featured_seasonal_and_gifts</span>
+</button>
+</div>
+<div class="mt-1 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-black/45 backdrop-blur-xs">
+<span class="text-[11px] text-white font-medium">卡窿二</span>
+<span class="text-[11px] text-primary-fixed font-bold">+18</span>
+</div>
+</div>
+<!-- 东位：我本人 (右侧) -->
+<div class="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center z-20" id="seat-east">
+<div class="relative transition-transform duration-200" id="avatar-me-wrap">
+<div class="w-13 h-13 rounded-full bg-primary-fixed p-0.5 shadow-md flex items-center justify-center">
+<div class="w-full h-full rounded-full bg-primary flex items-center justify-center text-white">
+<span class="text-[18px] font-bold">我</span>
+</div>
+</div>
+<span class="absolute -top-1 -left-1 px-1.5 py-0.2 rounded-full bg-[#fe932c] text-white text-[9px] font-semibold">我</span>
+<span class="absolute -bottom-1 -right-0.5 px-1.5 py-0.2 rounded bg-surface-container-highest text-on-surface-variant text-[10px] font-bold">东</span>
+<button class="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary-fixed-dim text-on-primary-fixed shadow-xs flex items-center justify-center active:scale-90 transition-transform" onclick="openInteractionSheet('我')" type="button">
+<span class="material-symbols-outlined text-[13px]">smart_toy</span>
+</button>
+</div>
+<div class="mt-1 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-black/45 backdrop-blur-xs">
+<span class="text-[11px] text-white font-medium">勿忘 (我)</span>
+<span class="text-[11px] text-surface-container-highest font-bold">0</span>
+</div>
+</div>
+</div>
+<!-- 浅灰白色圆角卡片「物理互动演示控制器」 -->
+<div class="bg-white rounded-2xl p-3.5 shadow-xs border border-slate-100 flex flex-col gap-2.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="text-[13px] text-on-surface font-bold">物理互动演示控制器</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="text-[11px] text-outline">目标:</span>
+<button class="px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all bg-primary text-white" id="ctrl-target-aq" onclick="setDemoTarget('阿强')" type="button">南位·阿强</button>
+<button class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all bg-[#eff4ff] text-outline" id="ctrl-target-kl" onclick="setDemoTarget('卡窿二')" type="button">西位·卡窿二</button>
+</div>
+</div>
+<!-- 5个横向道具按钮 -->
+<div class="grid grid-cols-5 gap-1.5">
+<button class="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-[#eaf3ff] hover:bg-[#dfeeff] active:scale-95 transition-all text-center" onclick="triggerSlipperThrow()" type="button">
+<span class="text-xl mb-1">🩴</span>
+<span class="text-[11px] font-semibold text-slate-800">扔飞拖鞋</span>
+</button>
+<button class="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-[#eaf3ff] hover:bg-[#dfeeff] active:scale-95 transition-all text-center" onclick="triggerTeaPour()" type="button">
+<span class="text-xl mb-1">🍵</span>
+<span class="text-[11px] font-semibold text-slate-800">斟杯靓茶</span>
+</button>
+<button class="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-[#fef3c7] hover:bg-[#fde68a] active:scale-95 transition-all text-center border border-amber-200" onclick="triggerKickFootDirectly()" type="button">
+<span class="text-xl mb-1">🦶</span>
+<span class="text-[11px] font-bold text-amber-950">台下猛踢</span>
+</button>
+<button class="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-[#ffe4e6] hover:bg-[#fecdd3] active:scale-95 transition-all text-center border border-rose-200" onclick="triggerFlowerWither()" type="button">
+<span class="text-xl mb-1">🥀</span>
+<span class="text-[11px] font-bold text-rose-950">花儿谢了</span>
+</button>
+<!-- 🍅 扔丢番茄 -->
+<button class="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-[#fee2e2] hover:bg-[#fecaca] active:scale-95 transition-all text-center border border-red-200" onclick="triggerTomatoThrow()" type="button">
+<span class="text-xl mb-1">🍅</span>
+<span class="text-[11px] font-bold text-red-950">扔丢番茄</span>
+</button>
+</div>
+</div>
+<!-- 私密双向猛踢模式已升级提示卡片 -->
+<div class="p-3 bg-[#e8f2ff] rounded-2xl flex items-center justify-between gap-2 border border-blue-100">
+<div class="flex items-center gap-2.5">
+<div class="w-9 h-9 rounded-full bg-[#a6f3c9] text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[20px]">sports_kabaddi</span>
+</div>
+<div>
+<p class="text-[13px] text-on-surface font-bold">私密双向猛踢模式已升级</p>
+<p class="text-[11px] text-outline mt-0.5">震撼动感踢击 + 震屏摇晃，全桌仅二人知晓</p>
+</div>
+</div>
+<button class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold shrink-0 active:scale-95 transition-transform" onclick="triggerKickFootDirectly()" type="button">
+        大力踢阿强
+      </button>
+</div>
+<!-- 本场对局流水卡片 -->
+<section class="flex flex-col gap-2">
+<div class="flex items-center justify-between px-1">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[18px]">receipt_long</span>
+<h2 class="text-sm text-on-surface font-bold">本场对局流水</h2>
+</div>
+<span class="text-xs text-outline">共 3 局完结</span>
+</div>
+<div class="bg-white rounded-2xl p-3.5 shadow-xs border border-slate-100 flex flex-col gap-2.5">
+<!-- 局3 -->
+<div class="flex items-center justify-between py-1">
+<div>
+<div class="flex items-center gap-1.5">
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-slate-700 text-[10px] font-semibold">第3局</span>
+<span class="text-xs text-on-surface font-semibold">自摸·清一色</span>
+</div>
+<span class="text-[11px] text-outline block mt-0.5">阿强 庄家自摸 4番</span>
+</div>
+<div class="text-right">
+<span class="text-base text-primary font-bold font-score-numeral">+12</span>
+<span class="text-[10px] text-outline block">我对局 -4</span>
+</div>
+</div>
+<div class="h-px bg-slate-100 w-full"></div>
+<!-- 局2 -->
+<div class="flex items-center justify-between py-1">
+<div>
+<div class="flex items-center gap-1.5">
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-slate-700 text-[10px] font-semibold">第2局</span>
+<span class="text-xs text-on-surface font-semibold">食胡·鸡胡</span>
+</div>
+<span class="text-[11px] text-outline block mt-0.5">卡窿二 截胡阿强 1番</span>
+</div>
+<div class="text-right">
+<span class="text-base text-primary font-bold font-score-numeral">+6</span>
+<span class="text-[10px] text-outline block">我对局 0</span>
+</div>
+</div>
+<div class="h-px bg-slate-100 w-full"></div>
+<!-- 局1 -->
+<div class="flex items-center justify-between py-1">
+<div>
+<div class="flex items-center gap-1.5">
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-slate-700 text-[10px] font-semibold">第1局</span>
+<span class="text-xs text-on-surface font-semibold">食胡·对对胡</span>
+</div>
+<span class="text-[11px] text-outline block mt-0.5">勿忘(我) 自摸 2番</span>
+</div>
+<div class="text-right">
+<span class="text-base text-primary font-bold font-score-numeral">+4</span>
+<span class="text-[10px] text-outline block">庄赢三家</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 底部固定操作栏 -->
+<footer class="mt-2 flex flex-col items-center gap-2 pb-safe">
+<div class="grid grid-cols-2 gap-3 w-full">
+<button class="w-full h-11 rounded-xl bg-white text-primary font-semibold text-xs shadow-xs border border-slate-200 flex items-center justify-center gap-1.5 active:bg-slate-50 transition-colors" onclick="openInteractionSheet('全桌')" type="button">
+<span class="material-symbols-outlined text-[18px]">cruelty_free</span>
+<span>茶台道具盒</span>
+</button>
+<button class="w-full h-11 rounded-xl bg-primary text-white font-semibold text-xs shadow-sm flex items-center justify-center gap-1.5 active:opacity-90 transition-opacity" type="button">
+<span class="material-symbols-outlined text-[18px]">person_pin_circle</span>
+<span>呼叫熟人雀友</span>
+</button>
+</div>
+<button class="text-tertiary text-xs py-1.5 hover:opacity-80 active:scale-95 transition-all" id="btn-cancel" type="button">
+        取消开台并解散本局
+      </button>
+</footer>
+</main>
+<!-- ================= 完全独立的全局顶层动画图层 (绝不影响页面流式布局) ================= -->
+<div class="pointer-events-none fixed inset-0 z-50 overflow-hidden" id="physics-overlay">
+<!-- 1. 飞拖鞋主体 -->
+<div class="absolute opacity-0 pointer-events-none" id="slipper-projectile" style="width: 48px; height: 48px; transform: translate3d(-999px, -999px, 0);">
+<svg class="w-full h-full drop-shadow-[0_8px_12px_rgba(0,0,0,0.4)]" fill="none" viewbox="0 0 64 64">
+<path d="M22 8C27 7 38 12 42 22C46 32 45 46 38 56C33 63 23 62 18 56C12 48 10 32 14 20C17 12 19 9 22 8Z" fill="#1e3a8a"></path>
+<path d="M22 10C26.5 9 36.5 13.5 40 23C43.5 32.5 43 45 36.5 54.5C32 61 24 60.5 19.5 54.5C14.5 47 12.5 32.5 16 21C18.8 13.5 20 10.5 22 10Z" fill="#3b82f6"></path>
+<path d="M27 21L15 28C14 28.5 13 32 15 32.5C18 33 24 27 27 21Z" fill="#1d4ed8"></path>
+<path d="M27 21L39 30C40.5 31 41 33 39 34C36 35 30 28 27 21Z" fill="#2563eb"></path>
+<circle cx="27" cy="21" fill="#ffffff" r="3"></circle>
+</svg>
+</div>
+<!-- 拖鞋击中火花 -->
+<div class="absolute opacity-0 flex items-center justify-center pointer-events-none" id="hit-impact-stars" style="width: 70px; height: 70px; transform: translate3d(-999px, -999px, 0);">
+<span class="text-3xl animate-ping">💥</span>
+</div>
+<!-- 2. 台下猛踢特效 -->
+<div class="absolute inset-0 opacity-0 pointer-events-none transition-opacity duration-200" id="mega-kick-stage">
+<div class="absolute z-50 text-[68px] drop-shadow-xl" id="mega-foot-actor" style="transform: translate3d(-999px, -999px, 0);">
+        🦶
+      </div>
+</div>
+<!-- 3. 花儿谢了特效 -->
+<div class="absolute inset-0 opacity-0 pointer-events-none transition-opacity duration-300" id="flower-wither-stage">
+<div class="absolute flex flex-col items-center pointer-events-none z-30" id="flower-actor-box" style="transform: translate(-50%, -100%);">
+<div class="text-2xl opacity-90">🌧️</div>
+<div class="relative mt-1 flex flex-col items-center" id="flower-stem-bundle">
+<div class="text-3xl transition-all duration-700" id="flower-head-emoji">🌹</div>
+<div class="w-1 h-6 bg-emerald-700 rounded-full"></div>
+</div>
+<div class="absolute top-10 left-1/2 -translate-x-1/2" id="petal-fall">
+<div class="text-sm opacity-0" id="petal-1">🍂</div>
+</div>
+<div class="mt-2 px-3 py-1 rounded-full bg-black/80 text-yellow-200 text-[11px] font-bold shadow-lg opacity-0 transition-opacity" id="flower-bubble">
+          等得我花儿都谢了... 🥀
+        </div>
+</div>
+</div>
+<!-- 4. 斟茶特效 -->
+<div class="absolute inset-0 opacity-0 pointer-events-none transition-opacity duration-300" id="tea-stage">
+<div class="absolute flex flex-col items-center" id="tea-actor-box" style="transform: translate(-50%, -50%);">
+<div class="text-4xl animate-bounce mb-1">🫖</div>
+<div class="px-2.5 py-1 rounded-full bg-black/75 text-amber-200 text-[10px] font-bold shadow-md">
+          敬上一杯高山乌龙茶 🍵
+        </div>
+</div>
+</div>
+<!-- 5. 🍅 深度升级：超震撼逼真扔丢番茄·物理飞掷·剧烈爆炸·大爆浆·流汁特效图层 -->
+<!-- 飞行中的逼真大红番茄 -->
+<div class="absolute opacity-0 pointer-events-none z-50 transition-none" id="tomato-projectile" style="width: 52px; height: 52px; transform: translate3d(-999px, -999px, 0);">
+<svg class="w-full h-full drop-shadow-[0_8px_18px_rgba(220,38,38,0.85)] filter drop-shadow" fill="none" viewbox="0 0 64 64">
+<!-- 番茄体渐变与高光 -->
+<circle cx="32" cy="35" fill="#c21c1c" r="23"></circle>
+<ellipse cx="32" cy="34" fill="#ea2b2b" rx="21" ry="20"></ellipse>
+<path d="M19 22C14 28 13 38 16 45C19 52 27 56 33 56C40 55 47 50 49 42C51 34 47 24 43 19C37 14 26 15 19 22Z" fill="#ff4d4d"></path>
+<ellipse cx="24" cy="25" fill="#ffffff" fill-opacity="0.65" rx="5" ry="3.2" transform="rotate(-32 24 25)"></ellipse>
+<ellipse cx="22" cy="30" fill="#ffffff" fill-opacity="0.3" rx="2.5" ry="1.5" transform="rotate(-30 22 30)"></ellipse>
+<!-- 蒂头藤蔓 -->
+<path d="M32 15C31.5 9 33 5 37 2" stroke="#15803d" stroke-linecap="round" stroke-width="3.5"></path>
+<path d="M32 14L21 10L25 15L17 19L25 21L20 28L28 23L32 30L36 23L44 28L39 21L47 19L39 15L43 10Z" fill="#16a34a"></path>
+<path d="M32 14L28 17L32 18L36 17Z" fill="#14532d"></path>
+</svg>
+</div>
+<!-- 击中爆炸冲击光环与飞溅爆浆舞台 -->
+<div class="absolute inset-0 opacity-0 pointer-events-none z-50 transition-opacity duration-200" id="tomato-splatter-stage">
+<div class="absolute pointer-events-none" id="tomato-hit-target-box" style="transform: translate(-50%, -50%);">
+<!-- 1. 剧烈爆炸冲击波光晕 (Shockwave blast) -->
+<div class="absolute -inset-16 rounded-full bg-gradient-to-r from-red-600/60 via-amber-400/80 to-red-500/40 blur-md opacity-0 pointer-events-none" id="tomato-blast-glow"></div>
+<!-- 2. 番茄四分五裂碎块粒子容器 (Fragments exploding radially) -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none z-40" id="tomato-fragments-box">
+<!-- 飞溅的肉块与番茄皮碎片 -->
+<span class="absolute text-lg transform select-none" id="frag-1">🍅</span>
+<div class="absolute w-3.5 h-3.5 rounded-full bg-[#b91c1c] shadow-sm transform select-none" id="frag-2"></div>
+<div class="absolute w-4 h-2.5 rounded-md bg-[#dc2626] transform rotate-45 select-none" id="frag-3"></div>
+<div class="absolute w-3 h-3 rounded-full bg-[#ef4444] transform select-none" id="frag-4"></div>
+<div class="absolute w-2 h-4 rounded-full bg-[#16a34a] transform rotate-12 select-none" id="frag-5"></div>
+<span class="absolute text-sm select-none" id="frag-6">💥</span>
+</div>
+<!-- 3. 超大片飞溅浓稠番茄汁与大爆浆主图 (Splash & Splatter SVG) -->
+<div class="relative w-44 h-44 flex items-center justify-center -translate-y-2" id="tomato-splatter-graphic">
+<svg class="w-full h-full drop-shadow-[0_6px_16px_rgba(153,27,27,0.85)] filter" fill="none" viewbox="0 0 200 200">
+<!-- 爆开向四面八方喷射的细汁长迹 -->
+<path d="M100 22C102 38 96 46 95 62" stroke="#b91c1c" stroke-linecap="round" stroke-width="4.5"></path>
+<path d="M165 48C148 60 138 72 125 78" stroke="#dc2626" stroke-linecap="round" stroke-width="4"></path>
+<path d="M178 112C155 110 142 108 128 104" stroke="#991b1b" stroke-linecap="round" stroke-width="3.5"></path>
+<path d="M152 165C136 142 126 130 118 118" stroke="#dc2626" stroke-linecap="round" stroke-width="4"></path>
+<path d="M42 155C58 138 74 128 86 116" stroke="#b91c1c" stroke-linecap="round" stroke-width="4"></path>
+<path d="M22 96C42 98 62 100 76 98" stroke="#dc2626" stroke-linecap="round" stroke-width="4.5"></path>
+<path d="M40 45C56 62 70 75 82 84" stroke="#b91c1c" stroke-linecap="round" stroke-width="3.5"></path>
+<!-- 飞散溅点滴液 (Droplets) -->
+<circle cx="98" cy="16" fill="#dc2626" r="4.5"></circle>
+<circle cx="172" cy="42" fill="#b91c1c" r="5"></circle>
+<circle cx="188" cy="115" fill="#ef4444" r="4"></circle>
+<circle cx="160" cy="174" fill="#991b1b" r="5.5"></circle>
+<circle cx="96" cy="188" fill="#b91c1c" r="4.5"></circle>
+<circle cx="34" cy="164" fill="#dc2626" r="5"></circle>
+<circle cx="14" cy="94" fill="#b91c1c" r="4"></circle>
+<circle cx="32" cy="38" fill="#ef4444" r="4.5"></circle>
+<!-- 巨大爆裂核心深浅酱汁轮廓 (Massive central splatter) -->
+<path d="M100 44C114 42 118 64 130 56C142 48 152 60 156 74C160 88 180 84 180 100C180 116 164 116 168 132C172 148 154 156 144 170C134 184 114 170 100 178C86 170 66 184 56 170C46 156 28 148 32 132C36 116 20 116 20 100C20 84 40 88 44 74C48 60 58 48 70 56C82 64 86 42 100 44Z" fill="#881337" fill-opacity="0.95"></path>
+<path d="M100 56C111 54 115 72 124 65C133 58 141 68 144 80C147 92 163 88 163 100C163 112 150 112 153 124C156 136 142 142 134 154C126 166 110 154 100 160C90 154 74 166 66 154C58 142 44 136 47 124C50 112 37 112 37 100C37 88 53 92 56 80C59 68 67 58 76 65C85 72 89 54 100 56Z" fill="#b91c1c"></path>
+<path d="M100 68C108 67 111 80 117 75C124 70 130 77 132 86C134 94 146 92 146 100C146 108 136 108 138 117C140 125 129 130 123 138C117 146 105 137 100 142C95 137 83 146 77 138C71 130 60 125 62 117C64 108 54 108 54 100C54 92 66 94 68 86C70 77 76 70 83 75C89 80 92 67 100 68Z" fill="#dc2626"></path>
+<!-- 爆浆中心厚重肉块与高光 -->
+<ellipse cx="100" cy="100" fill="#ef4444" rx="34" ry="32"></ellipse>
+<ellipse cx="94" cy="94" fill="#f87171" fill-opacity="0.8" rx="20" ry="14"></ellipse>
+<ellipse cx="88" cy="90" fill="#ffffff" fill-opacity="0.6" rx="6" ry="3.5" transform="rotate(-20 88 90)"></ellipse>
+<!-- 顺着向下流淌拉丝的浓稠鲜红番茄滴 (Dripping tentacles) -->
+<path d="M84 128C84 148 78 162 76 182C75 186 79 188 81 184C85 174 88 152 90 128Z" fill="#991b1b"></path>
+<path d="M112 130C112 152 118 168 116 190C115.5 194 119.5 195 121 190C124 178 120 156 118 130Z" fill="#b91c1c"></path>
+<circle cx="76.5" cy="186" fill="#dc2626" r="2.8"></circle>
+<circle cx="117" cy="194" fill="#dc2626" r="3.2"></circle>
+<!-- 金黄亮眼的番茄籽粒 (Tomato seeds scattered in paste) -->
+<ellipse cx="86" cy="106" fill="#fef08a" rx="2.4" ry="3.6" transform="rotate(30 86 106)"></ellipse>
+<ellipse cx="114" cy="95" fill="#fef08a" rx="2.2" ry="3.2" transform="rotate(-40 114 95)"></ellipse>
+<ellipse cx="102" cy="120" fill="#fef08a" rx="2.5" ry="3.4" transform="rotate(15 102 120)"></ellipse>
+<ellipse cx="78" cy="85" fill="#fef08a" rx="2" ry="3" transform="rotate(-65 78 85)"></ellipse>
+<ellipse cx="122" cy="116" fill="#fef08a" rx="2.1" ry="3" transform="rotate(45 122 116)"></ellipse>
+<ellipse cx="96" cy="80" fill="#fef08a" rx="2" ry="2.8" transform="rotate(5 96 80)"></ellipse>
+</svg>
+</div>
+<!-- 4. 夸张幽默的粤语受击催牌气泡 -->
+<div class="absolute -top-14 left-1/2 -translate-x-1/2 px-3.5 py-1.5 rounded-full bg-red-950/95 border-2 border-red-500/80 text-center shadow-[0_8px_20px_rgba(185,28,28,0.6)] whitespace-nowrap z-50">
+<span class="text-[12px] text-yellow-300 font-extrabold tracking-wide block flex items-center gap-1">
+<span>🍅</span>
+<span>轰！成面都系番茄汁！出只牌快啲啦！</span>
+</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 私密暗号弹窗浮层 -->
+<div class="fixed inset-x-4 bottom-20 z-50 pointer-events-none transition-all duration-300 transform translate-y-24 opacity-0" id="private-kick-effect">
+<div class="bg-inverse-surface/95 backdrop-blur-md text-inverse-on-surface p-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border border-secondary-fixed/30">
+<div class="w-10 h-10 rounded-xl bg-secondary-container/20 flex items-center justify-center text-2xl shrink-0">
+        🦶
+      </div>
+<div class="flex-1">
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold text-secondary-fixed" id="kick-banner-title">大力踢！哎呀！</span>
+<span class="px-1.5 py-0.2 bg-white/10 rounded text-[10px] text-white/80">桌底暗号</span>
+</div>
+<p class="text-[11px] text-inverse-on-surface/90 mt-0.5" id="kick-banner-desc">
+          台底踢咁大啖，脚趾尾都抽筋！快啲打咪犹豫！全桌得我知你踢我！
+        </p>
+</div>
+</div>
+</div>
+<!-- 互动道具选择抽屉 -->
+<div class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex flex-col justify-end transition-opacity duration-300 opacity-0 pointer-events-none" id="interaction-drawer">
+<div class="w-full max-w-[430px] mx-auto bg-white rounded-t-3xl p-4 shadow-2xl transform translate-y-full transition-transform duration-300" id="drawer-panel">
+<div class="flex items-center justify-between pb-2 border-b border-slate-100">
+<div>
+<h3 class="text-sm font-bold text-on-surface">席位互动道具</h3>
+<p class="text-xs text-outline mt-0.5" id="target-player-text">向雀友赠送趣味互动或台下传意</p>
+</div>
+<button class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500" onclick="closeInteractionSheet()" type="button">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<div class="flex items-center gap-2 my-2.5">
+<span class="text-xs text-outline">目标：</span>
+<button class="px-3 py-1 rounded-full bg-primary text-white text-xs font-bold" id="drawer-btn-aq" onclick="selectTarget('阿强')" type="button">南位 · 阿强</button>
+<button class="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold" id="drawer-btn-kl" onclick="selectTarget('卡窿二')" type="button">西位 · 卡窿二</button>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-2">
+<button class="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 active:scale-98 transition-all flex items-center gap-2.5 text-left" onclick="useProp('slipper')" type="button">
+<span class="text-2xl">🩴</span>
+<div>
+<div class="text-xs font-bold text-slate-800">扔飞拖鞋</div>
+<div class="text-[10px] text-slate-500">爆笑飞击命中</div>
+</div>
+</button>
+<button class="p-3 rounded-xl bg-slate-50 hover:bg-slate-100 active:scale-98 transition-all flex items-center gap-2.5 text-left" onclick="useProp('tea')" type="button">
+<span class="text-2xl">🍵</span>
+<div>
+<div class="text-xs font-bold text-slate-800">斟杯靓茶</div>
+<div class="text-[10px] text-slate-500">高山乌龙敬奉</div>
+</div>
+</button>
+<button class="p-3 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 active:scale-98 transition-all flex items-center gap-2.5 text-left" onclick="useProp('kick')" type="button">
+<span class="text-2xl">🦶</span>
+<div>
+<div class="text-xs font-bold text-amber-950">台下猛踢</div>
+<div class="text-[10px] text-amber-900/80">震颤全桌暗号</div>
+</div>
+</button>
+<button class="p-3 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 active:scale-98 transition-all flex items-center gap-2.5 text-left" onclick="useProp('flower')" type="button">
+<span class="text-2xl">🥀</span>
+<div>
+<div class="text-xs font-bold text-rose-950">花儿谢了</div>
+<div class="text-[10px] text-rose-900/80">萧瑟凄凉催牌</div>
+</div>
+</button>
+<button class="col-span-2 p-3 rounded-xl bg-red-50 hover:bg-red-100 border border-red-200 active:scale-98 transition-all flex items-center justify-between text-left" onclick="useProp('tomato')" type="button">
+<div class="flex items-center gap-2.5">
+<span class="text-2xl">🍅</span>
+<div>
+<div class="text-xs font-bold text-red-950">扔丢番茄</div>
+<div class="text-[10px] text-red-900/80">剧烈爆炸 · 满面糊汁 · 粤语催牌</div>
+</div>
+</div>
+<span class="px-2 py-0.5 rounded bg-red-200 text-red-900 text-[10px] font-bold">大爆浆催牌</span>
+</button>
+</div>
+</div>
+</div>
+<!-- 全局轻量 Toast 提示 -->
+<div class="fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-slate-900/90 text-white backdrop-blur-md text-xs font-medium flex items-center gap-1.5 shadow-lg transition-all duration-300 opacity-0 pointer-events-none" id="app-toast">
+<span class="material-symbols-outlined text-[15px] text-primary-fixed" id="toast-icon">check_circle</span>
+<span id="toast-msg">提示信息</span>
+</div>
+<script>
+    let currentTarget = '阿强';
+
+    function showToast(msg, icon = 'check_circle') {
+      const toast = document.getElementById('app-toast');
+      const toastMsg = document.getElementById('toast-msg');
+      const toastIcon = document.getElementById('toast-icon');
+      if (!toast || !toastMsg) return;
+      toastMsg.textContent = msg;
+      toastIcon.textContent = icon;
+      toast.classList.remove('opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'pointer-events-none');
+      }, 2200);
+    }
+
+    function setDemoTarget(name) {
+      selectTarget(name);
+      const ctrlAq = document.getElementById('ctrl-target-aq');
+      const ctrlKl = document.getElementById('ctrl-target-kl');
+      if (name === '阿强') {
+        ctrlAq.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all bg-primary text-white';
+        ctrlKl.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all bg-[#eff4ff] text-outline';
+      } else {
+        ctrlKl.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all bg-primary text-white';
+        ctrlAq.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all bg-[#eff4ff] text-outline';
+      }
+      showToast(`当前互动目标已切换为【${name}】`, 'person');
+    }
+
+    function selectTarget(name) {
+      currentTarget = name;
+      const btnAq = document.getElementById('drawer-btn-aq');
+      const btnKl = document.getElementById('drawer-btn-kl');
+      if (btnAq && btnKl) {
+        if (currentTarget === '阿强') {
+          btnAq.className = 'px-3 py-1 rounded-full bg-primary text-white text-xs font-bold';
+          btnKl.className = 'px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold';
+        } else {
+          btnKl.className = 'px-3 py-1 rounded-full bg-primary text-white text-xs font-bold';
+          btnAq.className = 'px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold';
+        }
+      }
+      const targetText = document.getElementById('target-player-text');
+      if (targetText) targetText.textContent = `向【${currentTarget}】发送互动微道具或暗号`;
+    }
+
+    function openInteractionSheet(playerName) {
+      if (playerName && playerName !== '我' && playerName !== '全桌') {
+        selectTarget(playerName);
+      }
+      const drawer = document.getElementById('interaction-drawer');
+      const panel = document.getElementById('drawer-panel');
+      drawer.classList.remove('opacity-0', 'pointer-events-none');
+      panel.classList.remove('translate-y-full');
+    }
+
+    function closeInteractionSheet() {
+      const drawer = document.getElementById('interaction-drawer');
+      const panel = document.getElementById('drawer-panel');
+      panel.classList.add('translate-y-full');
+      drawer.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    /* 辅助：计算视口中元素中心点坐标 */
+    function getViewportCenter(elemId) {
+      const el = document.getElementById(elemId);
+      if (!el) return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      const rect = el.getBoundingClientRect();
+      return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+      };
+    }
+
+    /* 1. 扔飞拖鞋动效 */
+    function triggerSlipperThrow() {
+      const isTargetAQ = currentTarget === '阿强';
+      const targetWrapId = isTargetAQ ? 'avatar-aq-wrap' : 'avatar-kl-wrap';
+      const targetAvatar = document.getElementById(targetWrapId);
+      const projectile = document.getElementById('slipper-projectile');
+      const impactStars = document.getElementById('hit-impact-stars');
+      if (!projectile || !targetAvatar) return;
+
+      const start = getViewportCenter('avatar-me-wrap');
+      const dest = getViewportCenter(targetWrapId);
+
+      projectile.style.opacity = '1';
+      const startTime = performance.now();
+      const duration = 550;
+
+      function step(now) {
+        const elapsed = now - startTime;
+        const t = Math.min(1, elapsed / duration);
+        const curX = (1 - t) * start.x + t * dest.x;
+        const arcY = -70 * Math.sin(t * Math.PI);
+        const curY = (1 - t) * start.y + t * dest.y + arcY;
+        const rot = t * 720;
+
+        projectile.style.transform = `translate3d(${curX - 24}px, ${curY - 24}px, 0) rotate(${rot}deg)`;
+
+        if (t < 1) {
+          requestAnimationFrame(step);
+        } else {
+          projectile.style.opacity = '0';
+          targetAvatar.classList.remove('animate-hit-shake');
+          void targetAvatar.offsetWidth;
+          targetAvatar.classList.add('animate-hit-shake');
+
+          impactStars.style.transform = `translate3d(${dest.x - 35}px, ${dest.y - 35}px, 0)`;
+          impactStars.style.opacity = '1';
+
+          showToast(`🩴 人字拖精准砸中【${currentTarget}】！`, 'sentiment_very_satisfied');
+
+          setTimeout(() => {
+            impactStars.style.opacity = '0';
+            targetAvatar.classList.remove('animate-hit-shake');
+          }, 800);
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
+    /* 2. 斟茶动效 */
+    function triggerTeaPour() {
+      const isTargetAQ = currentTarget === '阿强';
+      const targetWrapId = isTargetAQ ? 'avatar-aq-wrap' : 'avatar-kl-wrap';
+      const dest = getViewportCenter(targetWrapId);
+      const stage = document.getElementById('tea-stage');
+      const box = document.getElementById('tea-actor-box');
+      if (!stage || !box) return;
+
+      box.style.left = `${dest.x}px`;
+      box.style.top = `${dest.y - 40}px`;
+      stage.style.opacity = '1';
+      showToast(`已向【${currentTarget}】敬奉高山乌龙茶 🍵`, 'emoji_food_beverage');
+
+      setTimeout(() => {
+        stage.style.opacity = '0';
+      }, 2000);
+    }
+
+    /* 3. 台下猛踢动效 */
+    function triggerKickFootDirectly() {
+      const isTargetAQ = currentTarget === '阿强';
+      const targetWrapId = isTargetAQ ? 'avatar-aq-wrap' : 'avatar-kl-wrap';
+      const targetAvatar = document.getElementById(targetWrapId);
+      const table = document.getElementById('mahjong-table');
+      const megaStage = document.getElementById('mega-kick-stage');
+      const foot = document.getElementById('mega-foot-actor');
+      const privateBanner = document.getElementById('private-kick-effect');
+      const bannerTitle = document.getElementById('kick-banner-title');
+
+      const dest = getViewportCenter(targetWrapId);
+      foot.style.left = `${dest.x - 34}px`;
+      foot.style.top = `${dest.y - 45}px`;
+
+      megaStage.style.opacity = '1';
+      foot.classList.remove('animate-mega-kick');
+      void foot.offsetWidth;
+      foot.classList.add('animate-mega-kick');
+
+      setTimeout(() => {
+        table.classList.remove('animate-table-earthquake');
+        void table.offsetWidth;
+        table.classList.add('animate-table-earthquake');
+
+        targetAvatar.classList.remove('animate-hit-shake');
+        void targetAvatar.offsetWidth;
+        targetAvatar.classList.add('animate-hit-shake');
+      }, 250);
+
+      if (bannerTitle) bannerTitle.textContent = `大力踢！哎呀！踢咗【${currentTarget}】一脚！`;
+      privateBanner.classList.remove('translate-y-24', 'opacity-0');
+      privateBanner.classList.add('translate-y-0', 'opacity-100');
+
+      showToast(`💥 台下猛踢【${currentTarget}】！茶台剧烈震颤！`, 'sports_martial_arts');
+
+      setTimeout(() => {
+        megaStage.style.opacity = '0';
+        table.classList.remove('animate-table-earthquake');
+      }, 900);
+
+      setTimeout(() => {
+        privateBanner.classList.add('translate-y-24', 'opacity-0');
+        privateBanner.classList.remove('translate-y-0', 'opacity-100');
+      }, 3500);
+    }
+
+    /* 4. 花儿谢了动效 */
+    function triggerFlowerWither() {
+      const isTargetAQ = currentTarget === '阿强';
+      const targetWrapId = isTargetAQ ? 'avatar-aq-wrap' : 'avatar-kl-wrap';
+      const dest = getViewportCenter(targetWrapId);
+      const stage = document.getElementById('flower-wither-stage');
+      const box = document.getElementById('flower-actor-box');
+      const head = document.getElementById('flower-head-emoji');
+      const stem = document.getElementById('flower-stem-bundle');
+      const bubble = document.getElementById('flower-bubble');
+      const petal = document.getElementById('petal-1');
+
+      if (!stage || !box) return;
+      box.style.left = `${dest.x}px`;
+      box.style.top = `${dest.y - 20}px`;
+
+      head.textContent = '🌹';
+      stem.classList.remove('animate-stem-droop');
+      petal.classList.remove('animate-petal');
+      bubble.style.opacity = '0';
+      stage.style.opacity = '1';
+
+      setTimeout(() => {
+        stem.classList.add('animate-stem-droop');
+        head.textContent = '🥀';
+        petal.classList.add('animate-petal');
+        bubble.style.opacity = '1';
+      }, 600);
+
+      showToast(`向【${currentTarget}】送去了一朵等胡的花儿...`, 'local_florist');
+
+      setTimeout(() => {
+        stage.style.opacity = '0';
+      }, 2800);
+    }
+
+    /* 5. 深度升级：「扔丢番茄 🍅」超震撼剧烈爆炸·大爆浆·流汁·受击剧震动效 */
+    function triggerTomatoThrow() {
+      const isTargetAQ = currentTarget === '阿强';
+      const targetWrapId = isTargetAQ ? 'avatar-aq-wrap' : 'avatar-kl-wrap';
+      const targetAvatar = document.getElementById(targetWrapId);
+      const projectile = document.getElementById('tomato-projectile');
+      const splatterStage = document.getElementById('tomato-splatter-stage');
+      const splatterTargetBox = document.getElementById('tomato-hit-target-box');
+      const blastGlow = document.getElementById('tomato-blast-glow');
+      const table = document.getElementById('mahjong-table');
+      
+      // 目标角色脸部留汁容器
+      const faceSauce = isTargetAQ ? document.getElementById('face-sauce-aq') : document.getElementById('face-sauce-kl');
+      const otherFaceSauce = isTargetAQ ? document.getElementById('face-sauce-kl') : document.getElementById('face-sauce-aq');
+      if (otherFaceSauce) otherFaceSauce.style.opacity = '0';
+
+      if (!projectile || !targetAvatar || !splatterStage || !splatterTargetBox) return;
+
+      const start = getViewportCenter('avatar-me-wrap');
+      const dest = getViewportCenter(targetWrapId);
+
+      // 将爆浆舞台精准锁定在目标头像的绝对中心
+      splatterTargetBox.style.left = `${dest.x}px`;
+      splatterTargetBox.style.top = `${dest.y}px`;
+
+      projectile.style.opacity = '1';
+      const startTime = performance.now();
+      const duration = 540;
+
+      function step(currentTime) {
+        const elapsed = currentTime - startTime;
+        const t = Math.min(1, elapsed / duration);
+
+        const curX = (1 - t) * start.x + t * dest.x;
+        // 优美高耸抛物线，带有重力加速度效果
+        const arcY = -95 * Math.sin(t * Math.PI);
+        const curY = (1 - t) * start.y + t * dest.y + arcY;
+        const rot = t * 680;
+        const scale = 0.85 + 0.45 * Math.sin(t * Math.PI);
+
+        projectile.style.transform = `translate3d(${curX - 26}px, ${curY - 26}px, 0) scale(${scale}) rotate(${rot}deg)`;
+
+        if (t < 1) {
+          requestAnimationFrame(step);
+        } else {
+          // 精准命中！番茄瞬间碎裂消失，进入爆炸阶段
+          projectile.style.opacity = '0';
+
+          // 1. 爆炸光效冲击波气浪
+          blastGlow.classList.remove('animate-blast-flash');
+          void blastGlow.offsetWidth;
+          blastGlow.classList.add('animate-blast-flash');
+
+          // 2. 目标角色头像产生【剧烈受击剧震与后仰颠簸抖动 (heavy impact shake & wobble)】
+          targetAvatar.classList.remove('animate-tomato-heavy-hit', 'animate-hit-shake');
+          void targetAvatar.offsetWidth;
+          targetAvatar.classList.add('animate-tomato-heavy-hit');
+
+          // 3. 麻将茶台同步发生剧烈晃动
+          table.classList.remove('animate-table-earthquake');
+          void table.offsetWidth;
+          table.classList.add('animate-table-earthquake');
+
+          // 4. 四分五裂的番茄碎肉与果皮粒子喷射散射
+          const frags = [
+            { id: 'frag-1', tx: 75, ty: -65, rot: 180 },
+            { id: 'frag-2', tx: -80, ty: -50, rot: -220 },
+            { id: 'frag-3', tx: 65, ty: 70, rot: 140 },
+            { id: 'frag-4', tx: -70, ty: 60, rot: -160 },
+            { id: 'frag-5', tx: 10, ty: -90, rot: 90 },
+            { id: 'frag-6', tx: -20, ty: 85, rot: -45 },
+          ];
+          frags.forEach(f => {
+            const el = document.getElementById(f.id);
+            if (el) {
+              el.style.transition = 'none';
+              el.style.transform = 'translate(0, 0) scale(1.4)';
+              el.style.opacity = '1';
+              setTimeout(() => {
+                el.style.transition = 'all 0.65s cubic-bezier(0.1, 0.9, 0.2, 1)';
+                el.style.transform = `translate(${f.tx}px, ${f.ty}px) scale(0.2) rotate(${f.rot}deg)`;
+                el.style.opacity = '0';
+              }, 16);
+            }
+          });
+
+          // 5. 顶层大爆浆与粤语催牌气泡展示
+          splatterStage.style.opacity = '1';
+
+          // 6. 核心特写：脸上留有逼真的番茄碎肉、番茄籽与往下流淌的浓稠鲜红番茄汁渍
+          if (faceSauce) {
+            faceSauce.classList.remove('animate-face-stain');
+            void faceSauce.offsetWidth;
+            faceSauce.classList.add('animate-face-stain');
+          }
+
+          showToast(`🍅 轰！番茄大爆浆！砸得【${currentTarget}】成面都系汁！`, 'error');
+
+          // 7. 动画恢复与清理
+          setTimeout(() => {
+            table.classList.remove('animate-table-earthquake');
+          }, 700);
+
+          setTimeout(() => {
+            splatterStage.style.opacity = '0';
+          }, 2900);
+
+          setTimeout(() => {
+            targetAvatar.classList.remove('animate-tomato-heavy-hit');
+            if (faceSauce) {
+              faceSauce.classList.remove('animate-face-stain');
+              faceSauce.style.opacity = '0';
+            }
+          }, 3300);
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
+    function useProp(type) {
+      closeInteractionSheet();
+      if (type === 'kick') triggerKickFootDirectly();
+      else if (type === 'tea') triggerTeaPour();
+      else if (type === 'flower') triggerFlowerWither();
+      else if (type === 'tomato') triggerTomatoThrow();
+      else if (type === 'slipper') triggerSlipperThrow();
+    }
+
+    document.getElementById('btn-show-code')?.addEventListener('click', () => {
+      showToast('已生成台码小程序码，点击即可长按转发好友', 'qr_code_2');
+    });
+
+    document.getElementById('btn-invite')?.addEventListener('click', () => {
+      showToast('正在呼叫第四位雀友入局...', 'person_add');
+    });
+
+    document.getElementById('btn-cancel')?.addEventListener('click', () => {
+      showToast('解散本局需全桌四人同意，已发起解散征询', 'info');
+    });
+  </script>
+</body></html>

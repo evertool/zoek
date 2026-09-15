@@ -33,12 +33,18 @@
 
       <view class="table-side side-{{item.pos}}"
         wx:for="{{seats}}" wx:key="seat" data-seat="{{item.seat}}" bindlongpress="onSeatLongPress">
-        <view class="side-fill {{fx.target === item.pos && fx.hit ? 'fx-hit-shake' : ''}} {{fx.target === item.pos && fx.kicked ? 'fx-avatar-kick' : ''}}">
+        <view class="side-fill {{fx.target === item.pos && fx.hit ? 'fx-hit-shake' : ''}} {{fx.target === item.pos && fx.kicked ? 'fx-avatar-kick' : ''}} {{fx.target === item.pos && fx.tomatoHeavy ? 'fx-tomato-heavy' : ''}}">
           <view class="side-body {{item.player ? '' : 'side-body-empty'}}">
             <block wx:if="{{item.player}}">
               <view class="seat-head">
-                <image class="seat-avatar" src="{{item.player.avatar_url}}" mode="aspectFill" wx:if="{{item.player.avatar_url}}" />
-                <view class="seat-avatar seat-avatar-ph" wx:else>{{item.player.nickname[0]}}</view>
+                <view class="seat-avatar-wrap">
+                  <image class="seat-avatar" src="{{item.player.avatar_url}}" mode="aspectFill" wx:if="{{item.player.avatar_url}}" />
+                  <view class="seat-avatar seat-avatar-ph" wx:else>{{item.player.nickname[0]}}</view>
+                  <!-- 脸上流淌番茄酱层（丢番茄命中后显现） -->
+                  <view class="face-sauce {{fx.sauceTarget === item.pos ? 'fx-sauce-on' : ''}}">
+                    <image src="/assets/icons/fx-tomato-face.svg" mode="aspectFill" />
+                  </view>
+                </view>
                 <view class="seat-meta">
                   <view class="seat-owner-tag" wx:if="{{item.isOwner}}">台主</view>
                   <text class="seat-name">{{item.player.nickname}}</text>
@@ -128,20 +134,21 @@
             <view class="cup-label"><text>敬上一杯高山靓乌龙</text></view>
           </view>
         </block>
-        <!-- 丢番茄：飞行 → 砸碎爆开 → 红浆糊脸粘住 -->
+        <!-- 丢番茄：抛物线飞行 → 冲击闪光 + 碎块爆散 + 剧震震屏 → 大爆浆糊脸 -->
         <block wx:if="{{fx.tomato}}">
-          <view wx:if="{{fx.tomato.fly}}" class="fx-tomato-fly" style="{{fx.tomato.style}}">
-            <text class="fx-tomato-fly-fruit">🍅</text>
+          <view wx:if="{{fx.tomato.phase === 'fly'}}" class="fx-tomato-fly" style="{{fx.tomato.style}}">
+            <image src="/assets/icons/fx-tomato-fly.svg" mode="aspectFit" />
           </view>
-          <view wx:else class="fx-tomato-splat-wrap {{fx.tomato.fade ? 'fx-fade' : ''}}" style="left: {{fx.tomato.x}}px; top: {{fx.tomato.y}}px;">
-            <view class="fx-tomato-blob b1"></view>
-            <view class="fx-tomato-blob b2"></view>
-            <view class="fx-tomato-blob b3"></view>
-            <view class="fx-tomato-drip d1"></view>
-            <view class="fx-tomato-drip d2"></view>
-            <view class="fx-tomato-splash"><text>💦</text><text>💥</text><text>💦</text></view>
-            <text class="fx-tomato-core">🍅</text>
-            <view class="fx-tomato-label"><text>番茄糊脸 · 中啦！</text></view>
+          <view wx:if="{{fx.tomato.phase === 'splat'}}" class="fx-tomato-stage {{fx.tomato.fade ? 'fx-fade' : ''}}" style="left: {{fx.tomato.x}}px; top: {{fx.tomato.y}}px;">
+            <view class="fx-tomato-blast"></view>
+            <view class="fx-frag" style="--tx:150rpx;--ty:-130rpx;--rot:180deg;"><text class="fx-frag-emoji">🍅</text></view>
+            <view class="fx-frag" style="--tx:-160rpx;--ty:-100rpx;--rot:-220deg;"><view class="fx-frag-dot"></view></view>
+            <view class="fx-frag" style="--tx:130rpx;--ty:140rpx;--rot:140deg;"><view class="fx-frag-chip"></view></view>
+            <view class="fx-frag" style="--tx:-140rpx;--ty:120rpx;--rot:-160deg;"><view class="fx-frag-dot d2"></view></view>
+            <view class="fx-frag" style="--tx:20rpx;--ty:-180rpx;--rot:90deg;"><view class="fx-frag-stem"></view></view>
+            <view class="fx-frag" style="--tx:-40rpx;--ty:170rpx;--rot:-45deg;"><text class="fx-frag-emoji">💥</text></view>
+            <image class="fx-tomato-big" src="/assets/icons/fx-tomato-splatter.svg" mode="aspectFit" />
+            <view class="fx-tomato-bubble"><text>轰！成面都系番茄汁！出只牌快啲啦！</text></view>
           </view>
         </block>
         <!-- 踢击私密暗号气泡 -->
@@ -304,7 +311,7 @@
     <view class="prop-sheet" catchtap="stopPropagation">
       <view class="prop-head">
         <view style="flex: 1; min-width: 0;">
-          <text class="prop-title">席位互动道具</text>
+          <text class="prop-title">互动道具</text>
           <text class="prop-sub">{{propTargetName ? '向【' + propTargetName + '】发送互动微道具或暗号' : '先选一个互动目标席位'}}</text>
         </view>
         <view class="modal-close-btn" bindtap="closePropModal"><text>✕</text></view>
@@ -320,19 +327,19 @@
       <view class="prop-grid">
         <view class="prop-card" data-type="slipper" bindtap="useProp">
           <view class="prop-card-top"><text class="prop-card-emoji">🩴</text><text class="prop-card-tag">物理飞击</text></view>
-          <view><text class="prop-card-name">扔飞拖鞋</text><text class="prop-card-desc">抛物翻转 · 爆笑命中</text></view>
+          <view><text class="prop-card-name">飞拖鞋</text><text class="prop-card-desc">嗱嗱声出牌啦，唔好谂咁耐！</text></view>
         </view>
         <view class="prop-card" data-type="tea" bindtap="useProp">
           <view class="prop-card-top"><text class="prop-card-emoji">🍵</text><text class="prop-card-tag">紫砂倾注</text></view>
-          <view><text class="prop-card-name">斟杯靓茶</text><text class="prop-card-desc">金黄茶汤 · 涟漪白雾</text></view>
+          <view><text class="prop-card-name">斟杯靓茶</text><text class="prop-card-desc">轻啲嚟，手下留情唔好咁狠！</text></view>
         </view>
         <view class="prop-card prop-card-hot" data-type="kick" bindtap="useProp">
           <view class="prop-card-top"><text class="prop-card-emoji">🦶</text><text class="prop-card-tag">全桌震颤</text></view>
-          <view><text class="prop-card-name">台下猛踢</text><text class="prop-card-desc">动感大脚 · 震碎桌台</text></view>
+          <view><text class="prop-card-name">台下猛踢</text><text class="prop-card-desc">识做啦，猛咁踢脚喇！</text></view>
         </view>
         <view class="prop-card prop-card-warm" data-type="flower" bindtap="useProp">
           <view class="prop-card-top"><text class="prop-card-emoji">🥀</text><text class="prop-card-tag">萧瑟催牌</text></view>
-          <view><text class="prop-card-name">花儿谢了</text><text class="prop-card-desc">寒风落雨 · 花瓣凋零</text></view>
+          <view><text class="prop-card-name">花都谢啦</text><text class="prop-card-desc">快脆啲，呢铺等住赢！</text></view>
         </view>
         <view class="prop-card prop-card-wide" data-type="dimsum" bindtap="useProp">
           <text class="prop-card-emoji">🍅</text>
@@ -343,7 +350,7 @@
           <text class="prop-card-tag">番茄暴击</text>
         </view>
       </view>
-      <text class="prop-foot-tip">茶台道具仅为友谊催化剂，请保持惬意乐道精神</text>
+      <text class="prop-foot-tip">道具仅为友谊催化剂，请保持惬意乐道精神</text>
     </view>
   </view>
 

@@ -89,7 +89,9 @@ Page({
       kick: null,     // 台下猛踢 { style, cx, cy, footX, footY, run, hit }
       flower: null,   // 花儿谢了 { x, y, on, wither, bubble }
       tea: null,      // 斟杯靓茶 { potX, potY, cupX, cupY, streamX, streamY, streamH, tilt, pour }
-      tomato: null,   // 丢番茄（阶段: fly 飞行 / splat 爆开糊脸 / fade 淡出；服务端 type 仍为 dimsum）
+      tomato: null,   // 丢番茄（phase: fly/splat；服务端 type 仍为 dimsum）
+      sauceTarget: '', // 脸上番茄酱层的目标席位
+      tomatoHeavy: false, // 番茄重击头像剧震
       banner: null    // 踢击私密暗号气泡 { title, desc, on }
     }
   },
@@ -980,7 +982,7 @@ Page({
     var type = e.currentTarget.dataset.type
     var pos = this.data.propTarget
     if (!pos) {
-      this.showToast('先选一个互动目标席位')
+      this.showToast('先选一个互动目标')
       return
     }
     var myPID = this.myPlayerID()
@@ -1131,7 +1133,7 @@ Page({
   },
 
   initialFx() {
-    return { quake: false, target: '', hit: false, kicked: false, slipper: null, stars: null, kick: null, flower: null, tea: null, tomato: null, banner: null }
+    return { quake: false, target: '', hit: false, kicked: false, slipper: null, stars: null, kick: null, flower: null, tea: null, tomato: null, sauceTarget: '', tomatoHeavy: false, banner: null }
   },
 
   vibrate(long) {
@@ -1270,7 +1272,8 @@ Page({
     }, 2800)
   },
 
-  // 5. 丢番茄 🍅：番茄从发送者席位飞向目标头像 → 砸碎爆开 → 红浆糊脸粘住 → 淡出
+  // 5. 丢番茄 🍅（编排移植自 docs/design/fanquedonghua/code.html）：
+  // 抛物线飞行 540ms → 冲击闪光 + 6 碎块爆散 + 头像剧震 + 震屏 → 大爆浆糊脸 + 脸上酱层 3.2s → 淡出
   fxTomato(ctx) {
     var that = this
     var pos = ctx.pos
@@ -1280,28 +1283,36 @@ Page({
       var c = av || fallback
       if (!c) return
       var start = ctx.start
-      // 阶段一：飞行（CSS 变量注入起止坐标，keyframes 抛物旋转）
+      // 阶段一：飞行（CSS 变量注入起止坐标，keyframes 抛物线 + 680° 旋转）
       that.setData({
-        'fx.tomato': {
-          fly: true,
-          style: '--sx:' + start.x + 'px;--sy:' + start.y + 'px;--dx:' + c.x + 'px;--dy:' + c.y + 'px;'
-        }
+        'fx.tomato': { phase: 'fly', style: '--sx:' + start.x + 'px;--sy:' + start.y + 'px;--dx:' + c.x + 'px;--dy:' + c.y + 'px;' },
+        'fx.sauceTarget': '',
+        'fx.tomatoHeavy': false
       })
       that.vibrate(false)
-      // 阶段二：命中爆碎——飞行元素消失，红浆糊脸层出现并粘住头像
+      // 阶段二：命中——番茄碎裂消失，冲击闪光 + 碎块爆散 + 剧震 + 震屏 + 大爆浆
       that.fxTimeout(function() {
         that.setData({
-          'fx.tomato': { x: c.x, y: c.y, fly: false, splat: true, fade: false }
+          'fx.tomato': { phase: 'splat', x: c.x, y: c.y, fade: false },
+          'fx.sauceTarget': pos,
+          'fx.tomatoHeavy': true,
+          'fx.quake': true
         })
         that.vibrate(true)
-      }, 480)
-      // 阶段三：糊脸保持 ~2s 后淡出
+      }, 540)
+      that.fxTimeout(function() {
+        that.setData({ 'fx.quake': false })
+      }, 540 + 650)
+      that.fxTimeout(function() {
+        that.setData({ 'fx.tomatoHeavy': false })
+      }, 540 + 1100)
+      // 阶段三：整体淡出收尾
       that.fxTimeout(function() {
         that.setData({ 'fx.tomato.fade': true })
-      }, 2600)
+      }, 540 + 2700)
       that.fxTimeout(function() {
-        that.setData({ 'fx.tomato': null })
-      }, 3200)
+        that.setData({ 'fx.tomato': null, 'fx.sauceTarget': '' })
+      }, 540 + 3300)
     })
   },
 

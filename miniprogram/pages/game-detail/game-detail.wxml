@@ -1,11 +1,10 @@
 <!--pages/game-detail/game-detail.wxml — 牌局结算明细（queyou-mingxi 设计稿还原）-->
 <view class="page">
-  <!-- 自定义导航：返回 + 居中标题 -->
+  <!-- 自定义导航：仅返回按钮（无标题） -->
   <view class="top-bar" style="padding-top: {{capsuleTop}}px;">
     <view class="nav-back-btn" style="width: {{capsuleHeight}}px; height: {{capsuleHeight}}px;" bindtap="goBack">
       <text class="nav-back-icon">‹</text>
     </view>
-    <text class="nav-title">牌局结算明细</text>
   </view>
 
   <view class="main-content">
