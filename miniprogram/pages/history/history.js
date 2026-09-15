@@ -1,4 +1,4 @@
-// pages/history/history.js — 开台手账 v6 Stitch 100% 还原
+// pages/history/history.js — 流水账 v6 Stitch 100% 还原
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')

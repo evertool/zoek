@@ -2197,6 +2197,15 @@ func (s *Store) GetPropEventsSince(gameID, sinceID int64, limit int) ([]model.Pr
 	return evs, err
 }
 
+// GetPropMaxID 返回该桌道具事件的最大 ID（无事件返回 0）。用于客户端首次进房建立水位，
+// 避免 since_id=0 + 分页截断导致历史动画被分批回放。
+func (s *Store) GetPropMaxID(gameID int64) (int64, error) {
+	var maxID int64
+	err := s.DB.Model(&model.PropEvent{}).Where("game_id = ?", gameID).
+		Select("COALESCE(MAX(id), 0)").Scan(&maxID).Error
+	return maxID, err
+}
+
 // ExpireOldFormingGames marks forming games older than 24h as expired.
 func (s *Store) ExpireOldFormingGames() error {
 	cutoff := time.Now().Add(-24 * time.Hour)

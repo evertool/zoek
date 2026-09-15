@@ -214,8 +214,10 @@ Page({
   handleRoomPush(msg) {
     if (msg.type === 'prop') {
       var d = msg.data || {}
-      this._lastPropId = Math.max(this._lastPropId || 0, Number(d.id) || 0)
-      this.playProp(d.type, Number(d.from_player_id), Number(d.to_player_id))
+      // 自己发的道具本地已即时播放过（useProp 已把水位推到该 id），广播推回来自身时跳过
+      if ((Number(d.id) || 0) <= (this._lastPropId || 0)) return
+      this.bumpPropWM(d.id)
+      this.playProp(d.type, Number(d.from_player_id), Number(d.to_player_id), Number(d.id) || 0)
       return
     }
     if (msg.type === 'game') {
@@ -970,8 +972,8 @@ Page({
     var that = this
     // 上报后端 → 同步给同桌；本人立即本地播放（不等轮询）
     api.post('/games/' + this.data.gameID + '/props', { to_player_id: toPID, type: type }).then(function(res) {
-      that._lastPropId = Math.max(that._lastPropId || 0, Number(res.id) || 0)
-      that.playProp(type, myPID, toPID)
+      that.bumpPropWM(res.id)
+      that.playProp(type, myPID, toPID, Number(res.id) || 0)
     }).catch(function(err) {
       that.showToast((err && err.message) || '道具发送失败，请重试')
     })
@@ -988,7 +990,16 @@ Page({
 
   // 回放一次道具动画（本地发送与远端轮询共用）
   // 可见性：kick 仅发送者与目标两人看到；其余道具全桌可见
-  playProp(type, fromPID, toPID) {
+  // id 去重：同一事件只播一次（WS 推送可能先于 useProp 的 HTTP 响应到达，
+  // 或与轮询响应竞态，仅靠水位比较无法覆盖所有时序）
+  playProp(type, fromPID, toPID, evID) {
+    if (evID) {
+      this._playedPropIds = this._playedPropIds || {}
+      if (this._playedPropIds[evID]) return
+      this._playedPropIds[evID] = true
+      var keys = Object.keys(this._playedPropIds)
+      if (keys.length > 20) delete this._playedPropIds[keys[0]] // 只留最近 20 条防膨胀
+    }
     if (type === 'kick') {
       var me = this.myPlayerID()
       if (Number(fromPID) !== me && Number(toPID) !== me) return
@@ -1023,23 +1034,53 @@ Page({
     })
   },
 
-  // 轮询拉取新道具事件并回放（首次进入只记水位，不回放历史）
+  // ===== 道具事件水位：持久化到 storage（按牌局存），跨页面实例/重进房间都不回放历史 =====
+  propWMKey() {
+    return 'prop_wm_' + this.data.gameID
+  },
+
+  bumpPropWM(id) {
+    var v = Number(id) || 0
+    if (v > (this._lastPropId || 0)) {
+      this._lastPropId = v
+      try { wx.setStorageSync(this.propWMKey(), v) } catch (e) {}
+    }
+  },
+
   loadProps() {
     var that = this
-    if (!this.data.gameID) return
-    api.get('/games/' + this.data.gameID + '/props?since_id=' + (this._lastPropId || 0)).then(function(res) {
+    if (!this.data.gameID || this._propsFetching) return
+    this._propsFetching = true
+    // 水位来源优先级：本页实例 → storage（跨次进房延续）
+    var hasWM = this._lastPropId !== undefined
+    if (!hasWM) this._lastPropId = Number(wx.getStorageSync(this.propWMKey())) || 0
+    // 该桌从未记录过水位：先向服务器要当前最大事件 id 建水位（绝不回放历史）。
+    // ⚠️ 不能用 since_id=0 的列表尾部建水位——后端 LIMIT 50 截断会让水位停在半路，
+    //    之后每轮轮询把剩余历史分批当新事件回放（每次几十条动画并发炸屏）
+    if (!hasWM && this._lastPropId === 0) {
+      api.get('/games/' + this.data.gameID + '/props?latest=1').then(function(r) {
+        that._propsFetching = false
+        that.bumpPropWM(r.max_id || 0)
+      }).catch(function() {
+        that._propsFetching = false
+      })
+      return
+    }
+    api.get('/games/' + this.data.gameID + '/props?since_id=' + this._lastPropId).then(function(res) {
+      that._propsFetching = false
       var evs = res.props || []
       if (!evs.length) return
-      if (that._lastPropId === undefined) {
-        that._lastPropId = Number(evs[evs.length - 1].id) || 0
-        return
-      }
       for (var i = 0; i < evs.length; i++) {
         var ev = evs[i]
-        that._lastPropId = Math.max(that._lastPropId || 0, Number(ev.id) || 0)
-        that.playProp(ev.type, Number(ev.from_player_id), Number(ev.to_player_id))
+        if ((Number(ev.id) || 0) <= (that._lastPropId || 0)) continue
+        that.bumpPropWM(ev.id)
+        // 保险：只播 2 分钟内的「活」事件——storage 水位落后时（换设备/清缓存）旧账静默吞掉
+        var fresh = ev.created_at && (Date.now() - new Date(ev.created_at).getTime() < 120000)
+        if (fresh) that.playProp(ev.type, Number(ev.from_player_id), Number(ev.to_player_id), Number(ev.id) || 0)
       }
-    }).catch(function() {})
+    }).catch(function() {
+      that._propsFetching = false
+    })
   },
 
   // 统一登记 fx 定时器：onHide/onUnload 一次清干净，防状态残留
@@ -1109,7 +1150,6 @@ Page({
         'fx.stars': { on: true, style: 'left:' + center.x + 'px;top:' + center.y + 'px;' }
       })
       that.vibrate(false)
-      that.showToast('🩴 人字拖精准砸中【' + name + '】！全桌爆笑！')
       that.fxTimeout(function() {
         that.setData({ 'fx.hit': false, 'fx.stars': null })
       }, 900)
@@ -1142,7 +1182,6 @@ Page({
         }
       })
       that.vibrate(true)
-      that.showToast('💥 猛烈踢中【' + name + '】！全桌茶台剧烈摇晃震颤！')
     }, 300)
     this.fxTimeout(function() {
       that.setData({ 'fx.kick': null, 'fx.quake': false })
@@ -1156,12 +1195,10 @@ Page({
   fxFlower(ctx) {
     var that = this
     var center = ctx.center
-    var pos = ctx.pos
-    var name = ctx.targetName
-    // 花束悬在目标席位上方；上方位席位则放到席位下方，避免被 fx 层裁掉
-    var y = pos === 'top' ? center.y + 24 : center.y - 30
+    // 花束统一悬在目标席位上方（花朵本体在锚点下方展开，锚点要比席位中心高约 100px）
+    // top 席位（南位）距 fx 层上缘最近：钳制最小 y=6，避免整束被上缘裁掉
+    var y = Math.max(6, center.y - 100)
     this.setData({ 'fx.flower': { x: center.x, y: y, on: true, wither: false, bubble: false } })
-    this.showToast(ctx.fromName + '向【' + name + '】送去了一朵等胡的花儿...')
     this.fxTimeout(function() {
       that.setData({ 'fx.flower.wither': true, 'fx.flower.bubble': true })
       that.vibrate(false)
@@ -1193,7 +1230,6 @@ Page({
     }, 150)
     this.fxTimeout(function() {
       that.setData({ 'fx.tea.pour': true })
-      that.showToast(ctx.fromName + '已向【' + name + '】敬奉一盅热腾腾的工夫乌龙茶 🍵')
     }, 450)
     this.fxTimeout(function() {
       that.setData({ 'fx.tea.pour': false, 'fx.tea.tilt': false })
@@ -1212,7 +1248,6 @@ Page({
     var x = center.x
     var y = pos === 'top' ? center.y + 30 : center.y - 150
     this.setData({ 'fx.dimsum': { x: x, y: y, run: true } })
-    this.showToast(ctx.fromName + '给【' + name + '】端上一笼热腾腾的笋尖水晶虾饺 🥟')
     this.fxTimeout(function() {
       that.setData({ 'fx.dimsum': null })
     }, 2700)

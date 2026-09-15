@@ -15,8 +15,8 @@
         <view class="hs-title-row">
           <view class="hs-title-left">
             <view class="hs-title-row-inner">
-              <text class="hs-title">开台手账</text>
-              <view class="hs-title-badge">雀局档案</view>
+              <text class="hs-title">流水账</text>
+              <!-- <view class="hs-title-badge">雀局档案</view> -->
             </view>
             <text class="hs-subtitle">清清楚楚 · 雀叙手账 · 一目了然</text>
           </view>

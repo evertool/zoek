@@ -67,6 +67,7 @@ func (h *PropHandler) CreateProp(c *gin.Context) {
 
 // ListProps handles GET /api/v1/games/:game_id/props?since_id=0
 // 返回 id > since_id 的事件（时间正序），前端逐条回放动画。
+// ?latest=1 → 只返回 { max_id }（客户端首次进房建立水位用，绝不回放历史）。
 func (h *PropHandler) ListProps(c *gin.Context) {
 	gameID, err := strconv.ParseInt(c.Param("game_id"), 10, 64)
 	if err != nil {
@@ -76,6 +77,15 @@ func (h *PropHandler) ListProps(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	if _, pErr := h.Store.GetGamePlayer(gameID, userID); pErr != nil {
 		c.JSON(http.StatusForbidden, errs.ErrForbidden)
+		return
+	}
+	if c.Query("latest") == "1" {
+		maxID, err := h.Store.GetPropMaxID(gameID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"max_id": maxID})
 		return
 	}
 	sinceID, _ := strconv.ParseInt(c.DefaultQuery("since_id", "0"), 10, 64)
