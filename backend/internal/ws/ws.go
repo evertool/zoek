@@ -5,6 +5,7 @@
 //   - {"type":"game"}                    牌局状态变化（客户端重拉 /games/:id）
 //   - {"type":"ledger"}                  流水变化（客户端重拉 /games/:id/adjustments）
 //   - {"type":"ping"}                    服务端心跳（25s 一次）
+//
 // 客户端发来的消息仅用于保活（任意内容都会刷新读超时）。
 //
 // 连接按 game_id 分房间；同一个玩家开两个页面会各占一条连接，广播都发。
@@ -22,9 +23,9 @@ import (
 
 const (
 	writeWait  = 10 * time.Second
-	pongWait   = 60 * time.Second    // 读超时：60s 内无任何消息（含保活）则断开
-	pingPeriod = 25 * time.Second    // 服务端心跳间隔（必须小于 pongWait）
-	sendBuffer = 16                  // 每连接发送缓冲；满了直接丢消息（推送可容忍）
+	pongWait   = 60 * time.Second // 读超时：60s 内无任何消息（含保活）则断开
+	pingPeriod = 25 * time.Second // 服务端心跳间隔（必须小于 pongWait）
+	sendBuffer = 16               // 每连接发送缓冲；满了直接丢消息（推送可容忍）
 )
 
 // Conn is one live room connection (already authenticated & room-bound).

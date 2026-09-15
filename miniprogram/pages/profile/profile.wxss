@@ -106,8 +106,6 @@
 .pf-menu-sub { font-size: 22rpx; color: var(--on-surface-variant); }
 .pf-menu-right { display: flex; align-items: center; gap: 8rpx; }
 .pf-menu-right-text { font-size: 20rpx; color: var(--on-surface-variant); }
-.pf-menu-tag { padding: 4rpx 12rpx; border-radius: var(--radius-default); background: rgba(166, 243, 201, 0.5); }
-.pf-menu-tag text { font-size: 20rpx; color: var(--primary); }
 .pf-menu-arrow { font-size: 28rpx; color: var(--outline); }
 .pf-menu-divider { height: 2rpx; background: var(--surface-container); margin: 0 32rpx; }
 
@@ -225,3 +223,15 @@
 
 /* 徽章图标底色补齐（手气王） */
 .pf-badge-icon-amber { background: #f6eedc; }
+
+/* ========== 安全与隐私守则面板 ========== */
+.pf-sp-panel { max-height: 84vh; }
+.pf-sp-scroll { flex: 1; min-height: 0; max-height: 68vh; padding: 0 32rpx 24rpx; box-sizing: border-box; }
+.pf-sp-lead { margin-bottom: 28rpx; padding: 20rpx 24rpx; border-radius: var(--radius-md); background: var(--secondary-fixed); }
+.pf-sp-lead-text { font-size: 22rpx; line-height: 1.7; color: var(--on-secondary-fixed); }
+.pf-sp-section { display: flex; flex-direction: column; gap: 10rpx; margin-bottom: 28rpx; }
+.pf-sp-h { display: flex; align-items: center; gap: 12rpx; }
+.pf-sp-bar { width: 6rpx; height: 26rpx; border-radius: var(--radius-full); background: var(--primary); flex-shrink: 0; }
+.pf-sp-h text { font-size: 26rpx; font-weight: 700; color: var(--on-surface); }
+.pf-sp-p { font-size: 23rpx; line-height: 1.75; color: var(--on-surface-variant); }
+.pf-sp-updated { display: block; text-align: center; font-size: 20rpx; color: var(--outline); padding: 8rpx 0 24rpx; }

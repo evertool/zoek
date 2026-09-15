@@ -89,7 +89,7 @@ Page({
       kick: null,     // 台下猛踢 { style, cx, cy, footX, footY, run, hit }
       flower: null,   // 花儿谢了 { x, y, on, wither, bubble }
       tea: null,      // 斟杯靓茶 { potX, potY, cupX, cupY, streamX, streamY, streamH, tilt, pour }
-      tomato: null,   // 丢番茄 { x, y, run, hit }（服务端 type 仍为 dimsum）
+      tomato: null,   // 丢番茄（阶段: fly 飞行 / splat 爆开糊脸 / fade 淡出；服务端 type 仍为 dimsum）
       banner: null    // 踢击私密暗号气泡 { title, desc, on }
     }
   },
@@ -1258,7 +1258,7 @@ Page({
     }, 2800)
   },
 
-  // 5. 丢番茄 🍅：番茄砸中目标头像并糊满（元素锚定头像正中心）→ 果汁飞溅
+  // 5. 丢番茄 🍅：番茄从发送者席位飞向目标头像 → 砸碎爆开 → 红浆糊脸粘住 → 淡出
   fxTomato(ctx) {
     var that = this
     var pos = ctx.pos
@@ -1267,18 +1267,29 @@ Page({
     this.getAvatarCenter(pos, function(av) {
       var c = av || fallback
       if (!c) return
-      that.setData({ 'fx.tomato': { x: c.x, y: c.y, run: false, hit: false } })
+      var start = ctx.start
+      // 阶段一：飞行（CSS 变量注入起止坐标，keyframes 抛物旋转）
+      that.setData({
+        'fx.tomato': {
+          fly: true,
+          style: '--sx:' + start.x + 'px;--sy:' + start.y + 'px;--dx:' + c.x + 'px;--dy:' + c.y + 'px;'
+        }
+      })
       that.vibrate(false)
+      // 阶段二：命中爆碎——飞行元素消失，红浆糊脸层出现并粘住头像
       that.fxTimeout(function() {
-        that.setData({ 'fx.tomato.run': true })
-      }, 60)
-      that.fxTimeout(function() {
-        that.setData({ 'fx.tomato.hit': true })
+        that.setData({
+          'fx.tomato': { x: c.x, y: c.y, fly: false, splat: true, fade: false }
+        })
         that.vibrate(true)
-      }, 420)
+      }, 480)
+      // 阶段三：糊脸保持 ~2s 后淡出
+      that.fxTimeout(function() {
+        that.setData({ 'fx.tomato.fade': true })
+      }, 2600)
       that.fxTimeout(function() {
         that.setData({ 'fx.tomato': null })
-      }, 2600)
+      }, 3200)
     })
   },
 

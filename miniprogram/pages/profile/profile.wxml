@@ -162,20 +162,6 @@
               <text class="pf-menu-arrow">›</text>
             </view>
           </view>
-          <view class="pf-menu-divider"></view>
-          <view class="pf-menu-item" bindtap="showSound">
-            <view class="pf-menu-left">
-              <view class="pf-menu-icon pf-menu-icon-primary"><image src="/assets/icons/sys-speaker-voice.svg" mode="aspectFit" /></view>
-              <view class="pf-menu-info">
-                <text class="pf-menu-label">动画音效与特效</text>
-                <text class="pf-menu-sub">正宗粤语报牌、糊牌全屏欢庆</text>
-              </view>
-            </view>
-            <view class="pf-menu-right">
-              <view class="pf-menu-tag"><text>粤语配音</text></view>
-              <text class="pf-menu-arrow">›</text>
-            </view>
-          </view>
         </view>
       </view>
 
@@ -183,12 +169,12 @@
       <view class="pf-menu-group">
         <text class="pf-menu-group-title">平台守则与关于</text>
         <view class="pf-menu-card">
-          <view class="pf-menu-item" bindtap="showSafety">
+          <view class="pf-menu-item" bindtap="openSafety">
             <view class="pf-menu-left">
               <view class="pf-menu-icon pf-menu-icon-tertiary"><image src="/assets/icons/sys-shield-security.svg" mode="aspectFit" /></view>
               <view class="pf-menu-info">
-                <text class="pf-menu-label">微信安全隐私与守则</text>
-                <text class="pf-menu-sub">绿色健康娱乐、纯积分免责声明</text>
+                <text class="pf-menu-label">安全与隐私守则</text>
+                <text class="pf-menu-sub">绿色健康娱乐 · 纯积分免责声明</text>
               </view>
             </view>
             <text class="pf-menu-arrow">›</text>
@@ -328,6 +314,30 @@
       <view class="pf-bp-footer" wx:if="{{badgeTotal > 0}}">
         <text>点亮状态实时同步战绩 · 数据不足不会点亮</text>
       </view>
+    </view>
+  </view>
+
+  <!-- 安全与隐私守则（点「安全与隐私守则」展开查看） -->
+  <view class="pf-bp-overlay {{showSafetyPanel ? 'pf-bp-show' : ''}}" bindtap="closeSafety">
+    <view class="pf-bp-panel pf-sp-panel" catchtap="stopPropagation">
+      <view class="pf-bp-grabber"></view>
+      <view class="pf-bp-header">
+        <view class="pf-bp-header-main">
+          <text class="pf-bp-title">安全与隐私守则</text>
+          <text class="pf-bp-sub">纯积分娱乐 · 绿色健康 · 不涉金钱</text>
+        </view>
+        <view class="pf-bp-close" bindtap="closeSafety"><text>✕</text></view>
+      </view>
+      <scroll-view class="pf-sp-scroll" scroll-y="true">
+        <view class="pf-sp-lead">
+          <text class="pf-sp-lead-text">得闲开台是一只纯积分记分工具，唔涉及任何金钱往来。下面讲清楚我们收集什么、点样用，同埋希望大家点样好好用。</text>
+        </view>
+        <view class="pf-sp-section" wx:for="{{safetySections}}" wx:for-item="sec" wx:key="title">
+          <view class="pf-sp-h"><view class="pf-sp-bar"></view><text>{{sec.title}}</text></view>
+          <text class="pf-sp-p" wx:for="{{sec.items}}" wx:for-item="line" wx:key="*this">{{line}}</text>
+        </view>
+        <text class="pf-sp-updated">本守则更新于 2026年9月15日 · 得闲开台</text>
+      </scroll-view>
     </view>
   </view>
 </view>

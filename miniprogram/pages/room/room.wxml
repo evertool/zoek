@@ -128,11 +128,19 @@
             <view class="cup-label"><text>敬上一杯高山靓乌龙</text></view>
           </view>
         </block>
-        <!-- 丢番茄 -->
+        <!-- 丢番茄：飞行 → 砸碎爆开 → 红浆糊脸粘住 -->
         <block wx:if="{{fx.tomato}}">
-          <view class="fx-tomato {{fx.tomato.run ? 'fx-run' : ''}}" style="left: {{fx.tomato.x}}px; top: {{fx.tomato.y}}px;">
-            <view class="fx-tomato-splash {{fx.tomato.hit ? 'fx-on' : ''}}"><text>💦</text><text>💥</text></view>
-            <text class="fx-tomato-fruit">🍅</text>
+          <view wx:if="{{fx.tomato.fly}}" class="fx-tomato-fly" style="{{fx.tomato.style}}">
+            <text class="fx-tomato-fly-fruit">🍅</text>
+          </view>
+          <view wx:else class="fx-tomato-splat-wrap {{fx.tomato.fade ? 'fx-fade' : ''}}" style="left: {{fx.tomato.x}}px; top: {{fx.tomato.y}}px;">
+            <view class="fx-tomato-blob b1"></view>
+            <view class="fx-tomato-blob b2"></view>
+            <view class="fx-tomato-blob b3"></view>
+            <view class="fx-tomato-drip d1"></view>
+            <view class="fx-tomato-drip d2"></view>
+            <view class="fx-tomato-splash"><text>💦</text><text>💥</text><text>💦</text></view>
+            <text class="fx-tomato-core">🍅</text>
             <view class="fx-tomato-label"><text>番茄糊脸 · 中啦！</text></view>
           </view>
         </block>

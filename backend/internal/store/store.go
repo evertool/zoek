@@ -1694,7 +1694,7 @@ type UserStats struct {
 	AvgRank    float64      `json:"avg_rank"`
 	BestScore  int64        `json:"best_score"`
 	AvgScore   float64      `json:"avg_score"`   // 平均每场净得分（总净积分/场次）
-	RecentWins int          `json:"recent_wins"` // 最近 7 场里净分 > 0 的场数
+	RecentWins int          `json:"recent_wins"` // 最近 7 场的胜场数（与胜率同口径：第 1 名且净分 > 0）
 	TotalScore int64        `json:"total_score"` // 净胜分（正负均返回）
 	Trend      []TrendPoint `json:"trend"`
 }
@@ -2065,6 +2065,7 @@ func (s *Store) GetUserStats(userID int64, maxTrend int) (*UserStats, error) {
 
 	st := &UserStats{Trend: []TrendPoint{}}
 	rankSum := 0
+	var recentWinFlags []bool // 滚动窗口：按结束时间正序记录每场是否「胜」，只留最近 7 场
 	for _, g := range games {
 		totals, _, err := s.AggregateSettlement(g.ID)
 		if err != nil {
@@ -2083,8 +2084,13 @@ func (s *Store) GetUserStats(userID int64, maxTrend int) (*UserStats, error) {
 		st.TotalScore += mine.TotalScore
 		rankSum += mine.Rank
 		// 与积分榜同口径：胜 = 单场第 1 名且净分 > 0；净分 0 计平场
-		if mine.Rank == 1 && mine.TotalScore > 0 {
+		win := mine.Rank == 1 && mine.TotalScore > 0
+		if win {
 			st.Wins++
+		}
+		recentWinFlags = append(recentWinFlags, win)
+		if len(recentWinFlags) > 7 {
+			recentWinFlags = recentWinFlags[1:]
 		}
 		if mine.TotalScore == 0 {
 			st.Draws++
@@ -2111,13 +2117,10 @@ func (s *Store) GetUserStats(userID int64, maxTrend int) (*UserStats, error) {
 		st.AvgRank = round2(float64(rankSum) / float64(st.Games))
 		st.AvgScore = round2(float64(st.TotalScore) / float64(st.Games))
 	}
-	// 最近 7 场里净分 > 0 的场数（Trend 按结束时间正序，取尾部）
-	recent := st.Trend
-	if len(recent) > 7 {
-		recent = recent[len(recent)-7:]
-	}
-	for _, p := range recent {
-		if p.Total > 0 {
+	// 最近 7 场胜场数：与胜率同口径（第 1 名且净分 > 0）。
+	// 不能只判净分 > 0——非头名的正分场会被误计成「胜」，和胜率自相矛盾。
+	for _, w := range recentWinFlags {
+		if w {
 			st.RecentWins++
 		}
 	}

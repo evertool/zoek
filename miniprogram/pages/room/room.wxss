@@ -356,21 +356,43 @@ page { overflow-x: hidden; overscroll-behavior-x: none; }
 @keyframes fxTeaSteam { 0% { transform: translateY(0) scaleX(0.8); opacity: 0; } 40% { opacity: 0.75; } 100% { transform: translateY(-48rpx) scaleX(1.3); opacity: 0; } }
 
 /* 5. 送件点心：竹蒸笼揭盖 + 白雾 */
-.fx-tomato { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; z-index: 9; }
-.fx-tomato-fruit { font-size: 100rpx; line-height: 1; filter: saturate(1.35) drop-shadow(0 4rpx 10rpx rgba(0,0,0,0.3)); transform: scale(0); }
-.fx-tomato.fx-run .fx-tomato-fruit { animation: fxTomatoSplat 2s cubic-bezier(.34,1.2,.64,1) forwards; }
-@keyframes fxTomatoSplat {
-  0% { transform: scale(0) rotate(-25deg); }
-  40% { transform: scale(1.3) rotate(8deg); }
-  55% { transform: scale(0.95) rotate(-3deg); }
-  100% { transform: scale(1.2) rotate(0deg); }
+/* 丢番茄：阶段一 飞行果实（CSS 变量注入起止坐标，与拖鞋同模式） */
+.fx-tomato-fly { position: absolute; left: -42rpx; top: -42rpx; width: 84rpx; height: 84rpx; z-index: 10; }
+.fx-tomato-fly-fruit { display: block; width: 100%; height: 100%; font-size: 76rpx; line-height: 84rpx; text-align: center; filter: drop-shadow(0 6rpx 10rpx rgba(0,0,0,0.4)); animation: fxTomatoFly 0.48s cubic-bezier(.5,0,.85,.5) forwards; }
+@keyframes fxTomatoFly {
+  0% { transform: translate(var(--sx), var(--sy)) scale(0.7) rotate(0deg); }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1.2) rotate(400deg); }
 }
-.fx-tomato-splash { position: absolute; top: -16rpx; left: 50%; transform: translateX(-50%); display: flex; gap: 10rpx; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; }
-.fx-tomato-splash.fx-on { opacity: 1; }
-.fx-tomato-splash text { font-size: 40rpx; animation: fxTomatoJuice 0.9s ease-out forwards; }
-.fx-tomato-splash text + text { animation-delay: 0.12s; }
-@keyframes fxTomatoJuice { 0% { transform: translateY(6rpx) scale(0.6); } 100% { transform: translateY(-14rpx) scale(1.1); opacity: 0.2; } }
-.fx-tomato-label { margin-top: 10rpx; padding: 4rpx 20rpx; border-radius: 999rpx; background: rgba(0,0,0,0.7); font-size: 20rpx; color: #fecaca; font-weight: 600; white-space: nowrap; }
+/* 阶段二：爆碎红浆糊脸层（锚定头像中心，不规则 blob 铺满 + 往下淌浆） */
+.fx-tomato-splat-wrap { position: absolute; transform: translate(-50%, -50%); width: 0; height: 0; z-index: 9; transition: opacity 0.5s ease; }
+.fx-tomato-splat-wrap.fx-fade { opacity: 0; }
+.fx-tomato-blob { position: absolute; background: radial-gradient(circle at 40% 35%, #f87171, #dc2626 72%); box-shadow: 0 4rpx 14rpx rgba(185,28,28,0.45); animation: fxTomatoPop 0.4s cubic-bezier(.34,1.56,.64,1) both; }
+.fx-tomato-blob.b1 { width: 150rpx; height: 140rpx; left: -75rpx; top: -70rpx; border-radius: 48% 52% 55% 45% / 52% 46% 54% 48%; }
+.fx-tomato-blob.b2 { width: 96rpx; height: 88rpx; left: 6rpx; top: -98rpx; border-radius: 55% 45% 48% 52% / 46% 54% 50% 50%; animation-delay: 0.06s; }
+.fx-tomato-blob.b3 { width: 78rpx; height: 72rpx; left: -102rpx; top: -32rpx; border-radius: 50% 50% 42% 58% / 55% 48% 52% 45%; animation-delay: 0.12s; }
+@keyframes fxTomatoPop {
+  0% { transform: scale(0.2) rotate(-35deg); opacity: 0.5; }
+  65% { transform: scale(1.12) rotate(6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 0.96; }
+}
+/* 往下淌的红浆（糊住不掉） */
+.fx-tomato-drip { position: absolute; width: 12rpx; border-radius: 0 0 8rpx 8rpx; background: linear-gradient(#dc2626, rgba(220,38,38,0.5)); animation: fxTomatoDrip 1.2s ease-out 0.25s both; }
+.fx-tomato-drip.d1 { left: -32rpx; top: 34rpx; }
+.fx-tomato-drip.d2 { left: 24rpx; top: 44rpx; animation-delay: 0.45s; }
+@keyframes fxTomatoDrip { 0% { height: 0; opacity: 0.95; } 100% { height: 72rpx; opacity: 0.85; } }
+/* 飞溅汁水（爆开瞬间向上飞出渐隐） */
+.fx-tomato-splash { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); display: flex; gap: 14rpx; pointer-events: none; }
+.fx-tomato-splash text { font-size: 46rpx; opacity: 0; animation: fxTomatoJuice 0.9s ease-out 0.05s both; }
+.fx-tomato-splash text + text { font-size: 38rpx; animation-delay: 0.12s; }
+.fx-tomato-splash text + text + text { animation-delay: 0.24s; }
+@keyframes fxTomatoJuice {
+  0% { opacity: 1; transform: translateY(14rpx) scale(0.5); }
+  55% { opacity: 1; transform: translateY(-24rpx) scale(1.15); }
+  100% { opacity: 0; transform: translateY(-48rpx) scale(0.9); }
+}
+/* 砸碎的番茄芯 */
+.fx-tomato-core { position: absolute; left: -26rpx; top: -32rpx; font-size: 52rpx; line-height: 1; transform: rotate(-18deg) scaleY(0.72); filter: saturate(1.2); animation: fxTomatoPop 0.45s cubic-bezier(.34,1.56,.64,1) both; }
+.fx-tomato-label { position: absolute; left: 50%; transform: translateX(-50%); top: 66rpx; padding: 4rpx 20rpx; border-radius: 999rpx; background: rgba(0,0,0,0.7); font-size: 20rpx; color: #fecaca; font-weight: 600; white-space: nowrap; }
 
 /* 6. 台下猛踢的私密暗号气泡（桌面内浮层，非全局弹窗） */
 .fx-banner { position: absolute; left: 24rpx; right: 24rpx; bottom: 24rpx; display: flex; align-items: center; gap: 12rpx; padding: 16rpx 20rpx; border-radius: 24rpx; background: rgba(33,49,69,0.95); border: 2rpx solid rgba(255,220,195,0.3); box-shadow: 0 16rpx 48rpx rgba(0,0,0,0.35); opacity: 0; transform: translateY(48rpx); transition: all 0.3s ease; z-index: 10; }
