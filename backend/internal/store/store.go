@@ -1696,6 +1696,7 @@ type UserStats struct {
 	AvgScore   float64      `json:"avg_score"`   // 平均每场净得分（总净积分/场次）
 	RecentWins int          `json:"recent_wins"` // 最近 7 场的胜场数（与胜率同口径：第 1 名且净分 > 0）
 	TotalScore int64        `json:"total_score"` // 净胜分（正负均返回）
+	MonthGames int          `json:"month_games"` // 本月活跃场次（按 ended_at 所在自然月）
 	Trend      []TrendPoint `json:"trend"`
 }
 
@@ -2065,6 +2066,9 @@ func (s *Store) GetUserStats(userID int64, maxTrend int) (*UserStats, error) {
 
 	st := &UserStats{Trend: []TrendPoint{}}
 	rankSum := 0
+	// 本月活跃：以服务器本地时区的自然月为界（与统计页口径一致，均基于 ended_at）
+	now := time.Now()
+	monthStart := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
 	var recentWinFlags []bool // 滚动窗口：按结束时间正序记录每场是否「胜」，只留最近 7 场
 	for _, g := range games {
 		totals, _, err := s.AggregateSettlement(g.ID)
@@ -2081,6 +2085,10 @@ func (s *Store) GetUserStats(userID int64, maxTrend int) (*UserStats, error) {
 			continue
 		}
 		st.Games++
+		// 本月活跃：只数结算成功且本人在场的场次，与 Games 同口径
+		if g.EndedAt != nil && !g.EndedAt.Before(monthStart) {
+			st.MonthGames++
+		}
 		st.TotalScore += mine.TotalScore
 		rankSum += mine.Rank
 		// 与积分榜同口径：胜 = 单场第 1 名且净分 > 0；净分 0 计平场

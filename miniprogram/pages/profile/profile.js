@@ -235,10 +235,6 @@ Page({
 
   loadStats() {
     api.get('/user/stats').then(res => {
-      // 忠诚度标签：≥200 场「铁杆雀客」/ ≥20 场「常客」，不足不显示
-      var loyalty = ''
-      if ((res.games || 0) >= 200) loyalty = '铁杆雀客'
-      else if ((res.games || 0) >= 20) loyalty = '常客'
       var total = res.total_score || 0
       var avg = res.avg_score || 0
       var fmt = function(n) {
@@ -248,11 +244,11 @@ Page({
       this.setData({
         stats: {
           games: res.games || 0,
+          month_games: res.month_games || 0,
           scoreText: fmt(total),
           avgText: fmt(avg),
           win_rate: res.win_rate || 0,
-          recent_wins: res.recent_wins || 0,
-          loyalty_text: loyalty
+          recent_wins: res.recent_wins || 0
         }
       })
     }).catch(function() {})
