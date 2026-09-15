@@ -158,7 +158,7 @@
               </view>
               <view class="recent-item-score">
                 <text class="recent-score-val {{rec.my_score >= 0 ? 'text-positive' : 'text-negative'}}">{{rec.my_score >= 0 ? '+' : ''}}{{rec.my_score}}</text>
-                <text class="recent-score-rank">第 {{rec.my_rank}} 名 · {{rec.resultText}}</text>
+                <text class="recent-score-rank">{{rec.resultText}}</text>
               </view>
             </view>
           </block>
