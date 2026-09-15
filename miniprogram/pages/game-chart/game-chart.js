@@ -7,6 +7,8 @@ const guard = require('../../utils/guard')
 
 const LINE_COLORS = ['#1b6b4a', '#0284c7', '#d97706', '#b91c1c']
 const SEAT_WINDS = ['東', '南', '西', '北']
+// 风位文字 → SVG 图标名（assets/icons/seat-wind-*.svg），与首页/明细页同套资源
+const WIND_CLASS_MAP = { '東': 'east', '东': 'east', '南': 'south', '西': 'west', '北': 'north' }
 
 Page({
   data: {
@@ -46,7 +48,7 @@ Page({
     api.get(`/games/${this.data.gameID}/history`).then(res => {
       var players = (res.players || []).map(function(p, idx) {
         var windText = p.wind || SEAT_WINDS[(Number(p.seat) || 1) - 1] || ''
-        return { ...p, wind: windText, color: LINE_COLORS[idx % 4], show: true }
+        return { ...p, wind: windText, windClass: WIND_CLASS_MAP[windText] || '', color: LINE_COLORS[idx % 4], show: true }
       })
       var byPlayerID = {}
       players.forEach(function(p) { byPlayerID[Number(p.player_id)] = p })
@@ -73,7 +75,7 @@ Page({
           if (toP && Number(pid) === Number(toP.player_id)) v += amount
           cum[pid].push(v)
         })
-        flowSteps.push({ from: fromP, to: toP, amount: amount })
+        flowSteps.push({ fromP: fromP, toP: toP, amount: amount })
       })
 
       players.forEach(function(p) {
@@ -159,10 +161,10 @@ Page({
     flowSteps.forEach(function(fs, i) {
       if (fs.amount > burst.amount) burst = { amount: fs.amount, step: fs, idx: i }
     })
-    if (burst.step && burst.step.to) {
+    if (burst.step && burst.step.toP) {
       insights.push({
         icon: '⚡', title: '单笔最大进账',
-        highlight: '第' + (burst.idx + 1) + '笔 · ' + burst.step.to.nickname + ' (+' + burst.amount + ')',
+        highlight: '第' + (burst.idx + 1) + '笔 · ' + burst.step.toP.nickname + ' (+' + burst.amount + ')',
         desc: '最大单笔转分进账，账面直接被这一笔拉起。'
       })
     }
@@ -213,6 +215,7 @@ Page({
   },
 
   // Canvas 2D 折线图 + 逐笔条形图（节点可能晚于首查渲染，重试兜底）
+  // 注意：两张画布各建独立的 SelectorQuery——同一 query 复用 exec 在真机上会静默失败
   drawCharts(retry) {
     retry = retry || 0
     const query = wx.createSelectorQuery().in(this)
@@ -221,13 +224,13 @@ Page({
         this.drawLineChart(res[0].node, res[0].width, res[0].height)
       } else if (retry < 5) {
         setTimeout(() => this.drawCharts(retry + 1), 200)
-        return
       }
-      query.select('#bar-chart').fields({ node: true, size: true }).exec(res2 => {
-        if (res2 && res2[0] && res2[0].node) {
-          this.drawFlowBarChart(res2[0].node, res2[0].width, res2[0].height)
-        }
-      })
+    })
+    const barQuery = wx.createSelectorQuery().in(this)
+    barQuery.select('#bar-chart').fields({ node: true, size: true }).exec(res2 => {
+      if (res2 && res2[0] && res2[0].node) {
+        this.drawFlowBarChart(res2[0].node, res2[0].width, res2[0].height)
+      }
     })
   },
 
@@ -244,7 +247,7 @@ Page({
     const ctx = this.chartContext(node, width, height)
     var players = this.data.players.filter(function(p) { return p.show !== false })
     if (!players.length) return
-    var padL = 34, padR = 34, padT = 16, padB = 22
+    var padL = 34, padR = 34, padT = 16, padB = 12
     var w = width - padL - padR, h = height - padT - padB
     var n = players[0].cum.length // 笔数 + 1（含起手 0）
     var all = []
@@ -265,10 +268,7 @@ Page({
         ctx.fillStyle = '#6f7a72'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right'
         ctx.fillText('0基准', padL - 4, y(0) + 3)
       }
-      // x 轴标签：逐笔
-      ctx.fillStyle = '#6f7a72'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center'
-      ctx.fillText('起手', x(0), height - 6)
-      for (var i = 1; i < n; i++) ctx.fillText(i + '笔', x(i), height - 6)
+      // x 轴不再标注笔数
     }
 
     var drawLines = function() {

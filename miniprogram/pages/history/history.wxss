@@ -7,7 +7,7 @@
 .hs-title-row { display: flex; align-items: center; justify-content: space-between; }
 .hs-title-left { display: flex; flex-direction: column; gap: 8rpx; }
 .hs-title-row-inner { display: flex; align-items: baseline; gap: 16rpx; }
-.hs-title { font-size: 40rpx; font-weight: 600; color: var(--on-surface); letter-spacing: -1rpx; }
+.hs-title { font-size: 48rpx; font-weight: 600; color: var(--on-surface); letter-spacing: -1rpx; }
 .hs-title-badge { padding: 8rpx 16rpx; border-radius: var(--radius-full); background: var(--primary-fixed); color: var(--on-primary-fixed); font-size: 20rpx; font-weight: 500; }
 .hs-subtitle { font-size: 24rpx; color: var(--on-surface-variant); }
 /* 分段器样式对齐雀友榜 .lb-period-tabs/.lb-period-tab（整体容器 + active 小圆点） */

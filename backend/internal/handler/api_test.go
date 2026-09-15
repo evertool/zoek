@@ -404,6 +404,43 @@ func TestJoinGameAlreadyJoined(t *testing.T) {
 	assertStatus(t, w, http.StatusOK)
 }
 
+// 已完结的台：邀请/扫码入口不再进房，返回 GAME_ENDED + game_id，前端跳对局记录详情。
+func TestJoinEndedGameReturnsDetailHint(t *testing.T) {
+	r, _, _ := testSetup(t)
+	gameID, auths := createGame4P(t, r)
+
+	// 打完一局并散台
+	w := doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auths[0], nil)
+	assertStatus(t, w, http.StatusOK)
+	roundID := int64(parseJSON(t, w)["round_id"].(float64))
+	playRound(t, r, gameID, roundID, auths, []int{10, 5, -5, -10})
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auths[0], map[string]string{"request_id": "e1"})
+	assertStatus(t, w, http.StatusOK)
+
+	token := strconv.FormatInt(gameID, 10)
+
+	// 台内雀友再点旧邀请：即便当年在座也拿 GAME_ENDED（不能再进房）
+	w = doRequest(t, r, "POST", "/api/v1/games/join", auths[1],
+		map[string]interface{}{"invite_token": token, "request_id": "rejoin-ended"})
+	assertStatus(t, w, http.StatusBadRequest)
+	m := parseJSON(t, w)
+	if m["code"] != "GAME_ENDED" {
+		t.Fatalf("join ended game code = %v, want GAME_ENDED", m["code"])
+	}
+	if int64(m["game_id"].(float64)) != gameID {
+		t.Fatalf("join ended game game_id = %v, want %d", m["game_id"], gameID)
+	}
+
+	// 局外人点旧邀请：同样 GAME_ENDED（是否看得到记录由详情页按权限兜底）
+	outside := loginAndAuth(t, r, "outsider")
+	w = doRequest(t, r, "POST", "/api/v1/games/join", outside,
+		map[string]interface{}{"invite_token": token, "request_id": "join-ended"})
+	assertStatus(t, w, http.StatusBadRequest)
+	if m = parseJSON(t, w); m["code"] != "GAME_ENDED" {
+		t.Fatalf("outsider join ended game code = %v, want GAME_ENDED", m["code"])
+	}
+}
+
 func TestSwapSeat(t *testing.T) {
 	r, _, _ := testSetup(t)
 	creator := loginAndAuth(t, r, "creator")

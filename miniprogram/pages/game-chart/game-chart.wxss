@@ -3,7 +3,7 @@
 page { overflow-x: hidden; overscroll-behavior-x: none; }
 .page { min-height: 100vh; background: var(--background); overflow-x: hidden; }
 .main-content { padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: 60rpx; display: flex; flex-direction: column; gap: var(--space-md); }
-.top-bar { display: flex; align-items: center; padding-left: var(--margin-screen); padding-right: var(--margin-screen); }
+.top-bar { display: flex; align-items: center; padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: var(--space-sm); }
 .nav-back-btn { border-radius: 50%; background: var(--surface-container-lowest); box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .nav-back-icon { font-size: 40rpx; color: var(--on-surface); line-height: 1; }
 .btn-primary text, .btn-secondary text { white-space: nowrap; }
@@ -28,9 +28,10 @@ page { overflow-x: hidden; overscroll-behavior-x: none; }
 /* 迷你卡 */
 .gc-mini-cards { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gutter-grid); }
 .gc-mini-card { background: var(--surface-container-low); border-radius: var(--radius-default); padding: 14rpx 16rpx; display: flex; flex-direction: column; gap: 8rpx; }
-.gc-mini-top { display: flex; align-items: center; gap: 8rpx; }
+.gc-mini-top { display: flex; align-items: center; gap: 8rpx; min-width: 0; }
 .gc-mini-dot { width: 14rpx; height: 14rpx; border-radius: 50%; }
-.gc-mini-name { font-size: 24rpx; font-weight: 600; color: var(--on-surface); }
+.gc-mini-name { font-size: 24rpx; font-weight: 600; color: var(--on-surface); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gc-mini-wind-svg { width: 30rpx; height: 30rpx; margin-left: auto; flex-shrink: 0; }
 .gc-mini-bottom { display: flex; align-items: center; justify-content: space-between; }
 .gc-mini-tag { font-size: 20rpx; color: var(--on-surface-variant); }
 .gc-mini-score { font-size: 30rpx; font-weight: 700; }

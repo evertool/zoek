@@ -68,6 +68,11 @@ Page({
   },
 
   handleJoinError(err) {
+    // 已完结的台：房间已不存在，带去看对局记录详情（后端附 game_id）
+    if (err && err.code === 'GAME_ENDED' && err.game_id) {
+      wx.redirectTo({ url: '/pages/game-detail/game-detail?game_id=' + err.game_id })
+      return
+    }
     if (err && err.action === 'BACK_TO_ROOM' && err.game_id) {
       wx.redirectTo({ url: `/pages/room/room?game_id=${err.game_id}` })
       return

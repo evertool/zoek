@@ -20,6 +20,8 @@ Page({
     flowShown: FLOW_PAGE_SIZE,
     flowPageSize: FLOW_PAGE_SIZE,
     loading: true,
+    loadError: false,
+    loadErrorMsg: '',
     navPadding: 0
   },
 
@@ -36,7 +38,7 @@ Page({
   },
 
   loadDetail() {
-    this.setData({ loading: true })
+    this.setData({ loading: true, loadError: false, loadErrorMsg: '' })
     api.get(`/games/${this.data.gameID}/history`).then(res => {
       var myID = Number(app.globalData.userID)
       var myNick = app.globalData.nickname || '我'
@@ -127,9 +129,18 @@ Page({
         flowShown: shown,
         loading: false
       })
-    }).catch(() => {
-      this.setData({ loading: false })
+    }).catch(err => {
+      // 非本台成员 / 已被清理 / 网络失败：给出兜底，避免白屏
+      this.setData({
+        loading: false,
+        loadError: true,
+        loadErrorMsg: (err && err.message) || '牌局记录加载失败'
+      })
     })
+  },
+
+  goHome() {
+    wx.reLaunch({ url: '/pages/index/index' })
   },
 
   loadMoreFlow() {

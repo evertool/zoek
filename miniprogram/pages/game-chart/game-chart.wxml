@@ -13,10 +13,10 @@
       <view class="gc-hero card anim-fade-up">
         <view class="gc-hero-head">
           <view class="gc-hero-title-row">
-            <view class="gc-tile-badge">雀</view>
-            <text class="gc-hero-title">{{detail.gameName}} · 积分走势</text>
+            <!-- <view class="gc-tile-badge">雀</view> -->
+            <text class="gc-hero-title">积分走势</text>
           </view>
-          <view class="gc-zero-chip" wx:if="{{detail.zeroSum}}"><text>☑ Σ 零和对账平稳</text></view>
+          <!-- <view class="gc-zero-chip" wx:if="{{detail.zeroSum}}"><text>☑ Σ 零和对账平稳</text></view> -->
         </view>
         <view class="gc-hero-sub">
           <view class="gc-hero-date">
@@ -32,7 +32,8 @@
           <view class="gc-mini-card" wx:for="{{players}}" wx:for-item="p" wx:key="user_id">
             <view class="gc-mini-top">
               <view class="gc-mini-dot" style="background: {{p.color}};"></view>
-              <text class="gc-mini-name">{{p.nickname}} ({{p.wind}})</text>
+              <text class="gc-mini-name">{{p.nickname}}</text>
+              <image class="gc-mini-wind-svg" src="/assets/icons/seat-wind-{{p.windClass}}.svg" mode="aspectFit" wx:if="{{p.windClass}}" />
             </view>
             <view class="gc-mini-bottom">
               <text class="gc-mini-tag">{{p.tag}}</text>

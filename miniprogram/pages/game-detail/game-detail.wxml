@@ -33,25 +33,24 @@
         </view>
         <view class="gd-players-grid">
           <view class="gd-player {{p.isChampion ? 'gd-player-champion' : ''}} {{p.isNegative ? 'gd-player-negative' : ''}}" wx:for="{{detail.players}}" wx:for-item="p" wx:key="player_id">
-            <view class="gd-player-crown" wx:if="{{p.isChampion}}"><text>👑 雀神</text></view>
-            <view class="gd-player-main">
-              <view class="gd-player-left">
-                <view class="gd-player-avatar-wrap">
-                  <view class="gd-player-avatar" style="background: {{p.avatarColor}};">
-                    <image wx:if="{{p.avatar_url}}" class="gd-player-avatar-img" src="{{p.avatar_url}}" mode="aspectFill" />
-                    <text wx:else>{{p.nickname[0]}}</text>
-                  </view>
-                  <view class="gd-player-wind" wx:if="{{p.wind}}"><text>{{p.wind}}</text></view>
+            <view class="gd-player-top">
+              <view class="gd-player-avatar-wrap">
+                <view class="gd-player-avatar" style="background: {{p.avatarColor}};">
+                  <image wx:if="{{p.avatar_url}}" class="gd-player-avatar-img" src="{{p.avatar_url}}" mode="aspectFill" />
+                  <text wx:else>{{p.nickname[0]}}</text>
                 </view>
-                <view class="gd-player-name">
-                  <text class="gd-player-name-text">{{p.nickname}}</text>
-                  <text class="gd-player-me" wx:if="{{p.isMe}}">(我)</text>
-                </view>
+                <image class="gd-player-wind-svg" wx:if="{{p.windClass}}" src="/assets/icons/seat-wind-{{p.windClass}}.svg" mode="aspectFit" />
               </view>
-              <view class="gd-player-score">
-                <text class="gd-player-score-val {{p.scoreClass}}">{{p.scoreText}}</text>
-                <text class="gd-player-unit">分</text>
+              <view class="gd-player-name">
+                <text class="gd-player-name-text">{{p.nickname}}</text>
+                <text class="gd-player-me" wx:if="{{p.isMe}}">(我)</text>
               </view>
+            </view>
+            <view class="gd-player-bottom">
+              <!-- 冠军卡：徽章占掉左下的「第 1 名」，不挤头像昵称 -->
+              <view class="gd-player-crown" wx:if="{{p.isChampion}}"><text>👑 全场大赢家</text></view>
+              <text class="gd-player-rank" wx:elif="{{p.rank}}">第 {{p.rank}} 名</text>
+              <text class="gd-player-score-val {{p.scoreClass}}">{{p.scoreText}}</text>
             </view>
           </view>
         </view>
@@ -93,6 +92,17 @@
     </block>
 
     <view class="load-tip" wx:if="{{loading}}">加载中...</view>
+
+    <!-- 加载失败 / 无权限查看 -->
+    <view class="gd-error" wx:if="{{loadError}}">
+      <image class="gd-error-icon" src="/assets/icons/sys-info-circle.svg" mode="aspectFit" />
+      <text class="gd-error-text">{{loadErrorMsg}}</text>
+      <text class="gd-error-sub">只有同台雀友先可以睇到呢份记录</text>
+      <view class="gd-error-actions">
+        <view class="gd-error-btn" bindtap="loadDetail"><text>重试</text></view>
+        <view class="gd-error-btn gd-error-btn-ghost" bindtap="goHome"><text>返回首页</text></view>
+      </view>
+    </view>
   </view>
 
   <!-- 底部操作栏：积分走势曲线 -->

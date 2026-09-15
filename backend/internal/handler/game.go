@@ -517,6 +517,18 @@ func (h *GameHandler) JoinGame(c *gin.Context) {
 		return
 	}
 
+	// 已完结的台：房间已不存在，邀请/扫码入口改为带 game_id 返回，
+	// 前端据此跳对局记录详情（非本台成员由详情页兜底提示无权限）
+	if game.Status == "ended" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":    errs.ErrGameEnded.Code,
+			"message": "呢张台已经散咗，带你睇返对局记录",
+			"action":  errs.ActionReadOnly,
+			"game_id": game.ID,
+		})
+		return
+	}
+
 	// 已经在座 → 幂等返回；曾经离座的行交给 store.JoinGame 复用并重新入座
 	existing, _ := h.Store.GetGamePlayerRow(game.ID, userID)
 	if existing != nil && existing.Status == model.PlayerStatusActive {
@@ -539,8 +551,8 @@ func (h *GameHandler) JoinGame(c *gin.Context) {
 		return
 	}
 
-	// 已散台 / 已取消 / 已过期：牌台不再可入，提示重新开局
-	if game.Status == "ended" || game.Status == "expired" || game.Status == "cancelled" {
+	// 已取消 / 已过期：牌台记录不可用，提示重新开局
+	if game.Status == "expired" || game.Status == "cancelled" {
 		c.JSON(http.StatusBadRequest, errs.ErrGameDissolved)
 		return
 	}

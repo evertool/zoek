@@ -37,3 +37,11 @@ cors:
     - "*"
   # 生产环境应配置为具体域名：
   # - "https://your-domain.com"
+
+# 腾讯云语音合成（粤语报分）：SecretID/Key 为空则前端回落微信同声传译插件（普通话）
+tts:
+  secret_id: ""
+  secret_key: ""
+  region: "ap-guangzhou"
+  voice_type: 101019   # 智彤·粤语女声（精品音色）
+  codec: "mp3"

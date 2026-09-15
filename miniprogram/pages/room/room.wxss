@@ -98,8 +98,8 @@ page { overflow-x: hidden; overscroll-behavior-x: none; }
 /* 流水账单 */
 .ledger-card { background: var(--surface-container-lowest); border-radius: var(--radius-lg); padding: var(--space-md); box-shadow: var(--shadow-card); display: flex; flex-direction: column; gap: var(--space-xs); }
 .ledger-header { display: flex; align-items: center; gap: 10rpx; }
-.ledger-icon { width: 34rpx; height: 34rpx; flex-shrink: 0; }
-.ledger-title { font-size: 34rpx; font-weight: 700; color: var(--on-surface); flex: 1; }
+.ledger-icon { width: 44rpx; height: 44rpx; flex-shrink: 0; }
+.ledger-title { font-size: 48rpx; font-weight: 600; color: var(--on-surface); letter-spacing: -1rpx; flex: 1; }
 .ledger-count { font-size: 20rpx; color: var(--outline); flex-shrink: 0; }
 .ledger-item { display: flex; align-items: center; gap: 16rpx; padding: 14rpx 0; }
 .ledger-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; background: var(--surface-container); flex-shrink: 0; }

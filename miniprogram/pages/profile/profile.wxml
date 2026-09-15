@@ -30,10 +30,10 @@
               <text class="pf-name">{{nickname}}</text>
               <view class="pf-rank-tag" bindtap="goRank"><image class="pf-rank-icon" src="/assets/icons/rank-1-god-crown.svg" mode="aspectFit" /><text>{{rankTier || '九品 · 初'}}</text></view>
             </view>
-            <view class="pf-mahjong-id-row">
-              <text class="pf-mahjong-id" id="mahjong-id">雀友号: {{userId}}</text>
-              <view class="pf-copy-btn" bindtap="copyUserId"><image src="/assets/icons/action-copy.svg" mode="aspectFit" /></view>
-            </view>
+            <!-- <view class="pf-mahjong-id-row"> -->
+              <!-- <text class="pf-mahjong-id" id="mahjong-id">雀友号: {{userId}}</text> -->
+              <!-- <view class="pf-copy-btn" bindtap="copyUserId"><image src="/assets/icons/action-copy.svg" mode="aspectFit" /></view> -->
+            <!-- </view> -->
             <text class="pf-motto" wx:if="{{motto}}">{{motto}}</text>
           </view>
         </view>
