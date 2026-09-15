@@ -133,7 +133,7 @@
     <view class="settle-footer">
       <view class="settle-divider-line"></view>
       <text class="settle-footer-text">只记录现场积分 · 不设金钱交易</text>
-      <text class="settle-footer-sub">悠悠茶香 雀叙情长</text>
+      <!-- <text class="settle-footer-sub">悠悠茶香 雀叙情长</text> -->
     </view>
   </view>
 

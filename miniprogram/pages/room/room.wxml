@@ -149,7 +149,7 @@
             <view class="fx-frag" style="--tx:20rpx;--ty:-180rpx;--rot:90deg;"><view class="fx-frag-stem"></view></view>
             <view class="fx-frag" style="--tx:-40rpx;--ty:170rpx;--rot:-45deg;"><text class="fx-frag-emoji">💥</text></view>
             <image class="fx-tomato-big" src="/assets/icons/fx-tomato-splatter.svg" mode="aspectFit" />
-            <view class="fx-tomato-bubble"><text>食番茄啦，乱咁出牌！🍅</text></view>
+            <view class="fx-tomato-bubble {{fx.tomato.pos === 'top' ? 'fx-bubble-below' : ''}}"><text>食番茄啦，乱咁出牌！🍅</text></view>
           </view>
         </block>
         <!-- 踢击私密暗号气泡 -->

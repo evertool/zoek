@@ -1293,7 +1293,7 @@ Page({
       // 阶段二：命中——番茄碎裂消失，冲击闪光 + 碎块爆散 + 剧震 + 震屏 + 大爆浆
       that.fxTimeout(function() {
         that.setData({
-          'fx.tomato': { phase: 'splat', x: c.x, y: c.y, fade: false },
+          'fx.tomato': { phase: 'splat', x: c.x, y: c.y, pos: pos, fade: false },
           'fx.sauceTarget': pos,
           'fx.tomatoHeavy': true,
           'fx.quake': true

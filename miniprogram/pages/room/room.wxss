@@ -388,6 +388,8 @@ page { overflow-x: hidden; overscroll-behavior-x: none; }
 /* 粤语催牌气泡 */
 .fx-tomato-bubble { position: absolute; left: 50%; transform: translateX(-50%); top: -170rpx; padding: 10rpx 24rpx; border-radius: 999rpx; background: rgba(69,10,10,0.95); border: 2rpx solid rgba(239,68,68,0.8); box-shadow: 0 8rpx 20rpx rgba(185,28,28,0.6); white-space: nowrap; animation: fxTomatoBigPop 0.4s cubic-bezier(.34,1.56,.64,1) both; }
 .fx-tomato-bubble text { font-size: 22rpx; color: #fef08a; font-weight: 800; }
+/* 南位（top）贴舞台顶部：气泡向上会被 overflow:hidden 裁掉，翻到头像下方 */
+.fx-tomato-bubble.fx-bubble-below { top: 130rpx; }
 /* 头像脸上番茄酱层（溢出裁圆 + 显现流淌动画） */
 .face-sauce { position: absolute; left: 0; top: 0; right: 0; bottom: 0; border-radius: 50%; overflow: hidden; opacity: 0; pointer-events: none; z-index: 2; }
 .face-sauce.fx-sauce-on { animation: fxFaceStain 3.2s cubic-bezier(.16,1,.3,1) both; }
