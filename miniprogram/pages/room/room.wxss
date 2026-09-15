@@ -197,6 +197,7 @@ page { overflow-x: hidden; overscroll-behavior-x: none; }
 .foot-soft text { font-size: 26rpx; font-weight: 600; color: var(--on-surface-variant); }
 .foot-soft-icon { width: 30rpx; height: 30rpx; }
 .foot-soft:active { background: var(--surface-container-low); }
+.foot-soft-right { margin-left: auto; }
 
 /* ========== 席位互动道具 fx 层（动画移植自 docs/design/room-donghua/code.html） ==========
  * 只新增动画层，不改桌面既有样式。设计稿是 web CSS keyframes，这里 1:1 移植（px → rpx ×2）；

@@ -142,6 +142,8 @@ Page({
   },
 
   onShow() {
+    // 已取消/散台离场中：不再发起任何加载
+    if (this._leaving) return
     // 未登录/资料不全时（onLoad 已触发弹回），不再发起轮询
     if (!guard.pass()) return
     if (this.data.gameID && !this.data.loading) {
@@ -212,6 +214,7 @@ Page({
 
   // 服务端推送分发
   handleRoomPush(msg) {
+    if (this._leaving) return
     if (msg.type === 'prop') {
       var d = msg.data || {}
       // 自己发的道具本地已即时播放过（useProp 已把水位推到该 id），广播推回来自身时跳过
@@ -254,7 +257,7 @@ Page({
   },
 
   pollGame() {
-    if (!this.data.gameID) return
+    if (!this.data.gameID || this._leaving) return
     api.get('/games/' + this.data.gameID).then(res => {
       this.applyGame(res, true)
       // 已有弹窗时不打断用户操作
@@ -263,6 +266,7 @@ Page({
   },
 
   loadGame() {
+    if (this._leaving) return
     this.setData({ loading: true, loadError: false })
     api.get('/games/' + this.data.gameID).then(res => {
       this.applyGame(res, false)
@@ -898,6 +902,11 @@ Page({
           api.post('/games/' + this.data.gameID + '/cancel', {
             request_id: api.genRequestID()
           }).then(() => {
+            // 牌局已被物理删除：立刻断开 WS/停轮询，否则缓冲期内的
+            // "game" 推送和轮询会 loadGame 404，弹出「资源不存在」
+            this._leaving = true
+            this.closeRoomWS()
+            this.stopPolling()
             wx.showToast({ title: '已取消', icon: 'success' })
             // 取消后牌台已不存在，直接回首页（分享/扫码直接进本页时页面栈只有一层，navigateBack 会失效）
             setTimeout(function() { wx.reLaunch({ url: '/pages/index/index' }) }, 1000)
@@ -916,6 +925,9 @@ Page({
           api.post('/games/' + this.data.gameID + '/end', {
             request_id: api.genRequestID()
           }).then(() => {
+            this._leaving = true
+            this.closeRoomWS()
+            this.stopPolling()
             wx.showToast({ title: '已散台', icon: 'success' })
             wx.redirectTo({ url: '/pages/settlement/settlement?game_id=' + this.data.gameID })
           })
@@ -1068,7 +1080,7 @@ Page({
 
   loadProps() {
     var that = this
-    if (!this.data.gameID || this._propsFetching) return
+    if (!this.data.gameID || this._leaving || this._propsFetching) return
     this._propsFetching = true
     // 水位来源优先级：本页实例 → storage（跨次进房延续）
     var hasWM = this._lastPropId !== undefined
