@@ -6,6 +6,14 @@ const util = require('../../utils/util')
 const WINDS = ['東', '南', '西', '北']
 const WIND_CLASSES = ['east', 'south', 'west', 'north']
 
+// 最近战绩的名次徽章（1~4 名：金/银/铜/铁）
+const RANK_BADGE_ICONS = {
+  1: '/assets/icons/rank_1_gold_badge.svg',
+  2: '/assets/icons/rank_2_silver_badge.svg',
+  3: '/assets/icons/rank_3_bronze_badge.svg',
+  4: '/assets/icons/rank_4_iron_badge.svg'
+}
+
 // 安全加载 lottie（npm 构建失败时不会阻断页面）
 let lottie = null
 try {
@@ -199,6 +207,8 @@ Page({
         playersText: (g.players || []).map(function(p) { return p.nickname }).slice(0, 4).join('、'),
         my_score: g.my_score || 0,
         my_rank: g.my_rank || 0,
+        // 名次徽章：1~4 名对应 金/银/铜/铁，其余走中性兜底
+        rankIcon: RANK_BADGE_ICONS[g.my_rank] || '/assets/icons/rank-9-novice.svg',
         resultText: g.result === 'win' ? '胜' : (g.result === 'lose' ? '负' : '平')
       }))
       this.setData({ recent })

@@ -128,7 +128,7 @@
 /* ========== 空状态 ========== */
 .empty-card { background: var(--surface-container-lowest); border-radius: var(--radius-lg); padding: 80rpx 40rpx; text-align: center; box-shadow: var(--shadow-card); }
 .empty-icon-wrap { width: 120rpx; height: 160rpx; margin: 0 auto 28rpx; display: flex; align-items: center; justify-content: center; background: linear-gradient(145deg,#ffffff 0%,#f5f0e6 60%,#e8dfd0 100%); border-radius: 18%; box-shadow: 0 8rpx 24rpx rgba(26,26,46,0.08); }
-.recent-item-icon image { width: 36rpx; height: 36rpx; }
+.recent-item-icon image { width: 44rpx; height: 44rpx; }
 .empty-text { font-size: 30rpx; font-weight: 500; color: var(--on-surface); margin-bottom: 8rpx; }
 
 /* ========== 最近战绩 ========== */

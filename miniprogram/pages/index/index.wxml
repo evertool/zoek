@@ -24,7 +24,7 @@
     </view>
     <view class="hero-footer anim-fade-up delay-8">
       <view class="footer-line"></view>
-      <text class="footer-text">雀友一齐打，分数唔用争</text>
+      <text class="footer-text">雀友一齐打，唔使数牌</text>
       <view class="footer-line"></view>
     </view>
   </view>
@@ -151,7 +151,7 @@
           <block wx:for="{{recent}}" wx:for-item="rec" wx:key="game_id">
             <view class="recent-divider" wx:if="{{index > 0}}"></view>
             <view class="recent-item" bindtap="goRecentDetail" data-id="{{rec.game_id}}">
-              <view class="recent-item-icon {{rec.my_score >= 0 ? 'recent-item-icon-win' : 'recent-item-icon-loss'}}"><image src="{{rec.my_rank === 1 ? '/assets/icons/rank-1-god-crown.svg' : '/assets/icons/rank-4-facai.svg'}}" mode="aspectFit" /></view>
+              <view class="recent-item-icon {{rec.my_score >= 0 ? 'recent-item-icon-win' : 'recent-item-icon-loss'}}"><image src="{{rec.rankIcon}}" mode="aspectFit" /></view>
               <view class="recent-item-info">
                 <text class="recent-item-name">{{rec.name}}</text>
                 <text class="recent-item-sub">{{rec.timeText}} · 对局: {{rec.playersText}}</text>
