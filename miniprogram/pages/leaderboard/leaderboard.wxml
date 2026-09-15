@@ -41,9 +41,9 @@
       <view class="lb-rules anim-fade-up delay-1">
         <view class="lb-rules-left">
           <image class="lb-rules-icon" src="/assets/icons/sys-info-circle.svg" mode="aspectFit" />
-          <text>同台切磋 1 局即可上榜</text>
+          <text>同台切磋 1 场就可以上榜</text>
         </view>
-        <text class="lb-rules-right">纯积分统计 · 不涉金钱</text>
+        <text class="lb-rules-right">纯积分统计 · 不涉及金钱</text>
       </view>
 
       <!-- 榜单模式筛选：挪到「雀友排名」标题旁，checkbox 式按钮（单选） -->
@@ -118,10 +118,10 @@
               <view class="lb-period-dot" wx:if="{{boardTab === 'rank'}}"></view>
             </view>
           </view>
-          <view class="rank-head-right">
+          <!-- <view class="rank-head-right">
             <view class="rank-live-dot anim-ping"></view>
             <text>实时自动结算更新</text>
-          </view>
+          </view> -->
         </view>
 
         <view class="rank-item {{item.is_self ? 'rank-item-self' : ''}} {{item.displayRank === 1 ? 'rank-item-top' : ''}}" wx:for="{{entries}}" wx:key="user_id">
