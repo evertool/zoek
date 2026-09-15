@@ -15,7 +15,6 @@
       <view class="lb-head anim-fade-up">
         <view class="lb-title-row">
           <text class="lb-title">雀友榜</text>
-          <view class="lb-title-dot anim-pulse"></view>
         </view>
         <text class="lb-subtitle">{{days === 0 ? '全部' : '近' + days + '日'}}雀叙 · 同台切磋</text>
       </view>

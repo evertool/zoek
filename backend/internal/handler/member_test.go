@@ -390,3 +390,69 @@ func TestCancelPendingAdjustmentsOnLeave(t *testing.T) {
 		t.Errorf("待确认转分 status = %q, want cancelled", got.Status)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// 首页「进行中牌台」列表与离座的关系
+//
+// bug 复盘：GetActiveGames 的子查询原本没过滤 game_players.status，
+// 被台主踢出 / 自己退出后留下的 status=left 行仍会命中，
+// 导致首页还显示一张已经不在座的牌台。此处锁死回归。
+// ---------------------------------------------------------------------------
+
+func activeGameIDs(t *testing.T, r *gin.Engine, auth string) []float64 {
+	t.Helper()
+	w := doRequest(t, r, "GET", "/api/v1/games/active", auth, nil)
+	assertStatus(t, w, http.StatusOK)
+	games, _ := parseJSON(t, w)["games"].([]interface{})
+	ids := make([]float64, 0, len(games))
+	for _, raw := range games {
+		if g, ok := raw.(map[string]interface{}); ok {
+			ids = append(ids, g["game_id"].(float64))
+		}
+	}
+	return ids
+}
+
+func containsID(ids []float64, id float64) bool {
+	for _, v := range ids {
+		if v == id {
+			return true
+		}
+	}
+	return false
+}
+
+func TestActiveGamesHidesSelfLeftGame(t *testing.T) {
+	r, _, _ := testSetup(t)
+	gameID, auths := createGame4P(t, r)
+
+	if !containsID(activeGameIDs(t, r, auths[1]), float64(gameID)) {
+		t.Fatalf("前置失败：入局者的进行中列表应包含 game %d", gameID)
+	}
+
+	assertStatus(t, doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/leave", gameID), auths[1], map[string]string{}), http.StatusOK)
+
+	if ids := activeGameIDs(t, r, auths[1]); containsID(ids, float64(gameID)) {
+		t.Errorf("自己退出后首页仍显示进行中牌台：%v", ids)
+	}
+	// 台主仍在座，列表不受影响
+	if ids := activeGameIDs(t, r, auths[0]); !containsID(ids, float64(gameID)) {
+		t.Errorf("台主的进行中列表丢了 game %d：%v", gameID, ids)
+	}
+}
+
+func TestActiveGamesHidesKickedGame(t *testing.T) {
+	r, _, _ := testSetup(t)
+	gameID, auths := createGame4P(t, r)
+
+	p3ID := playerBySeat(t, gameDetail(t, r, auths[0], gameID), 3)["user_id"].(float64)
+	assertStatus(t, doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/kick", gameID), auths[0],
+		map[string]interface{}{"target_player_id": p3ID}), http.StatusOK)
+
+	if ids := activeGameIDs(t, r, auths[2]); containsID(ids, float64(gameID)) {
+		t.Errorf("被台主踢出后首页仍显示进行中牌台：%v", ids)
+	}
+	if ids := activeGameIDs(t, r, auths[0]); !containsID(ids, float64(gameID)) {
+		t.Errorf("台主的进行中列表丢了 game %d：%v", gameID, ids)
+	}
+}

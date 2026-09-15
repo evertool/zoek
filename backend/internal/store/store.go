@@ -2,7 +2,6 @@ package store
 
 import (
 	"crypto/sha256"
-	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -82,6 +81,7 @@ func (s *Store) AutoMigrate() error {
 		&model.GameHidden{},
 		&model.RankSettlement{},
 		&model.SeatSwapRequest{},
+		&model.PropEvent{},
 	); err != nil {
 		return err
 	}
@@ -257,9 +257,12 @@ func (s *Store) GetGameByInviteToken(token string) (*model.Game, error) {
 }
 
 // GetActiveGames returns active and forming games for a user.
+// 只算「在座」的牌局：被台主踢出/自己退出后留下的是 status=left 行，不应再出现在首页进行中列表。
 func (s *Store) GetActiveGames(userID int64) ([]model.Game, error) {
 	var games []model.Game
-	err := s.DB.Where("id IN (SELECT game_id FROM game_players WHERE user_id = ?) AND status IN ('forming', 'active')", userID).
+	err := s.DB.Where(
+		"id IN (SELECT game_id FROM game_players WHERE user_id = ? AND status = ?) AND status IN ('forming', 'active')",
+		userID, model.PlayerStatusActive).
 		Order("updated_at DESC").Find(&games).Error
 	return games, err
 }
@@ -1064,6 +1067,12 @@ func (s *Store) UpdateGameStatus(gameID int64, expectedStatus, newStatus string)
 	case "ended":
 		game.EndedAt = &now
 		game.SettlementUpdatedAt = &now
+		// 时长散台时一次性落库，读侧直接取字段不再现算
+		if game.StartedAt != nil {
+			if d := int(game.EndedAt.Sub(*game.StartedAt).Minutes()); d > 0 {
+				game.DurationMinutes = d
+			}
+		}
 	case "expired":
 		game.JoinExpiresAt = &now
 		// Clear join expiry
@@ -1240,22 +1249,20 @@ func (s *Store) AutoExpireStaleGame(gameID int64) (bool, bool, error) {
 		return false, false, err
 	}
 
-	// 最新记账时间：转分 created_at / 逐局提交 updated_at（联表）取最大值
-	var adjLast, subLast sql.NullTime
-	if err := s.DB.Model(&model.ScoreAdjustment{}).Where("game_id = ?", game.ID).
-		Select("MAX(created_at)").Row().Scan(&adjLast); err != nil {
-		return false, false, err
-	}
-	if err := s.DB.Raw("SELECT MAX(rs.updated_at) FROM round_submissions rs JOIN rounds r ON rs.round_id = r.id WHERE r.game_id = ?", game.ID).
-		Row().Scan(&subLast); err != nil {
-		return false, false, err
-	}
+	// 最新记账时间：转分 created_at / 逐局提交 updated_at，各取最新一条（gorm 扫描，MySQL/SQLite 通用）
 	var lastEntry time.Time
-	if adjLast.Valid && adjLast.Time.After(lastEntry) {
-		lastEntry = adjLast.Time
+	var lastAdj model.ScoreAdjustment
+	if err := s.DB.Where("game_id = ?", game.ID).
+		Order("created_at DESC").First(&lastAdj).Error; err == nil {
+		lastEntry = lastAdj.CreatedAt
 	}
-	if subLast.Valid && subLast.Time.After(lastEntry) {
-		lastEntry = subLast.Time
+	var lastSub model.RoundSubmission
+	if err := s.DB.Table("round_submissions").
+		Joins("JOIN rounds r ON round_submissions.round_id = r.id").
+		Where("r.game_id = ?", game.ID).
+		Order("round_submissions.updated_at DESC").
+		First(&lastSub).Error; err == nil && lastSub.UpdatedAt.After(lastEntry) {
+		lastEntry = lastSub.UpdatedAt
 	}
 
 	var adjCount, subCount int64
@@ -1291,8 +1298,26 @@ func (s *Store) AutoExpireStaleGame(gameID int64) (bool, bool, error) {
 		return false, false, nil
 	}
 	now := time.Now()
+	// 自动散台的 ended_at 按「最后一笔账」时间计（真实收牌时刻），而不是扫描触发时刻：
+	// 记录页时长 = ended_at - started_at、完结时间展示都以它为准，
+	// 否则会被 5 小时空窗拉长。settlement_updated_at 仍记实际结算时刻。
+	endedAt := last
+	duration := 0
+	if game.StartedAt != nil {
+		if game.StartedAt.After(endedAt) {
+			endedAt = *game.StartedAt
+		}
+		if d := int(endedAt.Sub(*game.StartedAt).Minutes()); d > 0 {
+			duration = d
+		}
+	}
 	res := s.DB.Model(&model.Game{}).Where("id = ? AND status = ?", gameID, "active").
-		Updates(map[string]interface{}{"status": "ended", "ended_at": now, "settlement_updated_at": now})
+		Updates(map[string]interface{}{
+			"status":                "ended",
+			"ended_at":              endedAt,
+			"settlement_updated_at": now,
+			"duration_minutes":      duration,
+		})
 	if res.Error != nil {
 		return false, false, res.Error
 	}
@@ -2120,6 +2145,56 @@ func (s *Store) GetRoundScores(roundID int64) ([]RoundScore, error) {
 		})
 	}
 	return result, nil
+}
+
+// propTypeValid 席位互动道具类型白名单（与前端道具盒一一对应）。
+var propTypeValid = map[string]bool{
+	"slipper": true, // 扔飞拖鞋
+	"tea":     true, // 斟杯靓茶
+	"kick":    true, // 台下猛踢（仅发送者与目标可见）
+	"flower":  true, // 花儿谢了
+	"dimsum":  true, // 送件点心
+}
+
+// CreatePropEvent 记录一次道具互动（发送者与目标须为该桌在座玩家）。
+func (s *Store) CreatePropEvent(gameID, fromPlayerID, toPlayerID int64, typ string) (*model.PropEvent, error) {
+	if !propTypeValid[typ] {
+		return nil, errs.ErrInvalidInput
+	}
+	game, err := s.GetGame(gameID)
+	if err != nil {
+		return nil, err
+	}
+	if game.Status != "active" {
+		return nil, errs.ErrGameNotActive
+	}
+	var cnt int64
+	if err := s.DB.Model(&model.GamePlayer{}).
+		Where("game_id = ? AND id IN ? AND status = 'active'", gameID, []int64{fromPlayerID, toPlayerID}).
+		Count(&cnt).Error; err != nil {
+		return nil, err
+	}
+	if cnt != 2 {
+		return nil, errs.New("PLAYER_NOT_FOUND", "目标玩家不在本桌", errs.ActionRetry)
+	}
+	ev := &model.PropEvent{
+		GameID:       gameID,
+		FromPlayerID: fromPlayerID,
+		ToPlayerID:   toPlayerID,
+		Type:         typ,
+	}
+	if err := s.DB.Create(ev).Error; err != nil {
+		return nil, err
+	}
+	return ev, nil
+}
+
+// GetPropEventsSince 返回该桌 id > sinceID 的道具事件（时间正序，最多 limit 条）。
+func (s *Store) GetPropEventsSince(gameID, sinceID int64, limit int) ([]model.PropEvent, error) {
+	var evs []model.PropEvent
+	err := s.DB.Where("game_id = ? AND id > ?", gameID, sinceID).
+		Order("id ASC").Limit(limit).Find(&evs).Error
+	return evs, err
 }
 
 // ExpireOldFormingGames marks forming games older than 24h as expired.

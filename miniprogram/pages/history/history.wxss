@@ -10,9 +10,12 @@
 .hs-title { font-size: 40rpx; font-weight: 600; color: var(--on-surface); letter-spacing: -1rpx; }
 .hs-title-badge { padding: 8rpx 16rpx; border-radius: var(--radius-full); background: var(--primary-fixed); color: var(--on-primary-fixed); font-size: 20rpx; font-weight: 500; }
 .hs-subtitle { font-size: 24rpx; color: var(--on-surface-variant); }
-.hs-day-tabs { display: flex; gap: 16rpx; margin-top: 20rpx; }
-.hs-day-tab { flex: 1; display: flex; align-items: center; justify-content: center; padding: 16rpx 0; border-radius: var(--radius-full); background: var(--surface-container-low); color: var(--on-surface-variant); font-size: 26rpx; font-weight: 500; }
+/* 分段器样式对齐雀友榜 .lb-period-tabs/.lb-period-tab（整体容器 + active 小圆点） */
+.hs-day-tabs { display: flex; gap: 8rpx; margin-top: 20rpx; background: var(--surface-container-low); padding: 8rpx; border-radius: var(--radius-xl); }
+.hs-day-tab { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8rpx; padding: 20rpx 0; border-radius: var(--radius-lg); color: var(--on-surface-variant); font-size: 24rpx; font-weight: 500; transition: all 0.2s ease; }
 .hs-day-tab.active { background: var(--primary); color: var(--on-primary); box-shadow: var(--shadow-card); }
+.hs-tab-dot { width: 12rpx; height: 12rpx; border-radius: 50%; background: var(--secondary-container); }
+.hs-tab-dot-sm { width: 8rpx; height: 8rpx; }
 .hs-rank-badge { padding: 2rpx 12rpx; border-radius: var(--radius-full); background: var(--secondary-fixed); color: var(--secondary-fixed-variant); font-size: 18rpx; font-weight: 600; flex-shrink: 0; }
 
 /* 本月概览 */
@@ -36,8 +39,9 @@
 
 /* 筛选栏 */
 .hs-filter-bar { display: flex; align-items: center; justify-content: space-between; }
-.hs-filter-tabs { display: flex; gap: 16rpx; }
-.hs-filter-tab { padding: 12rpx 24rpx; border-radius: var(--radius-full); background: var(--surface-container-low); color: var(--on-surface-variant); font-size: 24rpx; font-weight: 500; }
+/* 结果筛选：对齐雀友榜积分榜/段位榜紧凑分段器（.rank-board-seg） */
+.hs-filter-tabs { display: flex; gap: 8rpx; background: var(--surface-container-low); padding: 8rpx; border-radius: var(--radius-xl); }
+.hs-filter-tab { display: flex; align-items: center; justify-content: center; gap: 8rpx; flex: 0 0 auto; padding: 12rpx 36rpx; border-radius: 12rpx; color: var(--on-surface-variant); font-size: 22rpx; font-weight: 500; transition: all 0.2s ease; }
 .hs-filter-tab.active { background: var(--primary); color: var(--on-primary); box-shadow: var(--shadow-card); }
 .hs-filter-count { font-size: 20rpx; color: var(--outline); }
 
@@ -71,11 +75,10 @@
 .hs-card-status { display: flex; align-items: center; gap: 8rpx; padding: 8rpx 16rpx; border-radius: var(--radius-full); background: var(--surface-container-low); }
 .hs-status-icon { width: 24rpx; height: 24rpx; }
 .hs-card-status text { font-size: 20rpx; color: var(--on-surface-variant); }
-.hs-card-meta { display: flex; align-items: center; gap: 16rpx; margin-top: 12rpx; font-size: 24rpx; color: var(--on-surface-variant); }
-.hs-meta-item { display: flex; align-items: center; gap: 8rpx; }
 .hs-meta-icon { font-size: 24rpx; }
-.hs-meta-dot { font-size: 24rpx; color: var(--outline-variant); }
-.hs-meta-players { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hs-meta-players { display: block; margin-top: 12rpx; font-size: 24rpx; color: var(--on-surface-variant); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 时长独立一行：nowrap 防止「分」字被挤到下一行 */
+.hs-meta-duration { display: flex; align-items: center; gap: 8rpx; margin-top: 8rpx; font-size: 24rpx; color: var(--on-surface-variant); white-space: nowrap; }
 .hs-card-score { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; padding-left: var(--space-xs); }
 .hs-score-val { font-size: 44rpx; font-weight: 700; }
 .hs-score-tag { margin-top: 8rpx; padding: 8rpx 12rpx; border-radius: var(--radius-default); }

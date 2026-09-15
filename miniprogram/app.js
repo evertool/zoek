@@ -6,14 +6,13 @@ const util = require('./utils/util')
 // develop = 本地开发（局域网 IP，仅开发者工具勾选「不校验合法域名」时可用）
 // trial   = 体验版；release = 正式版 —— 两者都必须走 https 正式域名（微信强制）
 const ENV_CONFIG = {
-  develop: 'https://zoek.246891.xyz/api/v1',
+  develop: 'http://192.168.1.16:8080/api/v1',
   trial: 'https://zoek.246891.xyz/api/v1',
   release: 'https://zoek.246891.xyz/api/v1'
 }
 const envVersion = (() => {
   try {
-    // return wx.getAccountInfoSync().miniProgram.envVersion
-    return 'trial'
+    return wx.getAccountInfoSync().miniProgram.envVersion
   } catch (e) {
     return 'develop'
   }

@@ -108,7 +108,7 @@ Page({
         detail: {
           gameName: res.game_name,
           status: res.status,
-          statusText: util.statusText(res.status) || '散台圆满',
+          statusText: util.statusText(res.status) || '已散台',
           endedText: endedAt
             ? ((endedAt.getMonth() + 1) + '月' + endedAt.getDate() + '日 ' + this.formatHM(res.ended_at) + ' 完结')
             : '',

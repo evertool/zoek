@@ -138,11 +138,11 @@ Page({
       my_score: g.my_score || 0,
       my_rank: g.my_rank || 0,
       duration: duration,
-      playersText: (g.players || []).map(function(p) { return p.nickname }).join('、') || '—',
+      playersText: (g.players || []).filter(function(p) { return !p.is_me }).map(function(p) { return p.nickname }).join('、') || '—',
       resultText: resultMap[g.result] || '平',
       has_adjustment: g.has_adjustment || false,
-      footerText: g.has_adjustment ? '含改分记录已确认' : '已平账 · 无争议调整',
-      detailText: '查看详细手账'
+      footerText: '已平账',
+      detailText: '查看详细账单'
     }
   },
 
@@ -187,7 +187,7 @@ Page({
   },
 
   statusText(status) {
-    var map = { forming: '等紧人', active: '进行中', ended: '散台圆满', cancelled: '已取消' }
+    var map = { forming: '等紧人', active: '进行中', ended: '已散台', cancelled: '已取消' }
     return map[status] || status
   },
 

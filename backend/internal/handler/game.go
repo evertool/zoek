@@ -264,6 +264,10 @@ func (h *GameHandler) GetHistoryGames(c *gin.Context) {
 
 		for _, g := range games {
 			players := playersByGame[g.ID]
+			// 单人「局」（开台后无人加入即过期）不是真实牌局，不进翻记录/概览统计
+			if len(players) < 2 {
+				continue
+			}
 			totals := totalsByGame[g.ID]
 			var myGP *model.GamePlayer
 			for i := range players {
@@ -338,10 +342,8 @@ func (h *GameHandler) GetHistoryGames(c *gin.Context) {
 		for _, p := range it.players {
 			playerItems = append(playerItems, gin.H{"nickname": p.NicknameSnapshot})
 		}
-		var duration int
-		if g.StartedAt != nil && g.EndedAt != nil {
-			duration = int(g.EndedAt.Sub(*g.StartedAt).Minutes())
-		}
+		// 时长散台时已落库，直接读字段
+		duration := g.DurationMinutes
 		result2 = append(result2, gin.H{
 			"game_id":          g.ID,
 			"name":             g.Name,

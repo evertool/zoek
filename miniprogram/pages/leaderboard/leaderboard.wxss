@@ -6,7 +6,6 @@
 .lb-head { padding: 0 var(--margin-screen); display: flex; flex-direction: column; gap: 4rpx; margin-top: var(--space-xs); }
 .lb-title-row { display: flex; align-items: center; gap: 12rpx; }
 .lb-title { font-size: 48rpx; font-weight: 600; color: var(--on-surface); letter-spacing: -1rpx; }
-.lb-title-dot { width: 12rpx; height: 12rpx; border-radius: 50%; background: var(--primary-container); }
 .lb-subtitle { font-size: 24rpx; color: var(--on-surface-variant); }
 
 /* ========== 周期时间切片 ========== */

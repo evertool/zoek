@@ -21,7 +21,7 @@
             <text class="hs-subtitle">清清楚楚 · 雀叙手账 · 一目了然</text>
           </view>
         </view>
-        <!-- 日期筛选（近30 / 近7天 / 全部） -->
+        <!-- 日期筛选（近30 / 近7天 / 全部）— 与雀友榜分段器同款 -->
         <view class="hs-day-tabs">
           <view
             class="hs-day-tab {{days === item.days ? 'active' : ''}}"
@@ -30,6 +30,7 @@
             data-days="{{item.days}}"
             bindtap="onDayFilter">
             <text>{{item.label}}</text>
+            <view class="hs-tab-dot" wx:if="{{days === item.days}}"></view>
           </view>
         </view>
       </view>
@@ -71,7 +72,7 @@
         </view>
       </view>
 
-      <!-- 筛选栏（标签：胜/平/负） -->
+      <!-- 筛选栏（标签：胜/平/负）— 与雀友榜积分榜/段位榜分段器同款 -->
       <view class="hs-filter-bar anim-fade-up delay-2">
         <view class="hs-filter-tabs">
           <view
@@ -81,6 +82,7 @@
             data-result="{{item.value}}"
             bindtap="onResultFilter">
             <text>{{item.label}}</text>
+            <view class="hs-tab-dot hs-tab-dot-sm" wx:if="{{result === item.value}}"></view>
           </view>
         </view>
         <text class="hs-filter-count">共 {{total}} 组记录</text>
@@ -118,11 +120,8 @@
                   <view class="hs-card-status"><image class="hs-status-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" /><text>{{item.statusText}}</text></view>
                   <view class="hs-rank-badge" wx:if="{{item.is_ranked}}">排位</view>
                 </view>
-                <view class="hs-card-meta">
-                  <text class="hs-meta-item"><text class="hs-meta-icon">⏱</text>{{item.duration}}</text>
-                  <text class="hs-meta-dot">·</text>
-                  <text class="hs-meta-players">雀友: {{item.playersText}}</text>
-                </view>
+                <text class="hs-meta-players">雀友: {{item.playersText}}</text>
+                <text class="hs-meta-duration"><text class="hs-meta-icon">⏱</text>{{item.duration}}</text>
               </view>
               <view class="hs-card-score">
                 <text class="hs-score-val {{item.my_score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.my_score >= 0 ? '+' : ''}}{{item.my_score}}</text>

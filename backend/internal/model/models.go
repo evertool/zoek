@@ -59,6 +59,7 @@ type Game struct {
 	StartedAt           *time.Time     `json:"started_at,omitempty"`
 	EndedAt             *time.Time     `json:"ended_at,omitempty"`
 	SettlementUpdatedAt *time.Time     `json:"settlement_updated_at,omitempty"`
+	DurationMinutes     int            `gorm:"not null;default:0" json:"duration_minutes"` // 散台时落库，= ended_at - started_at（分钟）
 	CreatedAt           time.Time      `json:"created_at"`
 	UpdatedAt           time.Time      `json:"updated_at"`
 	DeletedAt           gorm.DeletedAt `gorm:"index" json:"-"`
@@ -164,3 +165,16 @@ type SeatSwapRequest struct {
 }
 
 func (SeatSwapRequest) TableName() string { return "seat_swap_requests" }
+
+// PropEvent 席位互动道具事件（房间页 fx 动画同步）。
+// 可见性规则（前端按此过滤）：kick(台下猛踢)仅发送者与目标两人可见，其余道具全桌可见。
+type PropEvent struct {
+	ID           int64     `gorm:"primaryKey;autoIncrement" json:"id"`
+	GameID       int64     `gorm:"not null;index:idx_prop_game" json:"game_id"`
+	FromPlayerID int64     `gorm:"not null" json:"from_player_id"`
+	ToPlayerID   int64     `gorm:"not null" json:"to_player_id"`
+	Type         string    `gorm:"type:varchar(16);not null" json:"type"` // slipper/tea/kick/flower/dimsum
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+func (PropEvent) TableName() string { return "prop_events" }

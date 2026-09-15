@@ -353,6 +353,9 @@ Page({
           tts.speak('收到' + va.amount + '分')
         }
       }
+
+      // 道具事件轮询：随主流轮询拉新事件并回放动画（kick 仅双方可见）
+      this.loadProps()
     }).catch(() => {})
   },
 
@@ -880,20 +883,96 @@ Page({
       this.showToast('先选一个互动目标席位')
       return
     }
+    var myPID = this.myPlayerID()
+    if (!myPID) {
+      this.showToast('先上座再使用道具')
+      return
+    }
+    // 目标席位的 player_id
+    var seats = this.data.seats || []
+    var toPID = 0
+    for (var i = 0; i < seats.length; i++) {
+      var s = seats[i]
+      if (s.pos === pos && s.player) toPID = Number(s.player.player_id)
+    }
+    if (!toPID) {
+      this.showToast('没找到目标席位')
+      return
+    }
     this.closePropModal()
     var that = this
-    this.getSeatCenter(pos, function(center) {
-      if (!center) {
-        that.showToast('没找到目标席位')
+    // 上报后端 → 同步给同桌；本人立即本地播放（不等轮询）
+    api.post('/games/' + this.data.gameID + '/props', { to_player_id: toPID, type: type }).then(function(res) {
+      that._lastPropId = Math.max(that._lastPropId || 0, Number(res.id) || 0)
+      that.playProp(type, myPID, toPID)
+    }).catch(function(err) {
+      that.showToast((err && err.message) || '道具发送失败，请重试')
+    })
+  },
+
+  // 我的 player_id（不在座返回 0）
+  myPlayerID() {
+    var seats = this.data.seats || []
+    for (var i = 0; i < seats.length; i++) {
+      if (seats[i].isSelf && seats[i].player) return Number(seats[i].player.player_id)
+    }
+    return 0
+  },
+
+  // 回放一次道具动画（本地发送与远端轮询共用）
+  // 可见性：kick 仅发送者与目标两人看到；其余道具全桌可见
+  playProp(type, fromPID, toPID) {
+    if (type === 'kick') {
+      var me = this.myPlayerID()
+      if (Number(fromPID) !== me && Number(toPID) !== me) return
+    }
+    var that = this
+    var seats = this.data.seats || []
+    var fromSeat = null
+    var toSeat = null
+    for (var i = 0; i < seats.length; i++) {
+      var s = seats[i]
+      if (!s.player) continue
+      if (Number(s.player.player_id) === Number(fromPID)) fromSeat = s
+      if (Number(s.player.player_id) === Number(toPID)) toSeat = s
+    }
+    if (!toSeat || !toSeat.player) return
+    var meID = this.myPlayerID()
+    var targetName = Number(toPID) === meID ? '你' : toSeat.player.nickname
+    var fromName = Number(fromPID) === meID ? '我' : (fromSeat && fromSeat.player ? fromSeat.player.nickname : '雀友')
+
+    this.getSeatCenter(fromSeat ? fromSeat.pos : 'east', function(start) {
+      if (!start) start = { x: 340, y: 157 }
+      that.getSeatCenter(toSeat.pos, function(center) {
+        if (!center) return
+        var ctx = { start: start, center: center, pos: toSeat.pos, targetName: targetName, fromName: fromName }
+        that.setData({ 'fx.target': toSeat.pos })
+        if (type === 'slipper') that.fxSlipper(ctx)
+        else if (type === 'tea') that.fxTea(ctx)
+        else if (type === 'kick') that.fxKick(ctx)
+        else if (type === 'flower') that.fxFlower(ctx)
+        else if (type === 'dimsum') that.fxDimsum(ctx)
+      })
+    })
+  },
+
+  // 轮询拉取新道具事件并回放（首次进入只记水位，不回放历史）
+  loadProps() {
+    var that = this
+    if (!this.data.gameID) return
+    api.get('/games/' + this.data.gameID + '/props?since_id=' + (this._lastPropId || 0)).then(function(res) {
+      var evs = res.props || []
+      if (!evs.length) return
+      if (that._lastPropId === undefined) {
+        that._lastPropId = Number(evs[evs.length - 1].id) || 0
         return
       }
-      that.setData({ 'fx.target': pos })
-      if (type === 'slipper') that.fxSlipper(center)
-      else if (type === 'tea') that.fxTea(center, pos)
-      else if (type === 'kick') that.fxKick(center)
-      else if (type === 'flower') that.fxFlower(center, pos)
-      else if (type === 'dimsum') that.fxDimsum(center, pos)
-    })
+      for (var i = 0; i < evs.length; i++) {
+        var ev = evs[i]
+        that._lastPropId = Math.max(that._lastPropId || 0, Number(ev.id) || 0)
+        that.playProp(ev.type, Number(ev.from_player_id), Number(ev.to_player_id))
+      }
+    }).catch(function() {})
   },
 
   // 统一登记 fx 定时器：onHide/onUnload 一次清干净，防状态残留
@@ -946,35 +1025,35 @@ Page({
   },
 
   // 1. 扔飞拖鞋 🩴：抛物线飞抵目标 → 命中抖动 + 星芒
-  fxSlipper(center) {
+  fxSlipper(ctx) {
     var that = this
-    var name = this.data.propTargetName
-    this.mySeatCenter(function(start) {
-      if (!start) start = { x: 340, y: 157 }
-      that.setData({
-        'fx.slipper': {
-          style: '--sx:' + start.x + 'px;--sy:' + start.y + 'px;--dx:' + center.x + 'px;--dy:' + center.y + 'px;'
-        }
-      })
-      that.fxTimeout(function() {
-        that.setData({
-          'fx.slipper': null,
-          'fx.hit': true,
-          'fx.stars': { on: true, style: 'left:' + center.x + 'px;top:' + center.y + 'px;' }
-        })
-        that.vibrate(false)
-        that.showToast('🩴 人字拖精准砸中【' + name + '】！全桌爆笑！')
-        that.fxTimeout(function() {
-          that.setData({ 'fx.hit': false, 'fx.stars': null })
-        }, 900)
-      }, 660)
+    var name = ctx.targetName
+    var start = ctx.start
+    var center = ctx.center
+    this.setData({
+      'fx.slipper': {
+        style: '--sx:' + start.x + 'px;--sy:' + start.y + 'px;--dx:' + center.x + 'px;--dy:' + center.y + 'px;'
+      }
     })
+    this.fxTimeout(function() {
+      that.setData({
+        'fx.slipper': null,
+        'fx.hit': true,
+        'fx.stars': { on: true, style: 'left:' + center.x + 'px;top:' + center.y + 'px;' }
+      })
+      that.vibrate(false)
+      that.showToast('🩴 人字拖精准砸中【' + name + '】！全桌爆笑！')
+      that.fxTimeout(function() {
+        that.setData({ 'fx.hit': false, 'fx.stars': null })
+      }, 900)
+    }, 660)
   },
 
   // 2. 台下猛踢 🦶：大脚破屏 → 300ms 命中 → 三重冲击波 + 全桌地震 + 头像弹飞 + 暗号气泡
-  fxKick(center) {
+  fxKick(ctx) {
     var that = this
-    var name = this.data.propTargetName
+    var name = ctx.targetName
+    var center = ctx.center
     this.setData({
       'fx.kick': {
         style: 'left:' + center.x + 'px;top:' + center.y + 'px;',
@@ -992,7 +1071,7 @@ Page({
         'fx.banner': {
           on: true,
           title: '大力踢！哎呀！踢咗【' + name + '】一脚！',
-          desc: '台底踢咁大啖，脚趾尾都抽筋！全桌得我知你踢我！'
+          desc: '台底踢咁大啖，脚趾尾都抽筋！'
         }
       })
       that.vibrate(true)
@@ -1007,13 +1086,15 @@ Page({
   },
 
   // 3. 花儿谢了 🥀：鲜花送到 → 0.7s 后枯萎凋零 + 愁云雨丝 + 粤语气泡
-  fxFlower(center, pos) {
+  fxFlower(ctx) {
     var that = this
-    var name = this.data.propTargetName
+    var center = ctx.center
+    var pos = ctx.pos
+    var name = ctx.targetName
     // 花束悬在目标席位上方；上方位席位则放到席位下方，避免被 fx 层裁掉
     var y = pos === 'top' ? center.y + 24 : center.y - 30
     this.setData({ 'fx.flower': { x: center.x, y: y, on: true, wither: false, bubble: false } })
-    this.showToast('向【' + name + '】送去了一朵等胡的花儿...')
+    this.showToast(ctx.fromName + '向【' + name + '】送去了一朵等胡的花儿...')
     this.fxTimeout(function() {
       that.setData({ 'fx.flower.wither': true, 'fx.flower.bubble': true })
       that.vibrate(false)
@@ -1024,9 +1105,11 @@ Page({
   },
 
   // 4. 斟杯靓茶 🍵：紫砂壶飞入倾斜 → 茶汤注入 → 水位涟漪白雾
-  fxTea(center, pos) {
+  fxTea(ctx) {
     var that = this
-    var name = this.data.propTargetName
+    var center = ctx.center
+    var pos = ctx.pos
+    var name = ctx.targetName
     // 茶杯悬在席位上方（上方位席位放到席位下方，防止被 fx 层上缘裁掉）
     var cupX = center.x - 44
     var cupY = pos === 'top' ? center.y + 24 : center.y - 110
@@ -1043,7 +1126,7 @@ Page({
     }, 150)
     this.fxTimeout(function() {
       that.setData({ 'fx.tea.pour': true })
-      that.showToast('已向【' + name + '】敬奉一盅热腾腾的工夫乌龙茶 🍵')
+      that.showToast(ctx.fromName + '已向【' + name + '】敬奉一盅热腾腾的工夫乌龙茶 🍵')
     }, 450)
     this.fxTimeout(function() {
       that.setData({ 'fx.tea.pour': false, 'fx.tea.tilt': false })
@@ -1054,13 +1137,15 @@ Page({
   },
 
   // 5. 送件点心 🥟：竹蒸笼送到目标席位 → 掀盖白雾
-  fxDimsum(center, pos) {
+  fxDimsum(ctx) {
     var that = this
-    var name = this.data.propTargetName
+    var center = ctx.center
+    var pos = ctx.pos
+    var name = ctx.targetName
     var x = center.x
     var y = pos === 'top' ? center.y + 30 : center.y - 150
     this.setData({ 'fx.dimsum': { x: x, y: y, run: true } })
-    this.showToast('给【' + name + '】端上一笼热腾腾的笋尖水晶虾饺 🥟')
+    this.showToast(ctx.fromName + '给【' + name + '】端上一笼热腾腾的笋尖水晶虾饺 🥟')
     this.fxTimeout(function() {
       that.setData({ 'fx.dimsum': null })
     }, 2700)

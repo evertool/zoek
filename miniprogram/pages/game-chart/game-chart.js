@@ -186,7 +186,7 @@ Page({
   dateText(ts) {
     var d = util.toDate(ts)
     if (!d) return ''
-    return (d.getMonth() + 1) + '月' + d.getDate() + '日 散台圆满'
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日 已散台'
   },
 
   onLegendTap(e) {

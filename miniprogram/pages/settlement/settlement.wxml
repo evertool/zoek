@@ -3,13 +3,13 @@
   <view class="main-content" style="padding-top: {{navPadding}}px;">
     <!-- 散台庆祝头部 -->
     <view class="settle-header anim-fade-up">
-      <view class="settle-status-pill">
+      <!-- <view class="settle-status-pill">
         <view class="settle-status-dot"></view>
         <text>账目已清 · 雀叙圆满</text>
-      </view>
-      <text class="settle-title">今晚圆满散台</text>
+      </view> -->
+      <text class="settle-title">圆满散台</text>
       <view class="settle-slogan">
-        <text>今晚大赢家，全场话事</text>
+        <!-- <text>今晚大赢家，全场话事</text> -->
         <text class="settle-slogan-icon"><image src="/assets/icons/status-check-success.svg" mode="aspectFit" /></text>
       </view>
     </view>

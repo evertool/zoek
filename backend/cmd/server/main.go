@@ -115,6 +115,7 @@ func main() {
 	rankHandler := handler.NewRankHandler(s)
 	leaderboardHandler := handler.NewLeaderboardHandler(s)
 	ttsHandler := handler.NewTTSHandler(cfg)
+	propHandler := handler.NewPropHandler(s)
 
 	// API v1
 	v1 := r.Group("/api/v1")
@@ -182,6 +183,10 @@ func main() {
 
 			// TTS（粤语报分音频，需配置 tts 密钥；未配置返回 TTS_NOT_CONFIGURED）
 			auth.GET("/tts", ttsHandler.GetTTS)
+
+			// 席位互动道具（fx 动画同步；kick 仅双方可见，其余全桌）
+			auth.POST("/games/:game_id/props", propHandler.CreateProp)
+			auth.GET("/games/:game_id/props", propHandler.ListProps)
 		}
 	}
 

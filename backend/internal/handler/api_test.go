@@ -84,6 +84,11 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 			auth.POST("/games/:game_id/swap_requests/:id/:action", swapH.ResolveSwapRequest)
 			auth.GET("/rank/me", NewRankHandler(s).GetMyRank)
 
+			// 席位互动道具
+			propH := NewPropHandler(s)
+			auth.POST("/games/:game_id/props", propH.CreateProp)
+			auth.GET("/games/:game_id/props", propH.ListProps)
+
 			auth.POST("/games/:game_id/rounds", roundH.CreateNextRound)
 			auth.GET("/games/:game_id/rounds/current", roundH.GetCurrentRound)
 			auth.PUT("/games/:game_id/rounds/:round_id/submission", roundH.SubmitScore)
@@ -292,6 +297,65 @@ func createGameAndStart(t *testing.T, r *gin.Engine) (int64, string, string) {
 	assertStatus(t, w, http.StatusOK)
 
 	return gameID, auth1, auth2
+}
+
+// TestPropEvents 道具事件：发送→轮询拉取；非法类型拒绝；since_id 增量拉取。
+func TestPropEvents(t *testing.T) {
+	r, _, _ := testSetup(t)
+	gameID, auth1, auth2 := createGameAndStart(t, r)
+
+	// 双方各自的 player_id：creator=owner 角色，joiner=player
+	w := doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	var p1, p2 float64
+	for _, p := range parseJSON(t, w)["players"].([]interface{}) {
+		pm := p.(map[string]interface{})
+		if pm["role"].(string) == "owner" {
+			p1 = pm["player_id"].(float64)
+		} else {
+			p2 = pm["player_id"].(float64)
+		}
+	}
+
+	// 非法类型 → 400
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/props", gameID), auth1,
+		map[string]interface{}{"to_player_id": p2, "type": "nuke"})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("invalid type: status = %d, want 400", w.Code)
+	}
+
+	// 正常发送（kick 台下猛踢）
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/props", gameID), auth1,
+		map[string]interface{}{"to_player_id": p2, "type": "kick"})
+	assertStatus(t, w, http.StatusCreated)
+	evID := int64(parseJSON(t, w)["id"].(float64))
+	if evID <= 0 {
+		t.Fatalf("event id = %v", parseJSON(t, w)["id"])
+	}
+
+	// 花儿谢了
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/props", gameID), auth2,
+		map[string]interface{}{"to_player_id": p1, "type": "flower"})
+	assertStatus(t, w, http.StatusCreated)
+
+	// joiner 增量拉取 since 0 → 2 条
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/props?since_id=0", gameID), auth2, nil)
+	assertStatus(t, w, http.StatusOK)
+	props := parseJSON(t, w)["props"].([]interface{})
+	if len(props) != 2 {
+		t.Fatalf("props len = %d, want 2", len(props))
+	}
+	if props[0].(map[string]interface{})["type"].(string) != "kick" {
+		t.Fatalf("first prop type = %v, want kick", props[0])
+	}
+
+	// since_id=evID → 只剩 flower 1 条
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/props?since_id=%d", gameID, evID), auth2, nil)
+	assertStatus(t, w, http.StatusOK)
+	props = parseJSON(t, w)["props"].([]interface{})
+	if len(props) != 1 || props[0].(map[string]interface{})["type"].(string) != "flower" {
+		t.Fatalf("since_id incremental props = %v", props)
+	}
 }
 
 func TestCreateGame(t *testing.T) {
