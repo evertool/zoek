@@ -16,6 +16,7 @@ import (
 	"github.com/lk/zoek/backend/internal/logger"
 	"github.com/lk/zoek/backend/internal/middleware"
 	"github.com/lk/zoek/backend/internal/store"
+	"github.com/lk/zoek/backend/internal/ws"
 	"github.com/lk/zoek/backend/pkg/wechat"
 )
 
@@ -116,6 +117,7 @@ func main() {
 	leaderboardHandler := handler.NewLeaderboardHandler(s)
 	ttsHandler := handler.NewTTSHandler(cfg)
 	propHandler := handler.NewPropHandler(s)
+	wsHandler := handler.NewWSHandler(s, jwtManager, ws.Default)
 
 	// API v1
 	v1 := r.Group("/api/v1")
@@ -126,6 +128,8 @@ func main() {
 		// Authenticated
 		auth := v1.Group("")
 		auth.Use(jwtManager.Auth())
+		// 房间内写操作成功后向长连接广播 "game" 刷新信号（轮询替代）
+		auth.Use(middleware.RoomSyncBroadcast())
 		{
 			// User
 			auth.GET("/user/profile", authHandler.GetProfile)
@@ -188,6 +192,9 @@ func main() {
 			auth.POST("/games/:game_id/props", propHandler.CreateProp)
 			auth.GET("/games/:game_id/props", propHandler.ListProps)
 		}
+
+		// WebSocket 房间长连接（token 走 query，自行鉴权）
+		v1.GET("/ws", wsHandler.ServeWS)
 	}
 
 	// HTTP Server with graceful shutdown

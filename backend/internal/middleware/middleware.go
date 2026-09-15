@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/lk/zoek/backend/internal/errs"
 	"github.com/lk/zoek/backend/internal/logger"
+	"github.com/lk/zoek/backend/internal/ws"
 	"go.uber.org/zap"
 )
 
@@ -56,6 +58,28 @@ func (m *JWTManager) ParseToken(tokenStr string) (*Claims, error) {
 		return nil, errs.ErrAuthExpired
 	}
 	return claims, nil
+}
+
+// RoomSyncBroadcast 对 /games/:game_id 下成功的写操作（POST/PUT/PATCH/DELETE）
+// 向房间长连接广播 "game" 刷新信号，前端收到后重拉牌局全量数据。
+// 这样所有记分/转分/局切换/换座/成员变更都即时同步，无需各自埋广播点。
+func RoomSyncBroadcast() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+		switch c.Request.Method {
+		case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+		default:
+			return
+		}
+		if c.Writer.Status() < http.StatusOK || c.Writer.Status() >= http.StatusMultipleChoices {
+			return
+		}
+		gameID, err := strconv.ParseInt(c.Param("game_id"), 10, 64)
+		if err != nil || gameID <= 0 {
+			return
+		}
+		ws.Dirty(gameID, "game")
+	}
 }
 
 // Auth middleware verifies the JWT and sets the user ID in context.

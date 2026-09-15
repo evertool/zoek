@@ -8,6 +8,7 @@ import (
 	"github.com/lk/zoek/backend/internal/errs"
 	"github.com/lk/zoek/backend/internal/middleware"
 	"github.com/lk/zoek/backend/internal/store"
+	"github.com/lk/zoek/backend/internal/ws"
 )
 
 // PropHandler 席位互动道具事件：把 fx 动画同步给同桌玩家。
@@ -59,6 +60,8 @@ func (h *PropHandler) CreateProp(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err)
 		return
 	}
+	// 即时推送：同桌玩家秒级回放动画（kick 可见性由客户端过滤）
+	ws.Emit(gameID, "prop", ev)
 	c.JSON(http.StatusCreated, ev)
 }
 

@@ -28,6 +28,11 @@ zoek.246891.xyz {
 
 	tls internal
 
+	# WebSocket 房间长连接（无超时直通；必须放在 /api/* 之前，Caddy 按声明顺序匹配）
+	handle /api/v1/ws {
+		reverse_proxy 127.0.0.1:8090
+	}
+
 	handle /api/* {
 		reverse_proxy 127.0.0.1:8090 {
 			# 头像上传走此通道，避免中间层过早断开

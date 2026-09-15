@@ -4,6 +4,7 @@ const api = require('../../utils/api')
 const util = require('../../utils/util')
 const guard = require('../../utils/guard')
 const tts = require('../../utils/tts')
+const wsClient = require('../../utils/ws')
 const prefs = require('../../utils/prefs')
 
 // 安全加载 lottie（npm 构建失败时不会阻断页面）
@@ -15,6 +16,7 @@ try {
 }
 
 const POLL_INTERVAL = 4000
+const SLOW_POLL_INTERVAL = 30000 // WS 在线时的兜底刷新间隔（防推送丢失）
 const LEDGER_PAGE_SIZE = 5 // 流水账单每页条数
 const WINDS = ['東', '南', '西', '北']
 // 座位 → 桌面方位：与 WINDS 同序（東 南 西 北）→ 左 上 右 下
@@ -145,24 +147,89 @@ Page({
     if (this.data.gameID && !this.data.loading) {
       this.loadGame()
     }
+    this._wsDesired = true
+    this.connectRoomWS()
     this.startPolling()
   },
 
   onHide() {
+    this._wsDesired = false
+    this.closeRoomWS()
     this.stopPolling()
     // 互动道具动画被打断：清掉未触发的定时器并复位状态，避免回台后状态错乱
     this.clearFxTimers(true)
   },
 
   onUnload() {
+    this._wsDesired = false
+    this.closeRoomWS()
     this.stopPolling()
     // 卸载中只清定时器（卸载后 setData 会报错）
     this.clearFxTimers(false)
   },
 
-  startPolling() {
+  // ===== 房间长连接：WS 在线时停用轮询，断线自动回落轮询 + 指数重连 =====
+  connectRoomWS() {
+    if (this._ws || this._wsDesired !== true) return
+    if (!app.globalData.token || !this.data.gameID) return
+    var that = this
+    this._wsRetry = this._wsRetry || 0
+    this._ws = wsClient.createRoomSocket({
+      baseURL: app.globalData.baseURL,
+      token: app.globalData.token,
+      gameID: this.data.gameID,
+      onOpen: function() {
+        that._wsRetry = 0
+        that._wsReady = true
+        // 长连接接管：停掉 4s 轮询；保留 30s 兜底刷新（防推送丢失）
+        that.stopPolling()
+        that.startPolling(SLOW_POLL_INTERVAL)
+        that.loadGame() // 打开瞬间全量同步一次，弥补断线窗口
+      },
+      onClose: function() {
+        that._wsReady = false
+        that._ws = null
+        if (that._wsDesired) {
+          that.stopPolling()  // 先停 30s 慢轮询
+          that.startPolling() // 回落 4s 轮询
+          // 指数退避重连
+          var delay = Math.min(15000, 1000 * Math.pow(2, that._wsRetry++))
+          setTimeout(function() { that.connectRoomWS() }, delay)
+        }
+      },
+      onMessage: function(msg) { that.handleRoomPush(msg) }
+    })
+  },
+
+  closeRoomWS() {
+    this._wsReady = false
+    if (this._ws) {
+      this._ws.close()
+      this._ws = null
+    }
+    this._wsRetry = 0
+  },
+
+  // 服务端推送分发
+  handleRoomPush(msg) {
+    if (msg.type === 'prop') {
+      var d = msg.data || {}
+      this._lastPropId = Math.max(this._lastPropId || 0, Number(d.id) || 0)
+      this.playProp(d.type, Number(d.from_player_id), Number(d.to_player_id))
+      return
+    }
+    if (msg.type === 'game') {
+      this.loadGame() // applyGame 会顺带刷新流水/道具轮询
+      return
+    }
+    if (msg.type === 'ledger') {
+      this.loadLedger()
+    }
+  },
+
+  startPolling(interval) {
     if (this._poll) return
-    this._poll = setInterval(() => this.pollGame(), POLL_INTERVAL)
+    this._poll = setInterval(() => this.pollGame(), interval || POLL_INTERVAL)
   },
 
   stopPolling() {
