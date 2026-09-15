@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<!-- 我的页 v7 静态预览 · 1rpx = 0.5px · 数据为接口真实结构，非运行时页面 -->
+<!-- ?d=0 全灰模（默认） / ?d=1 部分点亮 -->
+<html lang="zh-CN" data-page-node-id="WF2hiIbHDH8XWNLScKOdlR">
+<head data-page-node-id="2f6Yg2eyp2ZzXB8gbLE4Td">
+<meta charset="utf-8" data-page-node-id="AHCC5AL6olbCk2QvyDvIMl"/>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 428px; background: #f4f7f4; font-family: -apple-system, "PingFang SC", sans-serif; padding: 12px 0 40px; }
+  .col { display: flex; flex-direction: column; gap: 16px; padding: 0 16px; }
+  .page-title { font-size: 20px; font-weight: 800; color: #111827; letter-spacing: -0.5px; }
+
+  /* 档案卡 */
+  .hero { position: relative; overflow: hidden; border-radius: 26px; background: linear-gradient(180deg,#f0faf4 0%,#fff 55%,#fff 100%); border: 0.5px solid #d6ebdf; padding: 16px; box-shadow: 0 2px 14px rgba(19,78,52,0.04); }
+  .hero-glow { position: absolute; right: -40px; top: -40px; width: 144px; height: 144px; border-radius: 50%; background: rgba(209,250,229,0.6); filter: blur(40px); }
+  .hero-top { display: flex; align-items: flex-start; gap: 14px; position: relative; }
+  .avatar-wrap { position: relative; flex-shrink: 0; }
+  .avatar { width: 72px; height: 72px; border-radius: 16px; border: 2.5px solid rgba(52,150,102,0.3); background: #fff; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; color: #14603e; overflow: hidden; }
+  .avatar-corner { position: absolute; bottom: -3px; right: -3px; background: linear-gradient(90deg,#f59e0b,#d97706); padding: 1px 5px; border-radius: 6px; border: 1px solid #fff; font-size: 9px; line-height: 15px; }
+  .hero-info { flex: 1; min-width: 0; }
+  .name-row { display: flex; align-items: center; gap: 8px; }
+  .name { font-size: 20px; font-weight: 900; color: #111827; letter-spacing: -0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+  .rank-pill { display: flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 999px; background: linear-gradient(90deg,#fffbeb,#ecfdf5); border: 0.5px solid rgba(167,243,208,0.9); flex-shrink: 0; }
+  .rank-pill .crown { font-size: 10px; }
+  .rank-pill .txt { font-size: 11px; font-weight: 600; color: #064e3b; }
+  .rank-pill .dot { width: 4px; height: 4px; border-radius: 50%; background: #10b981; }
+  .edit-btn { margin-left: auto; padding: 4px 9px; border-radius: 999px; background: rgba(255,255,255,0.9); border: 0.5px solid #d1fae5; font-size: 12px; color: #14603e; flex-shrink: 0; display: flex; align-items: center; gap: 2px; }
+  .tag-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+  .id-chip { display: flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 6px; background: rgba(243,244,246,0.9); font-size: 11px; color: #6b7280; font-family: Menlo, monospace; }
+  .id-chip svg { width: 10px; height: 10px; opacity: 0.6; }
+  .tag { padding: 2px 6px; border-radius: 5px; background: rgba(243,244,246,0.9); font-size: 10px; color: #6b7280; font-weight: 500; }
+  .tag.green { background: rgba(236,253,245,0.7); border: 0.5px solid #d1fae5; color: rgba(6,78,59,0.8); }
+  .motto { display: flex; gap: 2px; margin-top: 6px; font-size: 12px; color: #6b7280; overflow: hidden; white-space: nowrap; }
+  .motto .q { color: #1f7d54; opacity: 0.8; }
+  .hero-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 12px; border-top: 0.5px solid rgba(209,250,229,0.8); position: relative; }
+  .star-meta { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #4b5563; font-weight: 500; }
+  .star-meta .sdot { width: 6px; height: 6px; border-radius: 50%; background: #14603e; }
+  .star-hint { font-size: 11px; font-weight: 600; color: #14603e; }
+  .star-track { width: 100%; height: 8px; background: #f3f4f6; border: 0.5px solid #d1fae5; border-radius: 999px; overflow: hidden; padding: 1px; margin-top: 6px; }
+  .star-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg,#34d399,#14603e); }
+
+  /* 战绩卡 */
+  .stats { margin: 0; border-radius: 22px; background: #fff; border: 0.5px solid #f3f4f6; padding: 16px; box-shadow: 0 2px 14px rgba(19,78,52,0.04); display: grid; grid-template-columns: 1fr 1px 1fr 1px 1fr; }
+  .stat { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 4px; }
+  .sdiv { background: #f3f4f6; }
+  .stat .lb { font-size: 12px; color: #6b7280; font-weight: 500; }
+  .stat .vr { display: flex; align-items: baseline; gap: 2px; margin-top: 4px; }
+  .stat .num { font-size: 28px; font-weight: 800; color: #111827; letter-spacing: -0.5px; }
+  .stat .unit { font-size: 12px; color: #9ca3af; }
+  .stat .sub { font-size: 11px; color: #9ca3af; margin-top: 4px; }
+  .stat .sub.mono { font-family: Menlo, monospace; background: #f9fafb; padding: 1px 5px; border-radius: 3px; }
+  .pill-amber { margin-top: 4px; padding: 2px 8px; border-radius: 999px; background: #fffbeb; border: 0.5px solid rgba(253,230,138,0.6); font-size: 10px; font-weight: 600; color: #b45309; }
+
+  /* 徽章区 */
+  .sec-head { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
+  .sec-left { display: flex; align-items: center; gap: 8px; }
+  .sec-bar { width: 6px; height: 16px; background: #14603e; border-radius: 999px; }
+  .sec-title { font-size: 16px; font-weight: 700; color: #111827; }
+  .sec-link { font-size: 12px; color: #14603e; font-weight: 500; display: flex; align-items: center; gap: 2px; }
+  .badge-card { border-radius: 22px; background: #fff; border: 0.5px solid #f3f4f6; padding: 16px; box-shadow: 0 2px 14px rgba(19,78,52,0.04); }
+  .badge-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .badge-title { font-size: 14px; font-weight: 600; color: #1f2937; }
+  .badge-near { display: flex; align-items: center; gap: 5px; margin-top: 5px; font-size: 11px; color: #9ca3af; }
+  .badge-near .chip { color: #4b5563; background: #f3f4f6; padding: 1px 6px; border-radius: 4px; }
+  .badge-near .prog { color: #6b7280; font-family: Menlo, monospace; }
+  .badge-tip { flex-shrink: 0; padding: 4px 8px; border-radius: 8px; background: #ebf6f0; font-size: 11px; color: #14603e; font-weight: 500; }
+  .badge-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-top: 16px; padding-top: 12px; border-top: 0.5px solid #f5f5f5; }
+  .bcell { display: flex; flex-direction: column; align-items: center; }
+  .bico { width: 48px; height: 48px; border-radius: 16px; border: 0.5px solid rgba(229,231,235,0.8); background: #fafafa; display: flex; align-items: center; justify-content: center; }
+  .bico img { width: 30px; height: 30px; }
+  .bico.dim img { filter: grayscale(1); opacity: 0.4; }
+  .bico.next { background: rgba(236,253,245,0.5); border: 1px dashed #6ee7b7; }
+  .bico.next img { filter: grayscale(1); opacity: 0.6; }
+  .bname { font-size: 11px; color: #9ca3af; font-weight: 500; margin-top: 6px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .bname.on { color: #065f46; font-weight: 600; }
+
+  /* 菜单组 */
+  .group { display: flex; flex-direction: column; gap: 8px; }
+  .group-title { font-size: 12px; font-weight: 600; color: #9ca3af; padding: 0 4px; letter-spacing: 1px; }
+  .menu-card { border-radius: 22px; background: #fff; border: 0.5px solid #f3f4f6; overflow: hidden; box-shadow: 0 2px 14px rgba(19,78,52,0.04); }
+  .menu-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; }
+  .menu-item.slim { padding: 14px 16px; }
+  .menu-left { display: flex; align-items: center; gap: 14px; }
+  .micon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+  .micon.blue { background: #eff6ff; } .micon.rose { background: #fff1f2; }
+  .micon img { width: 20px; height: 20px; }
+  .minfo .lb { font-size: 15px; font-weight: 700; color: #111827; }
+  .minfo .sub { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+  .mright { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #6b7280; font-weight: 500; }
+  .mright .mono { font-family: Menlo, monospace; }
+  .slim-lb { font-size: 14px; font-weight: 500; color: #374151; }
+  .divider { height: 1px; background: #f3f4f6; }
+  .arrow { color: #9ca3af; }
+
+  .logout { margin: 8px 0 0; height: 44px; border-radius: 12px; border: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #9ca3af; background: transparent; }
+  .footer { margin-top: 28px; text-align: center; font-size: 10px; color: #9ca3af; }
+</style>
+</head>
+<body data-page-node-id="K0kFgF88qWwUMP8o6R7lEo">
+<div class="col" data-page-node-id="ZjAjnRuLgKBXpPgtHTTXHM">
+  <div class="page-title" data-page-node-id="OpAj1laz054lJGfskefRGy">个人中心</div>
+
+  <div class="hero" data-page-node-id="8xJaLv5EBu9wAr49Q3VjIQ">
+    <div class="hero-glow" data-page-node-id="gBN84rwxJkFEorDiOSisYG"></div>
+    <div class="hero-top" data-page-node-id="AW4KIeuvAuABl68kzHP22u">
+      <div class="avatar-wrap" data-page-node-id="2ggqyS6vajJFRCmCSuoHGf">
+        <div class="avatar" data-page-node-id="YJsDIIxRbvZ3A34lyd2UK0">勿</div>
+        <div class="avatar-corner" data-page-node-id="QePACXV2GYNpF6B1YASLgg">🀄</div>
+      </div>
+      <div class="hero-info" data-page-node-id="L6PoK4fDP9MGy1ZHEnY4Fh">
+        <div class="name-row" data-page-node-id="zKpXIARBbYrGdl0RcwkLCF">
+          <span class="name" data-page-node-id="WfQoEw6O1s5f2rBv6ND5PY">勿忘</span>
+          <span class="rank-pill" data-page-node-id="H2MlYRiEfBj7vcGiZrP4FE"><span class="crown" data-page-node-id="efMow6Pvp7R3M9eyDqFxuH">👑</span><span class="txt" data-page-node-id="y0hTzuFQE69PziIvmsgwkF">九品 · 初</span><span class="dot" data-page-node-id="NIAlFx1O2KkB3MzPOpdOHv"></span></span>
+          <span class="edit-btn" data-page-node-id="nYjB3QfFtPlOK440jxFoNs">编辑 ›</span>
+        </div>
+        <div class="tag-row" data-page-node-id="XKcjMj276CcXzspoEf8nim">
+          <span class="id-chip" data-page-node-id="8pZwvCLLHtDuRHrJYJjd7F">ID: ZK-882049 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-page-node-id="EnZgIRmBgrthkDJYC1UP0M"><path d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" data-page-node-id="docBmat3P9M82mAAQB9JUL"/></svg></span>
+          <span class="tag green" data-page-node-id="fvCFxlGm77wFdBE5X7yev7">广式鸡平胡</span>
+          <span class="tag" data-page-node-id="Rq5Sm8Fvq9K4OedEzK4qej">雀龄 1年</span>
+        </div>
+        <div class="motto" data-page-node-id="sgGfclFaxbaF8RGa5Wx0DB"><span class="q" data-page-node-id="duZEX5h4MUU8SxCuN7H6Xq">“</span><span data-page-node-id="vkz4zM0YLfDRkfHHJTknc2">牌品好，手气自然好 · 得闲多开台</span><span class="q" data-page-node-id="aQRtKmqqh0v76GOVAhRZ94">”</span></div>
+      </div>
+    </div>
+    <div class="hero-bottom" data-page-node-id="BqDdEg3yCj2giUvl2OYT5s">
+      <span class="star-meta" data-page-node-id="rCssgwh2WEosUfussLbZEE"><span class="sdot" data-page-node-id="aQzpp4vBpAEL1rGDTrrSGD"></span>升星进度：九品 0★ → 1★</span>
+      <span class="star-hint" data-page-node-id="YqYFYLOHDqpMSg872mqAEQ">再赢 1 场可点亮首星</span>
+    </div>
+    <div class="star-track" data-page-node-id="eSbAEmC1gqCY7P0ciVnAx8"><div class="star-fill" style="width:0%" data-page-node-id="sK0bsVmEPLgK1XCl5vvdPC"></div></div>
+  </div>
+
+  <div class="stats" data-page-node-id="C0OlrJOihlta2ZAP6E2WGD">
+    <div class="stat" data-page-node-id="eBttR8wBfxkKW6OReldXA1"><span class="lb" data-page-node-id="zIC6RPapOLlzIrwLedWad7">累计开台</span><div class="vr" data-page-node-id="zDWs0TP3D6qP0x6KBS9m3E"><span class="num" data-page-node-id="zuinVbhClEUMW5MRxtC7Td">1</span><span class="unit" data-page-node-id="eDG63fzTKt66LeA7EdEI4i">场</span></div></div>
+    <div class="sdiv" data-page-node-id="Ee7LM0hc7o8iO4jUE3HtwT"></div>
+    <div class="stat" data-page-node-id="JW9StLaoR2lBU46KaRl5fp"><span class="lb" data-page-node-id="RzalTHcWw6LxqFlDbqMGLC">总净积分</span><div class="vr" data-page-node-id="YZLk5uHa1LIpykuCV0wRAN"><span class="num" data-page-node-id="f0m5VfNTrMH3OHE50ylYQB">-15</span><span class="unit" data-page-node-id="qWblN6RNYcgaLSpYzcxFkE">分</span></div><span class="sub mono" data-page-node-id="KeX0bmWLH1FUQcRLKbKm44">均场 -14.99</span></div>
+    <div class="sdiv" data-page-node-id="IeV8kKDKAOgE0UxgF5dnJA"></div>
+    <div class="stat" data-page-node-id="EVmuhpiesk5FI7O6OMabdP"><span class="lb" data-page-node-id="yUtazcb9vaQ1OXUTDGwS5z">胜率</span><div class="vr" data-page-node-id="gP3gZgVZeCduFY1bnhGQhC"><span class="num" data-page-node-id="KVyqzQakPphSwv920q98hr">0</span><span class="unit" data-page-node-id="jzE0STVEYqjVGzfyxd1N3V">%</span></div><span class="pill-amber" data-page-node-id="CuiiEy6sSu4TbfM3eGtuGk">近7场 0胜</span></div>
+  </div>
+
+  <div data-page-node-id="RYnlsVfpRM37g1uwBm2iPl">
+    <div class="sec-head" data-page-node-id="3g7rAXhbVOr8NgUcgw6zHR">
+      <div class="sec-left" data-page-node-id="sauCAlCKAzh0wnSTepOHCS"><div class="sec-bar" data-page-node-id="XiRaVzsasOZmdvGRNz2KI7"></div><span class="sec-title" data-page-node-id="37Z26erz7JaAgzW4Dv297z">成就徽章</span></div>
+      <span class="sec-link" id="lit-link" data-page-node-id="uDdX4DzhOQJjB4ppI5XE3B">累计点亮 0/7 个 ›</span>
+    </div>
+    <div class="badge-card" style="margin-top:10px" data-page-node-id="QAUhy3wcukoP6h4gzeGXZX">
+      <div class="badge-head" data-page-node-id="QV7lDZR5uyCZPkr4S1Yy3C">
+        <div data-page-node-id="Jm4b6wctBuvfds54JPAPQS">
+          <div class="badge-title" id="bt" data-page-node-id="7qBALkIGE80ly1YSMpmaq8">仲未点亮任何徽章</div>
+          <div class="badge-near" id="bn" data-page-node-id="DoH3Hly2i5c9fAOs5n4dYp"><span data-page-node-id="U5OE9bxYKI6usyV2dolWgY">最接近:</span><span class="chip" data-page-node-id="EuDr3XnigpJ5z4z6ShBORz">常客</span><span class="prog" data-page-node-id="gAGujClBGtSXBbJiaOixSQ">进度 1/20</span></div>
+        </div>
+        <div class="badge-tip" id="btp" data-page-node-id="Ubd6FVjpZPTriDv4m32f3h">累计参与 ≥ 20 场</div>
+      </div>
+      <div class="badge-grid" id="grid" data-page-node-id="yVa7CeyiQwW68sDgek5Gou"></div>
+    </div>
+  </div>
+
+  <div class="group" data-page-node-id="oZdbLjsm9k6kiFIGfhbxe0">
+    <span class="group-title" data-page-node-id="Noe9mAoTZBR1xEWVmPgXwE">个性化与体验</span>
+    <div class="menu-card" data-page-node-id="PKEqXiouUZf1MnApdujxHg">
+      <div class="menu-item" data-page-node-id="7lCEJ0fEw5fN8vBH1ezB65">
+        <div class="menu-left" data-page-node-id="Pg6lNPFz7ucOiDevBGH8vG">
+          <div class="micon blue" data-page-node-id="HUYCyDnPe42S4DiDDq5JOj"><img src="/Users/lkahung/workspace/zoek/miniprogram/assets/icons/sys-preferences-slider.svg" data-page-node-id="F7pNDHL7r68p9MlCcnxiol"/></div>
+          <div class="minfo" data-page-node-id="SLX5CObCTsnHlQQ3KNBxM8"><div class="lb" data-page-node-id="RnpdmMwOQgPwzpIt1EiP4w">牌局偏好设置</div><div class="sub" data-page-node-id="R0uYFJns2JOdbS1wms1BQr">得分语音播报 · 配音音色 · 震动提醒</div></div>
+        </div>
+        <div class="mright" data-page-node-id="ohwcBN5AwY7gQRIoCzUXBt">语音关 · 震动开 <span class="arrow" data-page-node-id="aBCarZvA8ks1XjMggXqcNg">›</span></div>
+      </div>
+      <div class="divider" data-page-node-id="zFg46kg0uRa1HEORIHANaE"></div>
+      <div class="menu-item" data-page-node-id="nQ2zLGcComn2icAjoIfC2P">
+        <div class="menu-left" data-page-node-id="XCeTYBoX10Qe6pmnmau8uA">
+          <div class="micon rose" data-page-node-id="9BIp1UN1N4pOmP269rUGuG"><img src="/Users/lkahung/workspace/zoek/miniprogram/assets/icons/sys-blacklist-slash.svg" data-page-node-id="yuoHT3800PKHo6CGPDOB6o"/></div>
+          <div class="minfo" data-page-node-id="E13pPgYWSd88ouuronnNaD"><div class="lb" data-page-node-id="OCmhrcEQcOJNRVLnSTulga">雀友黑名单与隐藏</div><div class="sub" data-page-node-id="KYG6VSS4y6OUii5CIV0oTQ">管理不想同台或隐藏战绩的牌友</div></div>
+        </div>
+        <div class="mright" data-page-node-id="srhqta7ZxJThdJJtpkS4GE">无限制 <span class="arrow" data-page-node-id="qBgAUH9pbdCIuxMn88OFl8">›</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="group" data-page-node-id="7uFoMOJrxyRpWmAgQpDj0G">
+    <span class="group-title" data-page-node-id="bNiVpoYGdUpUx8FtOyBMhl">平台守则与关于</span>
+    <div class="menu-card" data-page-node-id="qLvYllqaVlnQVbIHUWGjYT">
+      <div class="menu-item slim" data-page-node-id="o1cRsvSAtbgebIIY7W4qHG"><span class="slim-lb" data-page-node-id="sK59i6NZ0Lkuy7PX4gUU7P">公平计分与规则公示</span><span class="mright" data-page-node-id="1lxdA6uokcj9gAfVKtduhQ">推倒胡 · 国际计番 <span class="arrow" data-page-node-id="9ZwBNRNncDDkKBWSKzTDtH">›</span></span></div>
+      <div class="divider" data-page-node-id="PFw9vE1ZgJoINGzaGOTf0n"></div>
+      <div class="menu-item slim" data-page-node-id="4XbVOsCZZTgdugWeIE3oGu"><span class="slim-lb" data-page-node-id="sHepB1Mqvm16Lrgzhp2dAf">关于得闲开台</span><span class="mright" data-page-node-id="QqNdKu5WGU1JrfSZM2FwKI"><span class="mono" data-page-node-id="W0bvuSt3xn5moeO94DuxQQ">v1.2.4</span> <span class="arrow" data-page-node-id="yt5CXQa8TiXazbdd1NJCjA">›</span></span></div>
+    </div>
+  </div>
+
+  <div class="logout" data-page-node-id="23OhM9CrRBSHQhqa9caKdP">退出登入</div>
+  <div class="footer" data-page-node-id="PkOcwjcu7vZGmAZwTnJrHh">佛山数匠科技·得闲饮茶·开台大吉</div>
+</div>
+
+<script>
+// 网格数据 = 页面 JS 的 badges4 逻辑（点亮置顶 + 最接近高亮）
+const ICON = '/Users/lkahung/workspace/zoek/miniprogram/assets/icons/';
+const DATA = [
+  { code: 'mahjong_god', name: '雀神降临', icon: 'badge-mahjong-god.svg', locked: true },
+  { code: 'streak_fire', name: '三连胜', icon: 'badge-streak-fire.svg', locked: true },
+  { code: 'regular', name: '常客 (1/20)', icon: 'badge-regular-player.svg', locked: true, next: true },
+  { code: 'stable_mountain', name: '稳如泰山', icon: 'badge-stable-mountain.svg', locked: true }
+];
+const LIT = [
+  { code: 'regular', name: '常客', icon: 'badge-regular-player.svg', locked: false, tint: '#ecfdf5' },
+  { code: 'streak_fire', name: '三连胜', icon: 'badge-streak-fire.svg', locked: true },
+  { code: 'mahjong_god', name: '雀神降临', icon: 'badge-mahjong-god.svg', locked: true },
+  { code: 'stable_mountain', name: '稳如泰山', icon: 'badge-stable-mountain.svg', locked: true }
+];
+const q = new URLSearchParams(location.search);
+const list = q.get('d') === '1' ? LIT : DATA;
+const grid = document.getElementById('grid');
+for (const b of list) {
+  const cell = document.createElement('div');
+  cell.className = 'bcell';
+  const ico = document.createElement('div');
+  ico.className = 'bico' + (b.locked ? ' dim' : '') + (b.next ? ' next' : '');
+  if (!b.locked) ico.style.background = b.tint;
+  const img = document.createElement('img');
+  img.src = ICON + b.icon;
+  ico.appendChild(img);
+  const nm = document.createElement('span');
+  nm.className = 'bname' + (b.next ? ' on' : (!b.locked ? ' on' : ''));
+  nm.textContent = b.name;
+  cell.appendChild(ico); cell.appendChild(nm); grid.appendChild(cell);
+}
+if (q.get('d') === '1') {
+  document.getElementById('lit-link').textContent = '累计点亮 1/7 个 ›';
+  document.getElementById('bt').textContent = '已点亮 1 枚徽章';
+  document.getElementById('bn').style.display = 'none';
+  document.getElementById('btp').style.display = 'none';
+}
+</script>
+</body>
+</html>

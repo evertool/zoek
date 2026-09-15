@@ -1,4 +1,4 @@
-<!--pages/profile/profile.wxml — 我的页 v6 Stitch 100% 还原-->
+<!--pages/profile/profile.wxml — 我的页 v7 · docs/design/me 100% 还原-->
 <view class="page">
   <!-- 未登录 -->
   <view class="empty-state" style="padding-top: {{navPadding}}px;" wx:if="{{!isLoggedIn}}">
@@ -17,38 +17,65 @@
         <text>{{toastMsg}}</text>
       </view>
 
-      <!-- 个人资料卡 -->
-      <view class="pf-profile-card anim-fade-up" wx:if="{{!editing}}">
-        <view class="pf-profile-glow"></view>
-        <view class="pf-profile-row">
+      <!-- 页面标题 -->
+      <text class="pf-page-title">个人中心</text>
+
+      <!-- 个人档案卡 -->
+      <view class="pf-hero anim-fade-up" wx:if="{{!editing}}">
+        <view class="pf-hero-glow"></view>
+        <view class="pf-hero-top">
           <view class="pf-avatar-wrap">
             <image class="pf-avatar" src="{{avatarURL}}" mode="aspectFill" wx:if="{{avatarURL}}" />
-            <view class="pf-avatar pf-avatar-placeholder" style="background:{{avatarColor}};" wx:else><text>{{nickname[0]}}</text></view>
+            <view class="pf-avatar pf-avatar-ph" style="background:{{avatarColor}};" wx:else><text>{{nickname[0]}}</text></view>
           </view>
-          <view class="pf-profile-info">
+          <view class="pf-hero-info">
             <view class="pf-name-row">
               <text class="pf-name">{{nickname}}</text>
-              <view class="pf-rank-tag" bindtap="goRank"><image class="pf-rank-icon" src="/assets/icons/rank-1-god-crown.svg" mode="aspectFit" /><text>{{rankTier || '九品 · 初'}}</text></view>
+              <view class="pf-rank-pill" bindtap="goRank">
+                <text class="pf-rank-crown">👑</text>
+                <text class="pf-rank-txt">{{rankTier || '九品 · 初'}}</text>
+                <view class="pf-rank-dot"></view>
+              </view>
+              <view class="pf-edit-btn" bindtap="goEditProfile"><text>编辑</text><text class="pf-edit-arrow">›</text></view>
             </view>
-            <!-- <view class="pf-mahjong-id-row"> -->
-              <!-- <text class="pf-mahjong-id" id="mahjong-id">雀友号: {{userId}}</text> -->
-              <!-- <view class="pf-copy-btn" bindtap="copyUserId"><image src="/assets/icons/action-copy.svg" mode="aspectFit" /></view> -->
-            <!-- </view> -->
-            <text class="pf-motto" wx:if="{{motto}}">{{motto}}</text>
+            <view class="pf-tag-row">
+              <!-- <view class="pf-id-chip" bindtap="copyUserId"> -->
+                <!-- <text>ID: {{userId}}</text> -->
+                <!-- <image class="pf-id-copy" src="/assets/icons/action-copy.svg" mode="aspectFit" /> -->
+              <!-- </view> -->
+              <!-- <view class="pf-tag pf-tag-green"><text>广式鸡平胡</text></view> -->
+              <view class="pf-tag" wx:if="{{ageText}}"><text>{{ageText}}</text></view>
+            </view>
+            <view class="pf-motto" wx:if="{{motto}}">
+              <text class="pf-motto-q">“</text>
+              <text class="pf-motto-txt">{{motto}}</text>
+              <text class="pf-motto-q">”</text>
+            </view>
           </view>
         </view>
-        <view class="pf-edit-link" bindtap="goEditProfile"><text>修改资料 ›</text></view>
+        <!-- 升星进度 -->
+        <block wx:if="{{star}}">
+          <view class="pf-hero-bottom">
+            <view class="pf-star-meta">
+              <view class="pf-star-dot"></view>
+              <text class="pf-star-label">升星进度：{{star.label}}</text>
+            </view>
+            <text class="pf-star-hint">{{star.hint}}</text>
+          </view>
+          <view class="pf-star-track">
+            <view class="pf-star-fill" style="width: {{star.pct}}%;"></view>
+          </view>
+        </block>
       </view>
 
       <!-- 编辑模式 -->
-      <view class="pf-profile-card anim-fade-up" wx:if="{{editing}}">
-        <view class="pf-profile-glow"></view>
-        <view class="pf-profile-row">
+      <view class="pf-hero pf-hero-edit anim-fade-up" wx:if="{{editing}}">
+        <view class="pf-hero-top">
           <button class="pf-avatar-edit" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
             <image class="pf-avatar" src="{{tempAvatar}}" mode="aspectFill" wx:if="{{tempAvatar}}" />
-            <view class="pf-avatar pf-avatar-placeholder" wx:else><text class="pf-avatar-add">+</text></view>
+            <view class="pf-avatar pf-avatar-ph" wx:else><text class="pf-avatar-add">+</text></view>
           </button>
-          <view class="pf-profile-info">
+          <view class="pf-hero-info">
             <input class="pf-nickname-input" type="nickname" value="{{tempNickname}}" bindinput="onNicknameInput" maxlength="16" placeholder="点此填入微信昵称" placeholder-class="input-placeholder" />
             <text class="pf-edit-tip">点击左侧授权微信头像</text>
           </view>
@@ -59,85 +86,86 @@
         </view>
       </view>
 
-      <!-- 核心数据仪表板 -->
-      <view class="pf-stats-card anim-fade-up delay-1" wx:if="{{stats}}">
-        <view class="pf-stats-grid">
-          <view class="pf-stat-cell">
-            <text class="pf-stat-label">累计开台</text>
-            <view class="pf-stat-val-row">
-              <text class="pf-stat-val">{{stats.games}}</text>
-              <text class="pf-stat-unit">场</text>
-            </view>
-            <view class="pf-stat-badge" wx:if="{{stats.loyalty_text}}"><text>{{stats.loyalty_text}}</text></view>
+      <!-- 核心战绩卡 -->
+      <view class="pf-stats anim-fade-up delay-1" wx:if="{{stats}}">
+        <view class="pf-stat">
+          <text class="pf-stat-label">累计开台</text>
+          <view class="pf-stat-valrow">
+            <text class="pf-stat-num">{{stats.games}}</text>
+            <text class="pf-stat-unit">场</text>
           </view>
-          <view class="pf-stat-cell">
-            <text class="pf-stat-label">总净积分</text>
-            <view class="pf-stat-val-row">
-              <text class="pf-stat-val text-positive">{{stats.total_score >= 0 ? '+' : ''}}{{stats.total_score}}</text>
-              <text class="pf-stat-unit text-positive">分</text>
-            </view>
-            <text class="pf-stat-sub">均场 {{stats.avg_score >= 0 ? '+' : ''}}{{stats.avg_score}}</text>
+          <text class="pf-stat-sub" wx:if="{{stats.loyalty_text}}">{{stats.loyalty_text}}</text>
+        </view>
+        <view class="pf-stat-div"></view>
+        <view class="pf-stat">
+          <text class="pf-stat-label">总净积分</text>
+          <view class="pf-stat-valrow">
+            <text class="pf-stat-num">{{stats.scoreText}}</text>
+            <text class="pf-stat-unit">分</text>
           </view>
-          <view class="pf-stat-cell">
-            <text class="pf-stat-label">胜率</text>
-            <view class="pf-stat-val-row">
-              <text class="pf-stat-val">{{stats.win_rate}}</text>
-              <text class="pf-stat-unit">%</text>
-            </view>
-            <view class="pf-stat-badge pf-stat-badge-amber"><text>近7场 {{stats.recent_wins}}胜</text></view>
+          <text class="pf-stat-sub pf-stat-mono" wx:if="{{stats.avgText}}">均场 {{stats.avgText}}</text>
+        </view>
+        <view class="pf-stat-div"></view>
+        <view class="pf-stat">
+          <text class="pf-stat-label">胜率</text>
+          <view class="pf-stat-valrow">
+            <text class="pf-stat-num">{{stats.win_rate}}</text>
+            <text class="pf-stat-unit">%</text>
           </view>
+          <view class="pf-pill-amber"><text>近7场 {{stats.recent_wins}}胜</text></view>
         </view>
       </view>
 
-      <!-- 徽章展架 -->
-      <view class="pf-badge-section">
-        <view class="pf-section-header">
-          <view class="pf-section-left">
-            <view class="pf-section-bar"></view>
-            <text class="pf-section-title">成就徽章</text>
+      <!-- 成就徽章 -->
+      <view class="pf-sec">
+        <view class="pf-sec-head">
+          <view class="pf-sec-left">
+            <view class="pf-sec-bar"></view>
+            <text class="pf-sec-title">成就徽章</text>
           </view>
-          <view class="pf-badge-more" bindtap="openBadgePanel">
+          <view class="pf-sec-link" bindtap="openBadgePanel">
             <text wx:if="{{badgeTotal > 0}}">累计点亮 {{unlockedCount}}/{{badgeTotal}} 个</text>
             <text wx:else>徽章一览</text>
-            <text class="pf-more-arrow">›</text>
+            <text class="pf-sec-arrow">›</text>
           </view>
         </view>
-        <scroll-view class="pf-badge-scroll" scroll-x="true" wx:if="{{unlockedCount > 0}}">
-          <view class="pf-badge-track">
-            <view class="pf-badge-card pf-badge-card-lit" wx:for="{{badges}}" wx:for-item="badge" wx:key="code" wx:if="{{!badge.locked}}" data-code="{{badge.code}}" bindtap="openBadgePanel">
-              <view class="pf-badge-icon-wrap" style="{{badge.iconStyle}}">
-                <image wx:if="{{badge.iconURL}}" class="pf-badge-icon-img" src="{{badge.iconURL}}" mode="aspectFit" />
-                <text wx:else class="pf-badge-icon">{{badge.icon}}</text>
+        <view class="pf-badge-card">
+          <view class="pf-badge-state" wx:if="{{badgeLoading}}"><text>正在读取徽章战绩…</text></view>
+          <view class="pf-badge-state" wx:elif="{{badgeError}}" bindtap="loadBadges"><text>徽章战绩读取失败 · 点此重试</text></view>
+          <block wx:else>
+            <view class="pf-badge-head">
+              <view class="pf-badge-head-main">
+                <text class="pf-badge-title">{{unlockedCount > 0 ? '已点亮 ' + unlockedCount + ' 枚徽章' : '仲未点亮任何徽章'}}</text>
+                <view class="pf-badge-near" wx:if="{{nextBadge}}">
+                  <text class="pf-badge-near-label">最接近:</text>
+                  <text class="pf-badge-near-chip">{{nextBadge.name}}</text>
+                  <text class="pf-badge-near-prog">进度 {{nextBadge.current}}/{{nextBadge.target}}</text>
+                </view>
+                <text class="pf-badge-near-plain" wx:else>完成对局即可点亮，点右上角睇全部条件</text>
               </view>
-              <text class="pf-badge-name">{{badge.name}}</text>
-              <text class="pf-badge-desc">{{badge.desc}}</text>
-              <view class="pf-badge-status">
-                <view class="pf-badge-dot"></view>
-                <text class="pf-badge-status-text">已点亮</text>
+              <view class="pf-badge-tip" wx:if="{{nextBadge}}"><text>{{nextBadge.desc}}</text></view>
+            </view>
+            <view class="pf-badge-grid">
+              <view class="pf-badge-cell" wx:for="{{badges4}}" wx:key="code" data-code="{{item.code}}" bindtap="openBadgePanel">
+                <view class="pf-badge-ico {{item.locked ? 'pf-badge-ico-dim' : ''}} {{item.isNext ? 'pf-badge-ico-next' : ''}}"
+                      style="background: {{item.locked ? '#fafafa' : item.tint}};">
+                  <image wx:if="{{item.iconURL}}" class="pf-badge-ico-img" src="{{item.iconURL}}" mode="aspectFit" />
+                  <text wx:else class="pf-badge-ico-txt">{{item.icon}}</text>
+                </view>
+                <text class="pf-badge-cell-name {{item.isNext ? 'pf-badge-cell-name-on' : ''}}">{{item.label}}</text>
               </view>
             </view>
-          </view>
-        </scroll-view>
-        <view class="pf-badge-empty" wx:elif="{{badgeLoading}}">
-          <text class="pf-badge-empty-text">正在读取徽章战绩…</text>
-        </view>
-        <view class="pf-badge-empty" wx:elif="{{badgeError}}" bindtap="loadBadges">
-          <text class="pf-badge-empty-text">徽章战绩读取失败 · 点此重试</text>
-        </view>
-        <view class="pf-badge-empty" wx:else bindtap="openBadgePanel">
-          <text class="pf-badge-empty-text">仲未点亮任何徽章</text>
-          <text class="pf-badge-empty-sub" wx:if="{{nextBadge}}">最接近：{{nextBadge.name}}　进度 {{nextBadge.current}}/{{nextBadge.target}}</text>
-          <text class="pf-badge-empty-sub" wx:else>点此查看全部徽章同达成条件</text>
+          </block>
         </view>
       </view>
 
       <!-- 个性化与体验 -->
-      <view class="pf-menu-group">
-        <text class="pf-menu-group-title">个性化与体验</text>
+      <view class="pf-group">
+        <text class="pf-group-title">个性化与体验</text>
         <view class="pf-menu-card">
           <view class="pf-menu-item" bindtap="openPrefsPanel">
             <view class="pf-menu-left">
-              <view class="pf-menu-icon pf-menu-icon-primary"><image src="/assets/icons/sys-preferences-slider.svg" mode="aspectFit" /></view>
+              <view class="pf-menu-icon pf-menu-icon-blue"><image src="/assets/icons/sys-preferences-slider.svg" mode="aspectFit" /></view>
               <view class="pf-menu-info">
                 <text class="pf-menu-label">牌局偏好设置</text>
                 <text class="pf-menu-sub">得分语音播报 · 配音音色 · 震动提醒</text>
@@ -151,7 +179,7 @@
           <view class="pf-menu-divider"></view>
           <view class="pf-menu-item" bindtap="showBlacklist">
             <view class="pf-menu-left">
-              <view class="pf-menu-icon pf-menu-icon-secondary"><image src="/assets/icons/sys-blacklist-slash.svg" mode="aspectFit" /></view>
+              <view class="pf-menu-icon pf-menu-icon-rose"><image src="/assets/icons/sys-blacklist-slash.svg" mode="aspectFit" /></view>
               <view class="pf-menu-info">
                 <text class="pf-menu-label">雀友黑名单与隐藏</text>
                 <text class="pf-menu-sub">管理不想同台或隐藏战绩的牌友</text>
@@ -166,30 +194,20 @@
       </view>
 
       <!-- 平台守则与关于 -->
-      <view class="pf-menu-group">
-        <text class="pf-menu-group-title">平台守则与关于</text>
+      <view class="pf-group">
+        <text class="pf-group-title">平台守则与关于</text>
         <view class="pf-menu-card">
-          <view class="pf-menu-item" bindtap="openSafety">
-            <view class="pf-menu-left">
-              <view class="pf-menu-icon pf-menu-icon-tertiary"><image src="/assets/icons/sys-shield-security.svg" mode="aspectFit" /></view>
-              <view class="pf-menu-info">
-                <text class="pf-menu-label">安全与隐私守则</text>
-                <text class="pf-menu-sub">绿色健康娱乐 · 纯积分免责声明</text>
-              </view>
+          <view class="pf-menu-item pf-menu-item-slim" bindtap="openSafety">
+            <text class="pf-menu-slim-label">安全隐私守则</text>
+            <view class="pf-menu-right">
+              <text class="pf-menu-arrow">›</text>
             </view>
-            <text class="pf-menu-arrow">›</text>
           </view>
           <view class="pf-menu-divider"></view>
-          <view class="pf-menu-item" bindtap="showAbout">
-            <view class="pf-menu-left">
-              <view class="pf-menu-icon pf-menu-icon-neutral"><image src="/assets/icons/score-statement-history.svg" mode="aspectFit" /></view>
-              <view class="pf-menu-info">
-                <text class="pf-menu-label">关于得闲开台</text>
-                <text class="pf-menu-sub">传承岭南茶台闲趣，无争无扰</text>
-              </view>
-            </view>
+          <view class="pf-menu-item pf-menu-item-slim" bindtap="showAbout">
+            <text class="pf-menu-slim-label">关于得闲开台</text>
             <view class="pf-menu-right">
-              <text class="pf-menu-right-text">v1.2 (正式版)</text>
+              <text class="pf-menu-right-text pf-menu-mono">v1.2.4</text>
               <text class="pf-menu-arrow">›</text>
             </view>
           </view>
@@ -203,7 +221,6 @@
 
       <!-- 底部签名 -->
       <view class="pf-footer">
-        <image class="pf-footer-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" />
         <text class="pf-footer-text">佛山数匠科技·得闲饮茶·开台大吉</text>
       </view>
     </view>
@@ -291,9 +308,9 @@
         <view class="pf-bp-grid">
           <view id="bp-{{badge.code}}" class="pf-bp-card {{badge.locked ? 'pf-bp-card-locked' : 'pf-bp-card-lit'}} {{bpFocusCode === badge.code ? 'pf-bp-card-focus' : ''}}" wx:for="{{badges}}" wx:for-item="badge" wx:key="code">
             <view class="pf-bp-card-top">
-              <view class="pf-badge-icon-wrap {{badge.locked ? 'pf-badge-icon-dim' : 'pf-badge-icon-on'}}" style="{{badge.iconStyle}}">
-                <image wx:if="{{badge.iconURL}}" class="pf-badge-icon-img" src="{{badge.iconURL}}" mode="aspectFit" />
-                <text wx:else class="pf-badge-icon">{{badge.icon}}</text>
+              <view class="pf-badge-ico-wrap {{badge.locked ? 'pf-badge-ico-dim' : ''}}" style="background: {{badge.tint}};">
+                <image wx:if="{{badge.iconURL}}" class="pf-badge-ico-img-lg" src="{{badge.iconURL}}" mode="aspectFit" />
+                <text wx:else class="pf-badge-ico-txt-lg">{{badge.icon}}</text>
               </view>
               <view class="pf-bp-lit-chip" wx:if="{{!badge.locked}}"><text>✓ 已点亮</text></view>
               <view class="pf-bp-unlit-chip" wx:else><text>未点亮</text></view>
@@ -317,7 +334,7 @@
     </view>
   </view>
 
-  <!-- 安全与隐私守则（点「安全与隐私守则」展开查看） -->
+  <!-- 公平计分与规则公示（安全与隐私守则，点「公平计分与规则公示」展开查看） -->
   <view class="pf-bp-overlay {{showSafetyPanel ? 'pf-bp-show' : ''}}" bindtap="closeSafety">
     <view class="pf-bp-panel pf-sp-panel" catchtap="stopPropagation">
       <view class="pf-bp-grabber"></view>

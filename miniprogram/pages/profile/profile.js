@@ -1,4 +1,4 @@
-// pages/profile/profile.js — 我的页 v6 Stitch 100% 还原
+// pages/profile/profile.js — 我的页 v7 · docs/design/me 100% 还原
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
@@ -8,7 +8,7 @@ const prefs = require('../../utils/prefs')
 
 // 徽章静态元数据：key 与后端 /user/badges 返回的 code 一一对应（PRD §3.6.6 v1.3 共 7 枚）
 // icon —— 图标资源（本地 SVG，展架与弹窗共用同一份，保证「图标 ↔ 徽章」一一对应）
-// tint —— 勋章底盘色（取自设计资产页的勋章底色，点亮时同时用作光晕色）
+// tint —— 勋章底盘色（点亮时用作光晕色）
 const BADGE_META = {
   mahjong_god:     { icon: '/assets/icons/badge-mahjong-god.svg',     tint: '#fffbeb' },
   streak_fire:     { icon: '/assets/icons/badge-streak-fire.svg',     tint: '#fff7ed' },
@@ -20,6 +20,11 @@ const BADGE_META = {
 }
 const BADGE_FALLBACK_TINT = '#f1f5f9'
 
+// 展架网格最多展示 4 枚（设计稿：4 列灰模 + 最接近的一枚高亮）
+const SHOWCASE_COUNT = 4
+// 升星提示用序数词（每胜 1 场点亮 1 星）
+const STAR_ORDINALS = ['首星', '第二星', '第三星', '第四星', '第五星', '第六星', '第七星', '第八星']
+
 Page({
   data: {
     isLoggedIn: false,
@@ -28,14 +33,16 @@ Page({
     avatarColor: '',
     userId: '',
     motto: '',
+    ageText: '',
     editing: false,
     tempNickname: '',
     tempAvatar: '',
     avatarChanged: false,
     stats: null,
     rankTier: '',
-    tierFull: '',
+    star: null, // 升星进度：{ label, hint, pct }
     badges: [],
+    badges4: [], // 展架网格（最多 4 枚）
     nextBadge: null,
     badgeTotal: 0,
     badgeLoading: false,
@@ -56,7 +63,7 @@ Page({
     ],
     showPrefsPanel: false,
     showSafetyPanel: false,
-    // 安全与隐私守则：纯静态文案，点「安全与隐私守则」展开查看
+    // 安全与隐私守则：纯静态文案，点「公平计分与规则公示」展开查看
     safetySections: [
       {
         title: '一、关于本工具',
@@ -155,7 +162,9 @@ Page({
         nickname: app.globalData.nickname || '',
         avatarURL: app.globalData.avatarURL || '',
         avatarColor: util.avatarColor(app.globalData.nickname || ''),
-        userId: app.globalData.userID ? ('ZM' + String(app.globalData.userID).padStart(6, '0')) : '',
+        userId: app.globalData.userID ? ('ZK-' + String(app.globalData.userID).padStart(6, '0')) : '',
+        // 个性雀风签名：暂无自定义入口时展示品牌默认文案
+        motto: '牌品好，手气自然好 · 得闲多开台',
         // 每次进页面都从 storage 重读，避免「改了但显示的是旧值」
         voiceEnabled: prefs.getVoice(),
         vibrateEnabled: prefs.getVibrate()
@@ -168,13 +177,56 @@ Page({
     })
   },
 
-  // 排位段位胶囊（点击进入排位页）
+  // 段位胶囊 + 升星进度条（数据全部来自 /user/profile 的 rank 字段，前端不伪造）
   loadRank() {
     api.get('/user/profile').then(res => {
-      if (res.rank) {
-        this.setData({ rankTier: res.rank.tier_short + ' · ' + res.rank.roman, tierFull: res.rank.tier_name })
+      var r = res.rank
+      if (!r) return
+      var star = null
+      if (r.is_peak) {
+        // 已晋「至尊·最强雀圣」：进度条点满
+        star = { label: '至尊·最强雀圣', hint: '已晋雀圣 · 战绩为证', pct: 100 }
+      } else if (r.stars_needed === 0) {
+        // 至尊段未晋圣：展示晋圣累计进度
+        var total = r.total_stars || 0
+        star = {
+          label: '晋圣进度：' + total + '/50★',
+          hint: '再攒 ' + (r.stars_to_peak || 0) + ' 星晋为雀圣',
+          pct: Math.min(100, Math.round(total / 50 * 100))
+        }
+      } else {
+        // 常规段：当前段内星 → 下一颗星
+        var inTier = r.stars_in_tier || 0
+        var next = Math.min(inTier + 1, r.stars_needed)
+        var ord = STAR_ORDINALS[next - 1] || ('第' + next + '星')
+        var hint
+        if (inTier >= r.stars_needed) {
+          hint = '再赢 1 场可晋升下一品'
+        } else {
+          hint = '再赢 1 场可点亮' + ord
+        }
+        star = {
+          label: r.tier_short + ' ' + inTier + '★ → ' + next + '★',
+          hint: hint,
+          pct: Math.min(100, Math.round(inTier / r.stars_needed * 100))
+        }
       }
+      this.setData({
+        rankTier: r.tier_short + ' · ' + r.roman,
+        tierFull: r.tier_name,
+        star: star,
+        // 雀龄：由注册时间推算，不足 1 年显示 <1年
+        ageText: this.ageFromCreated(res.created_at)
+      })
     }).catch(function() {})
+  },
+
+  ageFromCreated(created) {
+    if (!created) return ''
+    var t = new Date(created).getTime()
+    if (isNaN(t)) return ''
+    var years = Math.floor((Date.now() - t) / 86400000 / 365.25)
+    return years >= 1 ? ('雀龄 ' + years + '年') : '雀龄 <1年'
   },
 
   goRank() {
@@ -187,11 +239,17 @@ Page({
       var loyalty = ''
       if ((res.games || 0) >= 200) loyalty = '铁杆雀客'
       else if ((res.games || 0) >= 20) loyalty = '常客'
+      var total = res.total_score || 0
+      var avg = res.avg_score || 0
+      var fmt = function(n) {
+        var v = Math.round(n * 100) / 100
+        return (v > 0 ? '+' : '') + v
+      }
       this.setData({
         stats: {
           games: res.games || 0,
-          total_score: res.total_score || 0,
-          avg_score: res.avg_score || 0,
+          scoreText: fmt(total),
+          avgText: fmt(avg),
           win_rate: res.win_rate || 0,
           recent_wins: res.recent_wins || 0,
           loyalty_text: loyalty
@@ -220,10 +278,7 @@ Page({
           iconURL: meta.icon || '',
           icon: '🏅', // 兜底：新增徽章未配图标时才走到
           tint: tint,
-          // 已点亮：保留勋章原色底盘 + 同色光晕；未点亮：由 wxss .pf-badge-icon-dim 置灰
-          iconStyle: unlocked
-            ? ('background:' + tint + ';box-shadow:0 0 0 8rpx ' + tint + ';')
-            : ('background:' + tint + ';'),
+          // 已点亮：保留勋章原色底盘；未点亮：由 wxss .pf-badge-ico-dim 置灰
           progress: target > 0
             ? Math.min(100, Math.round(current / target * 100))
             : (unlocked ? 100 : 0),
@@ -231,14 +286,29 @@ Page({
           target: target
         }
       })
-      // 弹窗排布：已点亮的勋章优先置顶，未点亮按完成度从高到低（进度条更靠前）
+      // 排布：已点亮的勋章优先置顶，未点亮按完成度从高到低
       const lit = list.filter(b => !b.locked)
       const unlit = list.filter(b => b.locked).sort((a, b) => b.progress - a.progress)
       const badges = lit.concat(unlit)
       // 展架空态用：最接近点亮的那枚（只取有计数进度的，布尔型徽章没有中间态）
       const nextBadge = unlit.filter(b => b.target > 1 && b.current > 0)[0] || null
+      // 展架网格：最多 4 枚；最接近的一枚带进度数字 + 虚线高亮框
+      const focusCode = nextBadge ? nextBadge.code : ''
+      const badges4 = badges.slice(0, SHOWCASE_COUNT).map(b => {
+        var isNext = b.locked && b.code === focusCode
+        return {
+          code: b.code,
+          iconURL: b.iconURL,
+          icon: b.icon,
+          tint: b.tint,
+          locked: b.locked,
+          isNext: isNext,
+          label: isNext ? (b.name + ' (' + b.current + '/' + b.target + ')') : b.name
+        }
+      })
       this.setData({
         badges: badges,
+        badges4: badges4,
         nextBadge: nextBadge,
         badgeTotal: (res && res.total) || badges.length,
         unlockedCount: typeof res.unlocked_count === 'number' ? res.unlocked_count : lit.length,
@@ -247,12 +317,12 @@ Page({
       })
     }).catch(() => {
       // 读不到战绩时明确报错，而不是静默展示成「一枚都没点亮」
-      this.setData({ badgeLoading: false, badgeError: true, badges: [], nextBadge: null, unlockedCount: 0, badgeTotal: 0 })
+      this.setData({ badgeLoading: false, badgeError: true, badges: [], badges4: [], nextBadge: null, unlockedCount: 0, badgeTotal: 0 })
     })
   },
 
   /** 打开徽章总览面板（全部徽章排布 + 点亮状态 + 进度 + 规则说明）
-   *  从展架卡片点入时携带 code：面板自动滚到并高亮该枚「已点亮」徽章 */
+   *  从展架网格点入时携带 code：面板自动滚到并高亮该枚徽章 */
   openBadgePanel(e) {
     var code = (e && e.currentTarget && e.currentTarget.dataset) ? (e.currentTarget.dataset.code || '') : ''
     this.setData({
@@ -288,10 +358,11 @@ Page({
         nickname: app.globalData.nickname,
         avatarURL: app.globalData.avatarURL,
         avatarColor: util.avatarColor(app.globalData.nickname),
-        userId: app.globalData.userID ? ('ZM' + String(app.globalData.userID).padStart(6, '0')) : ''
+        userId: app.globalData.userID ? ('ZK-' + String(app.globalData.userID).padStart(6, '0')) : ''
       })
       this.loadStats()
       this.loadBadges()
+      this.loadRank()
     }).catch(() => {
       wx.hideLoading()
     })
@@ -439,7 +510,7 @@ Page({
     this.showToast('已载入 0 位屏蔽雀友')
   },
 
-  // ── 安全与隐私守则面板 ──
+  // ── 公平计分与规则公示（安全与隐私守则）面板 ──
   openSafety() {
     this.setData({ showSafetyPanel: true })
   },

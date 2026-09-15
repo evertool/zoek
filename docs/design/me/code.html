@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>个人中心 - 我的</title>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              DEFAULT: '#14603e',
+              dark: '#0e462d',
+              light: '#1f7d54',
+              soft: '#ebf6f0',
+              tint: '#e2f2e9'
+            },
+            cardBg: '#ffffff',
+            pageBg: '#f5f7f5'
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', 'sans-serif']
+          },
+          boxShadow: {
+            'card-subtle': '0 2px 14px 0 rgba(19, 78, 52, 0.04), 0 1px 3px 0 rgba(0,0,0,0.02)',
+            'pill-inner': 'inset 0 1px 2px rgba(0,0,0,0.03)'
+          }
+        }
+      }
+    }
+  </script>
+<style data-purpose="custom-enhancements">
+    /* 微信胶囊及小程序拟真样式 */
+    .capsule-border {
+      border: 0.5px solid rgba(0, 0, 0, 0.14);
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom, 24px);
+    }
+    /* 平滑隐藏滚动条 */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body class="bg-[#f4f7f4] text-gray-800 font-sans antialiased min-h-screen flex justify-center selection:bg-brand selection:text-white">
+<!-- iPhone 外框容器 / 小程序视口 (适配750rpx设计) -->
+<div class="w-full max-w-[428px] min-h-screen bg-[#f4f7f4] flex flex-col relative pb-28">
+<!-- BEGIN: TopBarAndWeChatCapsule -->
+<!-- 顶部状态栏与微信胶囊按键区域 -->
+<header class="sticky top-0 z-50 bg-[#f4f7f4]/90 backdrop-blur-md pt-2 px-5 pb-2 transition-all">
+<!-- iOS 顶部状态信息 -->
+<div class="flex justify-between items-center text-xs font-semibold tracking-tight text-gray-900 h-6">
+<span class="text-sm font-medium">20:36</span>
+<!-- 假想灵动岛区域空隙 -->
+<div class="w-24 h-4 bg-black rounded-full hidden sm:block"></div>
+<!-- 信号、Wifi及电池 -->
+<div class="flex items-center space-x-1.5 text-gray-800">
+<svg class="w-3.5 h-3.5 fill-current" viewbox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9z"></path></svg>
+<svg class="w-3.5 h-3.5 fill-current" viewbox="0 0 24 24"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4z"></path></svg>
+<!-- 电池图标 -->
+<div class="w-5 h-2.5 border border-gray-800 rounded-sm p-0.5 flex items-center">
+<div class="h-full w-3 bg-gray-800 rounded-2xs"></div>
+</div>
+</div>
+</div>
+<!-- 微信小程序导航栏：包含标题与原生胶囊避让区 -->
+<div class="flex items-center justify-between mt-2.5 h-9">
+<span class="text-lg font-bold tracking-tight text-gray-900 pl-0.5">个人中心</span>
+<!-- 微信小程序规范右上角交互胶囊 -->
+<div class="capsule-border h-8 px-3 rounded-full flex items-center space-x-2.5 shadow-sm">
+<!-- 更多操作 ··· -->
+<button aria-label="小程序选项" class="text-gray-800 flex items-center justify-center" type="button">
+<span class="inline-block w-1 h-1 rounded-full bg-gray-900 mx-[1px]"></span>
+<span class="inline-block w-1 h-1 rounded-full bg-gray-900 mx-[1px]"></span>
+<span class="inline-block w-1 h-1 rounded-full bg-gray-900 mx-[1px]"></span>
+</button>
+<span class="h-3 w-[0.5px] bg-gray-300"></span>
+<!-- 关闭/退出 ⊙ -->
+<button aria-label="退出小程序" class="text-gray-800 flex items-center justify-center" type="button">
+<div class="w-3.5 h-3.5 rounded-full border-[1.5px] border-gray-900 flex items-center justify-center">
+<span class="w-1 h-1 rounded-full bg-gray-900"></span>
+</div>
+</button>
+</div>
+</div>
+</header>
+<!-- END: TopBarAndWeChatCapsule -->
+<!-- 主体滚动容器 -->
+<main class="px-4 pt-1 space-y-4">
+<!-- BEGIN: UpgradedHeaderCard -->
+<!-- 重构升级：精致饱满的个人档案头部卡片 -->
+<section class="relative overflow-hidden rounded-[26px] bg-gradient-to-b from-[#f0faf4] via-[#ffffff] to-[#ffffff] border border-[#d6ebdf] p-4 pt-4 shadow-card-subtle" data-purpose="user-profile-card">
+<!-- 装饰性微光晕背景 -->
+<div class="absolute -top-10 -right-10 w-36 h-36 bg-emerald-100/60 rounded-full blur-2xl pointer-events-none"></div>
+<!-- 顶部信息主栏 -->
+<div class="flex items-start gap-3.5 relative z-10">
+<!-- 左侧：大尺寸圆角头像与微勋章角标 -->
+<div class="relative shrink-0">
+<div class="w-[72px] h-[72px] rounded-2xl overflow-hidden ring-[2.5px] ring-[#349666]/30 shadow-md">
+<img alt="勿忘的头像" class="w-full h-full object-cover object-left-top scale-[1.7] translate-x-1 translate-y-1" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCe55u0i6wt5FSI6Xx5EmE55j9UvxRhRuaQbW7yBENkuKj1WcUk1oWYIfJ2YD5E52UjzRWDEckRl2tvySuxiPVtAjEiOfb3mDJ0bvjvoD7QKHkqtAQOKh4fnrUiEuSpRFSJ59HdmMgkbhUEiYG_FHxOgXHgsDFKUntrRyZElNmf7S_qBt0R-1-xPqhIEfGnK5uyxrLWC8nd7_D7zKjDBBO-_OztvMU7V6sWKVs048zIRHfPYX0N5U9_Z43kl2BiebBwcpU"/>
+</div>
+<!-- 右下角麻雀风生水起角标 -->
+<div class="absolute -bottom-1 -right-1 bg-gradient-to-r from-amber-500 to-amber-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md border border-white shadow-sm flex items-center justify-center">
+              🀄️
+            </div>
+</div>
+<!-- 右侧多层级档案详情 -->
+<div class="flex-1 min-w-0">
+<!-- 昵称与段位徽章行 -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<h1 class="text-xl font-black tracking-tight text-gray-900 leading-none">勿忘</h1>
+<!-- 精致段位胶囊 -->
+<div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-50 to-emerald-50 border border-emerald-200/90 text-[11px] font-semibold text-emerald-900 shadow-2xs">
+<span class="text-amber-500 text-[10px]">👑</span>
+<span>九品 · 初</span>
+<span class="w-1 h-1 rounded-full bg-emerald-500"></span>
+</div>
+</div>
+<!-- 右上角通透轻量「修改资料」操作入口 -->
+<button class="flex items-center gap-0.5 text-xs text-brand hover:text-brand-dark bg-white/90 hover:bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full font-medium transition-colors shadow-2xs" type="button">
+<span>编辑</span>
+<svg class="w-3 h-3 stroke-current" fill="none" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+</div>
+<!-- 第二行：雀友号与偏好标签 -->
+<div class="flex flex-wrap items-center gap-1.5 mt-2">
+<span class="inline-flex items-center gap-1 text-[11px] font-mono text-gray-500 bg-gray-100/90 px-2 py-0.5 rounded-md">
+                ID: ZK-882049
+                <svg class="w-2.5 h-2.5 text-gray-400 cursor-pointer" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</span>
+<span class="text-[10px] text-emerald-800/80 bg-emerald-50/70 border border-emerald-100 px-1.5 py-0.5 rounded-md font-medium">
+                广式鸡平胡
+              </span>
+<span class="text-[10px] text-gray-500 bg-gray-100/90 px-1.5 py-0.5 rounded-md">
+                雀龄 1年
+              </span>
+</div>
+<!-- 第三行：个性雀风签名 -->
+<p class="text-[12px] text-gray-500 truncate mt-1.5 flex items-center gap-1">
+<span class="text-brand-light opacity-80">“</span>
+<span>牌品好，手气自然好 · 得闲多开台</span>
+<span class="text-brand-light opacity-80">”</span>
+</p>
+</div>
+</div>
+<!-- 卡片下半区：当前赛季段位升阶星级进度条 -->
+<div class="mt-4 pt-3 border-t border-emerald-100/80">
+<div class="flex justify-between items-center text-[11px] mb-1.5">
+<span class="text-gray-600 font-medium flex items-center gap-1">
+<span class="inline-block w-1.5 h-1.5 rounded-full bg-brand"></span>
+              升星进度：九品 0★ ➔ 1★
+            </span>
+<span class="text-brand font-semibold text-[11px]">再赢 1 场可点亮首星</span>
+</div>
+<!-- 进度槽与刻度 -->
+<div class="w-full bg-gray-150 h-2 bg-gray-100 rounded-full overflow-hidden p-[1px] border border-emerald-100">
+<div class="h-full bg-gradient-to-r from-emerald-400 to-brand rounded-full w-[12%] shadow-xs"></div>
+</div>
+</div>
+</section>
+<!-- END: UpgradedHeaderCard -->
+<!-- BEGIN: CoreStatsCard -->
+<!-- 核心开台与对局战绩卡片 -->
+<section class="rounded-[22px] bg-white border border-gray-100 p-4 shadow-card-subtle" data-purpose="combat-statistics">
+<div class="grid grid-cols-3 divide-x divide-gray-100 text-center">
+<!-- 累计开台 -->
+<div class="flex flex-col justify-center items-center px-1">
+<span class="text-xs text-gray-500 font-medium">累计开台</span>
+<div class="flex items-baseline gap-0.5 mt-1">
+<span class="text-3xl font-extrabold text-gray-900 tracking-tight">1</span>
+<span class="text-xs text-gray-400 font-normal">场</span>
+</div>
+<span class="text-[11px] text-gray-400 mt-1 opacity-80">本月活跃 1 场</span>
+</div>
+<!-- 总净积分 -->
+<div class="flex flex-col justify-center items-center px-1">
+<span class="text-xs text-gray-500 font-medium">总净积分</span>
+<div class="flex items-baseline gap-0.5 mt-1">
+<span class="text-3xl font-extrabold text-gray-900 tracking-tight">-15</span>
+<span class="text-xs text-gray-400 font-normal">分</span>
+</div>
+<span class="text-[11px] text-gray-500 mt-1 bg-gray-50 px-1.5 py-0.2 rounded font-mono">
+              均场 -14.99
+            </span>
+</div>
+<!-- 胜率与近期表现 -->
+<div class="flex flex-col justify-center items-center px-1">
+<span class="text-xs text-gray-500 font-medium">胜率</span>
+<div class="flex items-baseline gap-0.5 mt-1">
+<span class="text-3xl font-extrabold text-gray-900 tracking-tight">0</span>
+<span class="text-xs text-gray-400 font-normal">%</span>
+</div>
+<span class="mt-1 inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200/60 text-[10px] font-semibold text-amber-700">
+              近7场 0胜
+            </span>
+</div>
+</div>
+</section>
+<!-- END: CoreStatsCard -->
+<!-- BEGIN: AchievementBadgesSection -->
+<!-- 成就徽章区 -->
+<section class="space-y-2.5" data-purpose="badge-wall">
+<!-- 章节标题栏 -->
+<div class="flex justify-between items-center px-1">
+<div class="flex items-center gap-2">
+<div class="w-1.5 h-4 bg-brand rounded-full"></div>
+<h2 class="text-base font-bold text-gray-900 tracking-tight">成就徽章</h2>
+</div>
+<a class="text-xs font-medium text-brand hover:text-brand-dark flex items-center gap-0.5" href="#badges">
+<span>累计点亮 0/7 个</span>
+<svg class="w-3.5 h-3.5 stroke-current" fill="none" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</a>
+</div>
+<!-- 徽章探索提示卡片 -->
+<div class="rounded-[22px] bg-white border border-gray-100 p-4 shadow-card-subtle">
+<div class="flex items-start justify-between">
+<div>
+<p class="text-sm font-semibold text-gray-800">仲未点亮任何徽章</p>
+<p class="text-xs text-gray-400 mt-1 flex items-center gap-1.5">
+<span>最接近:</span>
+<span class="font-medium text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded text-[11px]">常客</span>
+<span class="text-gray-500 font-mono">进度 1/20</span>
+</p>
+</div>
+<!-- 雀友提示小气泡 -->
+<div class="text-[11px] text-brand bg-brand-soft px-2 py-1 rounded-lg font-medium">
+              开台满 5 局得新章
+            </div>
+</div>
+<!-- 徽章灰模预览行：点亮未解锁的探索感 -->
+<div class="grid grid-cols-4 gap-2 mt-4 pt-3 border-t border-gray-50">
+<!-- 徽章1: 雀神 -->
+<div class="flex flex-col items-center group">
+<div class="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-200/80 flex items-center justify-center text-xl grayscale opacity-40 group-hover:opacity-60 transition">
+                🀄️
+              </div>
+<span class="text-[11px] text-gray-400 font-medium mt-1.5">雀神降临</span>
+</div>
+<!-- 徽章2: 连胜王 -->
+<div class="flex flex-col items-center group">
+<div class="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-200/80 flex items-center justify-center text-xl grayscale opacity-40 group-hover:opacity-60 transition">
+                🔥
+              </div>
+<span class="text-[11px] text-gray-400 font-medium mt-1.5">三连胜</span>
+</div>
+<!-- 徽章3: 常客 (进度中高亮边框) -->
+<div class="flex flex-col items-center group">
+<div class="w-12 h-12 rounded-2xl bg-emerald-50/50 border border-dashed border-emerald-300 flex items-center justify-center text-xl opacity-60">
+                🍵
+              </div>
+<span class="text-[11px] text-emerald-800 font-medium mt-1.5">常客 (1/20)</span>
+</div>
+<!-- 徽章4: 稳如泰山 -->
+<div class="flex flex-col items-center group">
+<div class="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-200/80 flex items-center justify-center text-xl grayscale opacity-40 group-hover:opacity-60 transition">
+                🛡️
+              </div>
+<span class="text-[11px] text-gray-400 font-medium mt-1.5">稳如泰山</span>
+</div>
+</div>
+</div>
+</section>
+<!-- END: AchievementBadgesSection -->
+<!-- BEGIN: PreferenceAndSettings -->
+<!-- 个性化与体验设置卡片 -->
+<section class="space-y-2" data-purpose="settings-menu">
+<h3 class="text-xs font-semibold text-gray-400 px-1 tracking-wider uppercase">个性化与体验</h3>
+<div class="rounded-[22px] bg-white border border-gray-100 divide-y divide-gray-100 shadow-card-subtle overflow-hidden">
+<!-- 偏好设置项 -->
+<div class="p-4 flex items-center justify-between hover:bg-gray-50/60 active:bg-gray-150 transition cursor-pointer">
+<div class="flex items-center gap-3.5">
+<!-- 调音台/偏好设置图标 -->
+<div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<div>
+<h4 class="text-[15px] font-bold text-gray-900 leading-tight">牌局偏好设置</h4>
+<p class="text-xs text-gray-400 mt-0.5">得分语音播报 · 配音音色 · 震动提醒</p>
+</div>
+</div>
+<!-- 右侧状态与箭头 -->
+<div class="flex items-center gap-1 shrink-0 text-xs text-gray-500 font-medium">
+<span>语音关 · 震动开</span>
+<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+</div>
+<!-- 黑名单与隐私设置项 -->
+<div class="p-4 flex items-center justify-between hover:bg-gray-50/60 active:bg-gray-150 transition cursor-pointer">
+<div class="flex items-center gap-3.5">
+<!-- 隐私/黑名单图标 -->
+<div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+<div>
+<h4 class="text-[15px] font-bold text-gray-900 leading-tight">雀友黑名单与隐藏</h4>
+<p class="text-xs text-gray-400 mt-0.5">管理不想同台或隐藏战绩的牌友</p>
+</div>
+</div>
+<!-- 右侧状态 -->
+<div class="flex items-center gap-1 shrink-0 text-xs text-gray-500 font-medium">
+<span>无限制</span>
+<svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+</div>
+</div>
+</section>
+<!-- END: PreferenceAndSettings -->
+<!-- BEGIN: PlatformRules -->
+<!-- 平台守则与关于模块 -->
+<section class="space-y-2" data-purpose="platform-rules">
+<h3 class="text-xs font-semibold text-gray-400 px-1 tracking-wider uppercase">平台守则与关于</h3>
+<div class="rounded-[22px] bg-white border border-gray-100 divide-y divide-gray-100 shadow-card-subtle overflow-hidden">
+<div class="px-4 py-3.5 flex items-center justify-between hover:bg-gray-50 cursor-pointer">
+<span class="text-sm font-medium text-gray-700">公平计分与规则公示</span>
+<div class="flex items-center gap-1 text-xs text-gray-400">
+<span>推倒胡 · 国际计番</span>
+<svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+</div>
+<div class="px-4 py-3.5 flex items-center justify-between hover:bg-gray-50 cursor-pointer">
+<span class="text-sm font-medium text-gray-700">关于得闲开台</span>
+<div class="flex items-center gap-1 text-xs text-gray-400">
+<span class="font-mono">v1.2.4</span>
+<svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</div>
+</div>
+</div>
+</section>
+<!-- END: PlatformRules -->
+</main>
+<!-- BEGIN: WeChatTabBar -->
+<!-- 底部微信原生风格 TabBar (固定底部，带安全边距) -->
+<nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[428px] bg-white/95 backdrop-blur-lg border-t border-gray-200/80 z-50 safe-bottom" data-purpose="mobile-tabbar">
+<div class="grid grid-cols-4 h-[52px] items-center">
+<!-- Tab 1: 牌局 -->
+<a class="flex flex-col items-center justify-center text-gray-400 hover:text-brand transition py-1" href="#games">
+<!-- 麻将牌台图标 -->
+<svg class="w-5 h-5 stroke-current" fill="none" stroke-width="1.8" viewbox="0 0 24 24">
+<rect height="18" rx="4" width="18" x="3" y="3"></rect>
+<circle cx="8.5" cy="8.5" fill="currentColor" r="1.2"></circle>
+<circle cx="15.5" cy="8.5" fill="currentColor" r="1.2"></circle>
+<circle cx="8.5" cy="15.5" fill="currentColor" r="1.2"></circle>
+<circle cx="15.5" cy="15.5" fill="currentColor" r="1.2"></circle>
+</svg>
+<span class="text-[10px] font-medium mt-0.5">牌局</span>
+</a>
+<!-- Tab 2: 雀友榜 -->
+<a class="flex flex-col items-center justify-center text-gray-400 hover:text-brand transition py-1" href="#ranks">
+<!-- 奖杯图标 -->
+<svg class="w-5 h-5 stroke-current" fill="none" stroke-width="1.8" viewbox="0 0 24 24">
+<path d="M8 21h8m-4-4v4m-5.5-8.5a5.5 5.5 0 0011 0V4H6.5v4.5zM4 6H2a2 2 0 002 2h2.5M20 6h2a2 2 0 01-2 2h-2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span class="text-[10px] font-medium mt-0.5">雀友榜</span>
+</a>
+<!-- Tab 3: 翻记录 -->
+<a class="flex flex-col items-center justify-center text-gray-400 hover:text-brand transition py-1" href="#records">
+<!-- 时钟手账图标 -->
+<svg class="w-5 h-5 stroke-current" fill="none" stroke-width="1.8" viewbox="0 0 24 24">
+<circle cx="12" cy="12" r="9"></circle>
+<path d="M12 7v5l3 3" stroke-linecap="round" stroke-linejoin="round"></path>
+</svg>
+<span class="text-[10px] font-medium mt-0.5">翻记录</span>
+</a>
+<!-- Tab 4: 我 (激活态) -->
+<a class="flex flex-col items-center justify-center text-brand font-bold py-1" href="#profile">
+<!-- 个人头像实心图标 -->
+<div class="relative">
+<svg class="w-5 h-5 fill-current" viewbox="0 0 24 24">
+<path clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 2.237.733 4.302 1.968 5.973.048-.052.1-.102.155-.15A6.974 6.974 0 019 16h6a6.974 6.974 0 014.877 1.823c.055.048.107.098.155.15A9.967 9.967 0 0022 12c0-5.523-4.477-10-10-10zm0 4a3.5 3.5 0 100 7 3.5 3.5 0 000-7z" fill-rule="evenodd"></path>
+</svg>
+</div>
+<span class="text-[10px] mt-0.5">我</span>
+</a>
+</div>
+<!-- iPhone Home Indicator 底部小黑条 -->
+<div class="w-32 h-1 bg-black/80 rounded-full mx-auto mb-1"></div>
+</nav>
+<!-- END: WeChatTabBar -->
+</div>
+</body></html>
