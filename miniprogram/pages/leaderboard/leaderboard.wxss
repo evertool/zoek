@@ -48,7 +48,8 @@
 .my-score-val { font-size: 56rpx; font-weight: 700; color: var(--primary); letter-spacing: -1rpx; line-height: 1.15; }
 
 /* 段位 chip */
-.tier-chip { display: inline-flex; align-items: center; padding: 2rpx 12rpx; border-radius: var(--radius-sm); font-size: 20rpx; font-weight: 600; background: rgba(166, 243, 201, 0.6); color: var(--primary); white-space: nowrap; flex-shrink: 0; }
+.tier-chip { display: inline-flex; align-items: center; gap: 4rpx; padding: 2rpx 12rpx; border-radius: var(--radius-sm); font-size: 20rpx; font-weight: 600; background: rgba(166, 243, 201, 0.6); color: var(--primary); white-space: nowrap; flex-shrink: 0; }
+.tier-chip-icon { width: 26rpx; height: 26rpx; }
 .tier-chip-self { background: var(--primary-fixed); color: var(--on-primary-fixed-variant); }
 .tier-chip-gold { background: rgba(255, 220, 195, 0.5); color: var(--secondary); }
 

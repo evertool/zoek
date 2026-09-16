@@ -537,7 +537,7 @@ func (s *Store) SettleGameRank(gameID int64) error {
 
 			newStars := u.RankStars + o.StarsDelta
 			if newStars < 0 {
-				newStars = 0 // 九品保底：0 星不再扣
+				newStars = 0 // 雀仔保底：0 星不再扣
 			}
 			if err := tx.Model(&model.User{}).Where("id = ?", u.ID).Updates(map[string]interface{}{
 				"rank_stars":       newStars,
@@ -698,7 +698,7 @@ func (s *Store) RecalculateGameRank(gameID int64) error {
 
 			newStars := b.stars + o.StarsDelta
 			if newStars < 0 {
-				newStars = 0 // 九品保底：0 星不再扣
+				newStars = 0 // 雀仔保底：0 星不再扣
 			}
 			updates := map[string]interface{}{
 				"rank_stars":       newStars,
@@ -1669,10 +1669,12 @@ type LeaderboardEntry struct {
 	InGame     bool     `json:"in_game"`   // 当前已在 forming/active 牌局落座（已在位）
 	Qualified  bool     `json:"qualified"` // 完成局数达到门槛，进入正式榜单
 	TierName   string   `json:"tier_name"` // 排位段位全名
+	TierIndex  int      `json:"tier_index"` // 段位序号 1~6（前端映射段位图标）
 	TierShort  string   `json:"tier_short"`
 	Grade      string   `json:"grade"`
 	Stars      int      `json:"stars"`      // 段内星级
 	RankStars  int      `json:"rank_stars"` // 排位累计星（排位榜排序用）
+	IsPeak     bool     `json:"is_peak"`    // 是否已晋圣（至尊·最强雀圣）
 }
 
 // TrendPoint is one ended game's final score for the personal trend chart.
@@ -1862,10 +1864,12 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 		if u, err := s.GetUserByID(uid); err == nil {
 			info := rank.InfoFromStars(u.RankStars)
 			e.TierName = info.TierName
+			e.TierIndex = info.TierIndex
 			e.TierShort = info.TierShort
 			e.Grade = info.Grade
 			e.Stars = info.StarsInTier
 			e.RankStars = u.RankStars
+			e.IsPeak = info.IsPeak
 		}
 		entries = append(entries, e)
 	}

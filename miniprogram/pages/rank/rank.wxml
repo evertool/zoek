@@ -42,7 +42,7 @@
           <view class="rk-protect-chip" wx:if="{{rank.tier.tier_index === 1}}"><text>输场保星</text></view>
         </view>
         <view class="rk-stars" wx:else>
-          <text class="rk-total-stars">累计 {{rank.stars}} 星 · {{rank.tier.is_peak ? '雀圣无上限' : '至尊无上限'}}</text>
+          <text class="rk-total-stars">累计 {{rank.stars}} 星 · {{rank.tier.is_peak ? '雀圣无上限' : '雀神无上限'}}</text>
           <text class="rk-peak-tip" wx:if="{{rank.tier.is_peak}}">已晋「{{rank.tier.tier_name}}」</text>
           <text class="rk-peak-tip" wx:elif="{{rank.tier.stars_to_peak > 0}}">距「{{rank.next_tier}}」还需 {{rank.tier.stars_to_peak}} 星</text>
         </view>
@@ -106,14 +106,14 @@
         </view>
         <view class="rk-protect">
           <text class="rk-protect-icon">🛡</text>
-          <text class="rk-protect-text">保底保护：九品 0 星的雀友偶败北不扣星；末位输局固定扣 1 星。</text>
+          <text class="rk-protect-text">保底保护：新手雀仔 0 星的雀友偶败北不扣星；末位输局固定扣 1 星。</text>
         </view>
       </view>
 
-      <!-- 六品雀位 -->
+      <!-- 六段雀位 -->
       <view class="rk-section anim-fade-up delay-2">
         <view class="rk-section-head">
-          <text class="rk-section-title">🎴 六品雀位徽标规范</text>
+          <text class="rk-section-title">🎴 段位雀位徽标规范</text>
           <text class="rk-section-sub">雀桥传奇雀衔</text>
         </view>
         <view class="rk-tiers">

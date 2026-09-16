@@ -61,7 +61,7 @@
             <view class="my-info">
               <view class="my-name-row">
                 <text class="my-name">{{nickname}}</text>
-                <view class="tier-chip tier-chip-self" wx:if="{{stats.tier_short}}"><text>{{stats.tier_short}} {{stats.stars || 0}}★</text></view>
+                <view class="tier-chip tier-chip-self" wx:if="{{stats.tier_short}}"><image class="tier-chip-icon" src="{{stats.tier_icon}}" mode="aspectFit" /><text>{{stats.tier_short}} {{stats.stars || 0}}★</text></view>
               </view>
               <text class="my-sub">{{stats.active_text || '本周期活跃 · 雀艺渐入佳境'}}</text>
             </view>
@@ -140,7 +140,7 @@
             <view class="rank-info">
               <view class="rank-name-row">
                 <text class="rank-name">{{item.nickname}}</text>
-                <view class="tier-chip {{item.displayRank === 1 ? 'tier-chip-gold' : ''}}" wx:if="{{item.tier_short}}"><text>{{item.tier_short}} {{item.stars || 0}}★</text></view>
+                <view class="tier-chip {{item.displayRank === 1 ? 'tier-chip-gold' : ''}}" wx:if="{{item.tier_short}}"><image class="tier-chip-icon" src="{{item.tier_icon}}" mode="aspectFit" /><text>{{item.tier_short}} {{item.stars || 0}}★</text></view>
               </view>
               <text class="rank-line">{{item.games}} 场 · {{item.wins}} 胜 · {{item.draws || 0}} 平</text>
               <text class="rank-line rank-line-sub">连胜 {{item.best_streak || 0}} · 单场最高 {{item.best_score || 0}}</text>

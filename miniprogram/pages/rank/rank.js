@@ -1,18 +1,18 @@
-// pages/rank/rank.js — 排位段位页（我的段位 + 升星机制 + 六品雀位）
+// pages/rank/rank.js — 排位段位页（我的段位 + 升星机制 + 六段雀位）
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
 const guard = require('../../utils/guard')
 
-// 六品雀位品阶表：图标取设计资产同名资源（docs/design/icons/rank-*.svg → miniprogram/assets/icons/），
-// 底座色对齐设计稿（stone-50 / amber-50、emerald-50、red-50 等）。
+// 段位品阶表（六段）：图标为设计资产段位 SVG 图标包（rank-1~6 + rank-peak-sheng），
+// 底座色对齐各图标自带底色渐变（iconBg 取渐变起点色）。
 const TIER_ROWS = [
-  { idx: 1, icon: '/assets/icons/rank-9-novice.svg',    iconBg: '#f8fafc', name: '九品·初入雀境', req: '星需 3 星 · 新晋保底不扣星', grade: '青铜级', range: 'I~III段' },
-  { idx: 2, icon: '/assets/icons/rank-8-street.svg',    iconBg: 'rgba(255, 251, 235, 0.75)', name: '八品·市井雀手', req: '星需 3 星 · 零基础连胜稳进', grade: '白银级', range: 'I~III段' },
-  { idx: 3, icon: '/assets/icons/rank-6-artisan.svg',   iconBg: 'rgba(245, 245, 244, 0.8)',  name: '六品·茶铺雀侠', req: '星需 4 星 · 橙火高段切磋', grade: '黄金级', range: 'I~IV段' },
-  { idx: 4, icon: '/assets/icons/rank-4-facai.svg',     iconBg: '#ecfdf5', name: '四品·省城雀师', req: '星需 4 星 · 需稳踏着齐物徽', grade: '铂金级', range: 'I~IV段' },
-  { idx: 5, icon: '/assets/icons/rank-2-hongzhong.svg', iconBg: '#fef2f2', name: '二品·岭南雀宗', req: '星需 6 星 · 扣星加雀考虑心', grade: '皇牌级', range: 'I~V段' },
-  { idx: 6, icon: '/assets/icons/rank-1-god-crown.svg', iconBg: '#fffbeb', name: '至尊·无双雀神', req: '累计 50 星晋「至尊·最强雀圣」', grade: '大满贯', range: '全段锁' }
+  { idx: 1, icon: '/assets/icons/rank-1-que.svg',  iconBg: '#eaf0f3', name: '新手雀仔', req: '星需 3 星 · 新晋开台', grade: '青铜级', range: 'I~III段' },
+  { idx: 2, icon: '/assets/icons/rank-2-you.svg',  iconBg: '#e7f5ee', name: '街坊雀友', req: '星需 3 星 · 街坊熟客', grade: '白银级', range: 'I~III段' },
+  { idx: 3, icon: '/assets/icons/rank-3-xia.svg',  iconBg: '#fff3d8', name: '叹茶雀侠', req: '星需 4 星 · 叹茶开台', grade: '黄金级', range: 'I~IV段' },
+  { idx: 4, icon: '/assets/icons/rank-4-shi.svg',  iconBg: '#fce8e0', name: '老练雀师', req: '星需 4 星 · 牌路纯熟', grade: '铂金级', range: 'I~IV段' },
+  { idx: 5, icon: '/assets/icons/rank-5-zong.svg', iconBg: '#f0e8fa', name: '岭南雀宗', req: '星需 6 星 · 手牌自成一派', grade: '皇牌级', range: 'I~V段' },
+  { idx: 6, icon: '/assets/icons/rank-6-shen.svg', iconBg: '#fff4c9', name: '无双雀神', req: '累计 50 星晋「至尊·最强雀圣」', grade: '大满贯', range: '全段锁' }
 ]
 
 // 晋圣后的品阶行文案（至尊行随称号变化）
@@ -89,7 +89,7 @@ Page({
   onShareAppMessage() {
     var r = this.data.rank
     return {
-      title: '我的排位段位：' + (r ? r.tier.tier_name : '九品·初入雀境') + (r && r.streak > 1 ? ' · ' + r.streak + '连胜进行中' : ''),
+      title: '我的排位段位：' + (r ? r.tier.tier_name : '新手雀仔') + (r && r.streak > 1 ? ' · ' + r.streak + '连胜进行中' : ''),
       path: '/pages/rank/rank'
     }
   }

@@ -66,7 +66,7 @@
 .rk-protect { display: flex; align-items: center; gap: 10rpx; padding: 0 8rpx; }
 .rk-protect-text { font-size: 20rpx; color: var(--on-surface-variant); }
 
-/* 六品段位表 */
+/* 六段段位表 */
 .rk-tiers { display: flex; flex-direction: column; gap: 14rpx; }
 .rk-tier { display: flex; align-items: center; gap: 16rpx; padding: 18rpx 20rpx; border-radius: var(--radius-lg); background: var(--surface-container-lowest); box-shadow: var(--shadow-card); }
 .rk-tier.current { border: 2rpx solid var(--primary); background: #f2faf5; }

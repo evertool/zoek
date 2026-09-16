@@ -40,6 +40,7 @@ Page({
     avatarChanged: false,
     stats: null,
     rankTier: '',
+    rankIcon: '',
     star: null, // 升星进度：{ label, hint, pct }
     badges: [],
     badges4: [], // 展架网格（最多 4 枚）
@@ -201,7 +202,7 @@ Page({
         var ord = STAR_ORDINALS[next - 1] || ('第' + next + '星')
         var hint
         if (inTier >= r.stars_needed) {
-          hint = '再赢 1 场可晋升下一品'
+          hint = '再赢 1 场可晋升下一段'
         } else {
           hint = '再赢 1 场可点亮' + ord
         }
@@ -212,7 +213,8 @@ Page({
         }
       }
       this.setData({
-        rankTier: r.tier_short + ' · ' + r.roman,
+        rankTier: r.tier_short,
+        rankIcon: util.tierIcon(r.tier_index, r.is_peak),
         tierFull: r.tier_name,
         star: star,
         // 雀龄：由注册时间推算，不足 1 年显示 <1年

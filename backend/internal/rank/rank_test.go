@@ -72,13 +72,13 @@ func TestInfoFromStars(t *testing.T) {
 	}{
 		{0, 1, 0, 3, "初"},
 		{2, 1, 2, 3, "II"},
-		{3, 2, 0, 3, "初"},    // 八品
-		{6, 3, 0, 4, "初"},    // 六品
-		{9, 3, 3, 4, "III"},  // 六品 III
-		{10, 4, 0, 4, "初"},   // 四品
-		{14, 5, 0, 6, "初"},   // 二品
-		{20, 6, 0, 0, "初"},   // 至尊
-		{99, 6, 79, 0, "79"}, // 至尊无上限，段内星 = 总星 - 20
+		{3, 2, 0, 3, "初"},    // 街坊雀友
+		{6, 3, 0, 4, "初"},    // 叹茶雀侠
+		{9, 3, 3, 4, "III"},  // 叹茶雀侠 III
+		{10, 4, 0, 4, "初"},   // 老练雀师
+		{14, 5, 0, 6, "初"},   // 岭南雀宗
+		{20, 6, 0, 0, "初"},   // 无双雀神
+		{99, 6, 79, 0, "79"}, // 雀神无上限，段内星 = 总星 - 20
 	}
 	for _, c := range cases {
 		info := InfoFromStars(c.stars)
@@ -90,10 +90,10 @@ func TestInfoFromStars(t *testing.T) {
 }
 
 func TestInfoFromStarsPeak(t *testing.T) {
-	// 至尊段（累计 20 星起）：未满晋圣门槛时保留无双雀神，并给出还差几星
+	// 雀神段（累计 20 星起）：未满晋圣门槛时保留无双雀神，并给出还差几星
 	info := InfoFromStars(20)
-	if info.TierIndex != 6 || info.TierName != "至尊·无双雀神" || info.IsPeak {
-		t.Fatalf("20 星 = %+v, want 至尊·无双雀神 未晋圣", info)
+	if info.TierIndex != 6 || info.TierName != "无双雀神" || info.IsPeak {
+		t.Fatalf("20 星 = %+v, want 无双雀神 未晋圣", info)
 	}
 	if info.PeakStars != PeakStarsNeeded || info.StarsToPeak != PeakStarsNeeded-20 {
 		t.Fatalf("20 星 peak = %d/%d, want %d/%d", info.PeakStars, info.StarsToPeak, PeakStarsNeeded, PeakStarsNeeded-20)
@@ -101,7 +101,7 @@ func TestInfoFromStarsPeak(t *testing.T) {
 
 	// 差一星：仍未晋圣
 	info = InfoFromStars(PeakStarsNeeded - 1)
-	if info.IsPeak || info.StarsToPeak != 1 || info.TierName != "至尊·无双雀神" {
+	if info.IsPeak || info.StarsToPeak != 1 || info.TierName != "无双雀神" {
 		t.Fatalf("%d 星 = %+v, want 未晋圣且还差 1 星", PeakStarsNeeded-1, info)
 	}
 
@@ -124,7 +124,7 @@ func TestInfoFromStarsPeak(t *testing.T) {
 		t.Fatalf("%d 星 = %+v, want 雀圣且段内星 = 总星-20", PeakStarsNeeded+30, info)
 	}
 
-	// 未达至尊的段位不应带晋圣信息
+	// 未达雀神的段位不应带晋圣信息
 	for _, stars := range []int{0, 5, 19} {
 		if got := InfoFromStars(stars); got.IsPeak || got.PeakStars != 0 || got.StarsToPeak != 0 {
 			t.Fatalf("%d 星不应有晋圣信息：%+v", stars, got)

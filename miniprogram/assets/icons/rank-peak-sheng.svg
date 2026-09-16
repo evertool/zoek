@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="16" y1="10" x2="80" y2="88" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDE9E7"/>
+      <stop offset="1" stop-color="#FFFFFF"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="28" y1="24" x2="68" y2="72" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="0.5" stop-color="#C99A25"/>
+      <stop offset="1" stop-color="#6D4A12"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.2" flood-opacity=".16"/>
+    </filter>
+  </defs>
+
+  <!-- outer badge（与 06_shen 同构，双描边示至尊之上） -->
+  <path d="M8 27 L48 6 L88 27 L88 69 L48 90 L8 69 Z" fill="url(#bg)" stroke="#B02D29" stroke-width="3" stroke-linejoin="round" filter="url(#shadow)"/>
+  <path d="M13 30 L48 12 L83 30 L83 66 L48 84 L13 66 Z" fill="none" stroke="#C99A25" stroke-opacity=".85" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M22 34 L48 20 L74 34 L74 62 L48 76 L22 62 Z" fill="none" stroke="#B02D29" stroke-opacity=".24" stroke-width="1.5"/>
+
+  <!-- small mahjong marks（金点示晋圣） -->
+  <circle cx="29" cy="36" r="2.2" fill="#C99A25" opacity=".85"/>
+  <circle cx="67" cy="36" r="2.2" fill="#C99A25" opacity=".85"/>
+  <circle cx="29" cy="60" r="2.2" fill="#C99A25" opacity=".85"/>
+  <circle cx="67" cy="60" r="2.2" fill="#C99A25" opacity=".85"/>
+
+  <!-- central tile -->
+  <rect x="32" y="25" width="32" height="46" rx="6" fill="white" stroke="#B02D29" stroke-width="2.2"/>
+  <rect x="35.5" y="28.5" width="25" height="39" rx="4" fill="none" stroke="#C99A25" stroke-opacity=".45" stroke-width="1.2"/>
+
+  <!-- character -->
+  <text x="48" y="56" text-anchor="middle"
+        font-family="Noto Sans SC, PingFang SC, Microsoft YaHei, sans-serif"
+        font-size="22" font-weight="800" fill="#B02D29">圣</text>
+
+  <!-- rank sparks：红主星 + 金伴星 -->
+  <path d="M48 15 L49.7 18.5 L53 20 L49.7 21.5 L48 25 L46.3 21.5 L43 20 L46.3 18.5 Z"
+        fill="#B02D29" opacity=".92"/>
+  <path d="M61 13 L62.1 15.2 L64.5 16.2 L62.1 17.2 L61 19.4 L59.9 17.2 L57.5 16.2 L59.9 15.2 Z"
+        fill="#C99A25" opacity=".9"/>
+</svg>

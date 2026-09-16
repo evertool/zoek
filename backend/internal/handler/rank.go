@@ -43,7 +43,7 @@ func (h *RankHandler) GetMyRank(c *gin.Context) {
 	case info.TierIndex < len(rank.Tiers):
 		nextTier = rank.Tiers[info.TierIndex].Name // Tiers[info.TierIndex] 即下一段
 	case info.StarsToPeak > 0:
-		nextTier = rank.PeakTierName // 至尊段：下一个里程碑是晋圣
+		nextTier = rank.PeakTierName // 雀神段：下一个里程碑是晋圣
 	}
 	bestScore, _ := h.Store.RankBestScore(userID)
 

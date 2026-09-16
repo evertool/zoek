@@ -686,11 +686,11 @@ func TestRankSettleOnEnd(t *testing.T) {
 	if m["stars"].(float64) != 1 || m["wins"].(float64) != 1 || m["streak"].(float64) != 1 || m["points"].(float64) != 45 {
 		t.Fatalf("p1 rank = %v", m)
 	}
-	if tier := m["tier"].(map[string]interface{}); tier["tier_short"] != "九品" || tier["stars_in_tier"].(float64) != 1 {
+	if tier := m["tier"].(map[string]interface{}); tier["tier_short"] != "雀仔" || tier["stars_in_tier"].(float64) != 1 {
 		t.Fatalf("p1 tier = %v", tier)
 	}
 
-	// p3：末位 -1 星，但九品 0 星保底不掉
+	// p3：末位 -1 星，但雀仔 0 星保底不掉
 	w = doRequest(t, r, "GET", "/api/v1/rank/me", auths[2], nil)
 	m = parseJSON(t, w)
 	if m["stars"].(float64) != 0 || m["losses"].(float64) != 1 || m["points"].(float64) != -45 {

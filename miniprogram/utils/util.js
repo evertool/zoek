@@ -274,6 +274,20 @@ function toDate(ts) {
   return new Date(ts)
 }
 
+/** 段位图标：tier_index 1~6 对应段位 SVG 图标包，晋圣换雀圣徽标 */
+const TIER_ICONS = {
+  1: '/assets/icons/rank-1-que.svg',
+  2: '/assets/icons/rank-2-you.svg',
+  3: '/assets/icons/rank-3-xia.svg',
+  4: '/assets/icons/rank-4-shi.svg',
+  5: '/assets/icons/rank-5-zong.svg',
+  6: '/assets/icons/rank-6-shen.svg'
+}
+function tierIcon(tierIndex, isPeak) {
+  if (isPeak) return '/assets/icons/rank-peak-sheng.svg'
+  return TIER_ICONS[tierIndex] || TIER_ICONS[1]
+}
+
 module.exports = {
   formatScore,
   statusText,
@@ -288,5 +302,6 @@ module.exports = {
   resolveAvatarURL,
   navPadding,
   capsuleBox,
-  toDate
+  toDate,
+  tierIcon
 }

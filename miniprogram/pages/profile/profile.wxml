@@ -32,8 +32,8 @@
             <view class="pf-name-row">
               <text class="pf-name">{{nickname}}</text>
               <view class="pf-rank-pill" bindtap="goRank">
-                <text class="pf-rank-crown">👑</text>
-                <text class="pf-rank-txt">{{rankTier || '九品 · 初'}}</text>
+                <image class="pf-rank-icon" src="{{rankIcon || '/assets/icons/rank-1-que.svg'}}" mode="aspectFit" />
+                <text class="pf-rank-txt">{{rankTier || '雀仔'}}</text>
               </view>
               <view class="pf-edit-btn" bindtap="goEditProfile"><text>编辑</text><text class="pf-edit-arrow">›</text></view>
             </view>
