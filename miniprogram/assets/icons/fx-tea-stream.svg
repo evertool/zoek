@@ -1,0 +1,14 @@
+<svg fill="none" viewBox="0 0 60 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tea" x1="44" y1="6" x2="44" y2="114" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fef9c3"/>
+      <stop offset="0.45" stop-color="#facc15"/>
+      <stop offset="1" stop-color="#b45309"/>
+    </linearGradient>
+  </defs>
+  <path d="M44 6Q2 26 44 114" stroke="url(#tea)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M43.4 7.5Q3 27.5 43.4 112" stroke="rgba(255,255,255,0.5)" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="40" cy="112.5" r="2.4" fill="#fbbf24" opacity="0.9"/>
+  <circle cx="47.5" cy="110" r="1.6" fill="#f59e0b" opacity="0.8"/>
+  <circle cx="50" cy="114.5" r="1.1" fill="#fcd34d" opacity="0.7"/>
+</svg>

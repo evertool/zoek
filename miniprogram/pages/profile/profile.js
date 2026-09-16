@@ -247,7 +247,8 @@ Page({
         stats: {
           games: res.games || 0,
           month_games: res.month_games || 0,
-          scoreText: fmt(total),
+          // 净胜分超 5 位数缩写为「x.xw」（+12.3w / -8w）
+          scoreText: util.formatWan(total),
           avgText: fmt(avg),
           win_rate: res.win_rate || 0,
           recent_wins: res.recent_wins || 0

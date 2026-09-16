@@ -110,6 +110,7 @@ Page({
           tier_short: base.tier_short || '',
           tier_icon: base.tier_icon || '',
           stars: base.stars || 0,
+          scoreText: util.formatWan(base.total_score || 0),
         active_text: (base.games || 0) > 0 ? '本周期活跃 · 雀艺渐入佳境' : '未参与牌局'
         }
       })
@@ -132,6 +133,7 @@ Page({
           tier_short: (res.tier && res.tier.tier_short) || '',
           tier_icon: res.tier ? util.tierIcon(res.tier.tier_index, res.tier.is_peak) : '',
           stars: (res.tier && res.tier.stars_in_tier) || 0,
+          scoreText: util.formatWan(res.points || 0),
           active_text: '段位赛绩 · 满4人局计入排位'
         }
       })
@@ -155,6 +157,7 @@ Page({
           avatarColor: util.avatarColor(e.nickname),
           avatar_url: util.resolveAvatarURL(e.avatar_url || ''),
           tier_icon: util.tierIcon(e.tier_index, e.is_peak),
+          scoreText: util.formatWan(totalScore),
           total_score: totalScore
         }
       })

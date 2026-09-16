@@ -68,7 +68,7 @@
           </view>
           <view class="my-score-col">
             <text class="my-score-label">净胜分</text>
-            <text class="my-score-val">{{stats.total_score >= 0 ? '+' : ''}}{{stats.total_score}}</text>
+            <text class="my-score-val">{{stats.scoreText || (stats.total_score >= 0 ? '+' : '') + stats.total_score}}</text>
           </view>
         </view>
 
@@ -148,7 +148,7 @@
 
             <!-- 分数与互动 -->
             <view class="rank-right">
-              <text class="rank-score {{item.total_score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.total_score >= 0 ? '+' : ''}}{{item.total_score}}</text>
+              <text class="rank-score {{item.total_score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.scoreText}}</text>
               <!-- 已在位：当前已在 forming/active 牌局落座；否则可约台 -->
               <view class="rank-in-game" wx:if="{{item.in_game}}"><text>已在位</text></view>
               <view class="rank-action" wx:else>

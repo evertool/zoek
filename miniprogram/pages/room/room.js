@@ -17,7 +17,7 @@ try {
 
 const POLL_INTERVAL = 4000
 const SLOW_POLL_INTERVAL = 30000 // WS 在线时的兜底刷新间隔（防推送丢失）
-const LEDGER_PAGE_SIZE = 5 // 流水账单每页条数
+const LEDGER_PAGE_SIZE = 4 // 流水账单每页条数（上滑翻页）
 const WINDS = ['東', '南', '西', '北']
 // 座位 → 桌面方位：与 WINDS 同序（東 南 西 北）→ 左 上 右 下
 // 即 南在上、東在左、西在右、北在下（沿用设计稿的方位，不要按通用罗盘翻成「北在上」）
@@ -492,6 +492,28 @@ Page({
 
   collapseLedger() {
     this.setData({ ledgerShown: LEDGER_PAGE_SIZE })
+  },
+
+  // 流水卡片手势：上滑翻下一页，下滑收回到第一页（阈值 50px，纵向位移需大于横向才触发）
+  onLedgerTouchStart(e) {
+    var t = e.touches && e.touches[0]
+    if (!t) return
+    this._ledgerSwipe = { x: t.clientX, y: t.clientY }
+  },
+
+  onLedgerTouchEnd(e) {
+    var s = this._ledgerSwipe
+    this._ledgerSwipe = null
+    if (!s) return
+    var t = (e.changedTouches && e.changedTouches[0]) || {}
+    var dy = (t.clientY || 0) - s.y
+    var dx = (t.clientX || 0) - s.x
+    if (Math.abs(dy) < 50 || Math.abs(dy) <= Math.abs(dx)) return
+    if (dy < 0) {
+      if (this.data.ledgerShown < this.data.ledger.length) this.loadMoreLedger()
+    } else if (this.data.ledgerShown > this.data.ledgerPageSize) {
+      this.collapseLedger()
+    }
   },
 
   // 台码弹窗：打开 / 关闭拆成两个方法。
@@ -1340,32 +1362,59 @@ Page({
     }, 3800)
   },
 
-  // 4. 斟杯靓茶 🍵：紫砂壶飞入倾斜 → 茶汤注入 → 水位涟漪白雾
+  // 4. 斟杯靓茶 🍵：紫砂壶飞入倾斜 → 茶汤沿壶嘴抛物弧线注入 → 水位涟漪白雾
   fxTea(ctx) {
     var that = this
     var center = ctx.center
     var pos = ctx.pos
     var name = ctx.targetName
+    var R = 0.5
+    try { R = wx.getSystemInfoSync().windowWidth / 750 } catch (e) {}
     // 茶杯悬在席位上方（上方位席位放到席位下方，防止被 fx 层上缘裁掉）
     var cupX = center.x - 44
     var cupY = pos === 'top' ? center.y + 24 : center.y - 110
-    var potX = cupX + 25
-    var potY = cupY - 80
-    var streamX = potX + 10
-    var streamY = potY + 40
-    var streamH = Math.max(20, cupY + 12 - streamY)
+    // 茶壶悬在杯口右上方；素材壶 210x170rpx，壶嘴尖在 viewBox (10,33)
+    var potW = 210 * R
+    var potH = 170 * R
+    var potX = cupX + 30
+    var potY = cupY - 96
+    // 壶嘴尖绕壶中心旋转 -42° 后的真实落点（CSS rotate 负角 = 逆时针）
+    var pcx = potX + potW / 2
+    var pcy = potY + potH / 2
+    var ux = potX + (10 / 120) * potW
+    var uy = potY + (33 / 100) * potH
+    var a = -42 * Math.PI / 180
+    var ca = Math.cos(a)
+    var sa = Math.sin(a)
+    var dx0 = ux - pcx
+    var dy0 = uy - pcy
+    var spoutX = pcx + dx0 * ca - dy0 * sa
+    var spoutY = pcy + dx0 * sa + dy0 * ca
+    // 杯口中心；水流素材竖弦 108（壶嘴端 44,6 → 落点 44,114），按弦长缩放并旋转对准杯口
+    var rimX = cupX + 44 * R
+    var rimY = cupY + 3
+    var cdx = spoutX - rimX
+    var cdy = rimY - spoutY
+    var dist = Math.sqrt(cdx * cdx + cdy * cdy)
+    var rot = Math.atan2(cdx, cdy) * 180 / Math.PI
+    var s = dist / 108
     this.setData({
-      'fx.tea': { potX: potX, potY: potY, cupX: cupX, cupY: cupY, streamX: streamX, streamY: streamY, streamH: streamH, tilt: false, pour: false }
+      'fx.tea': {
+        potX: potX, potY: potY, cupX: cupX, cupY: cupY,
+        streamX: spoutX - 44 * s, streamY: spoutY - 6 * s,
+        streamW: 60 * s, streamH: 120 * s, rot: rot,
+        tilt: false, pour: false
+      }
     })
     this.fxTimeout(function() {
       that.setData({ 'fx.tea.tilt': true })
     }, 150)
     this.fxTimeout(function() {
       that.setData({ 'fx.tea.pour': true })
-    }, 450)
+    }, 600)
     this.fxTimeout(function() {
       that.setData({ 'fx.tea.pour': false, 'fx.tea.tilt': false })
-    }, 2100)
+    }, 2150)
     this.fxTimeout(function() {
       that.setData({ 'fx.tea': null })
     }, 2800)

@@ -288,6 +288,16 @@ function tierIcon(tierIndex, isPeak) {
   return TIER_ICONS[tierIndex] || TIER_ICONS[1]
 }
 
+/** 净胜分展示：绝对值超过 5 位数（≥100000）缩写为「x.xw」，如 +12.3w / -8w；其余原样（正数带 +） */
+function formatWan(n) {
+  n = Number(n) || 0
+  const abs = Math.abs(n)
+  if (abs < 100000) return (n > 0 ? '+' : '') + n
+  let w = abs / 10000
+  w = w >= 100 ? Math.round(w) : Math.round(w * 10) / 10
+  return (n < 0 ? '-' : '+') + w + 'w'
+}
+
 module.exports = {
   formatScore,
   statusText,
@@ -303,5 +313,6 @@ module.exports = {
   navPadding,
   capsuleBox,
   toDate,
-  tierIcon
+  tierIcon,
+  formatWan
 }

@@ -2,7 +2,7 @@
 /* 禁止整页被左右拖动（与房间页同款控制）：内容横向哪怕溢出亚像素，
  * iOS/安卓都允许把整页拖走；overscroll-behavior 再关掉边缘回弹。竖向滚动不受影响。 */
 page { overflow-x: hidden; overscroll-behavior-x: none; }
-.page { min-height: 100vh; background: var(--background); overflow-x: hidden; }
+.page { min-height: 100vh; background: var(--background); overflow-x: hidden; display: flex; flex-direction: column; }
 
 /* ========== 导航 ========== */
 .top-bar { position: relative; display: flex; align-items: center; padding-left: var(--margin-screen); padding-right: var(--margin-screen); padding-bottom: var(--space-sm); }
@@ -10,7 +10,7 @@ page { overflow-x: hidden; overscroll-behavior-x: none; }
 .nav-back-icon { font-size: 40rpx; color: var(--on-surface); line-height: 1; }
 
 /* ========== 主体 ========== */
-.main-content { padding: var(--space-xs) var(--margin-screen) 200rpx; display: flex; flex-direction: column; gap: var(--space-md); }
+.main-content { padding: var(--space-xs) var(--margin-screen) 24rpx; display: flex; flex-direction: column; gap: var(--space-md); }
 .load-tip { text-align: center; padding: 120rpx 0; font-size: 26rpx; color: var(--outline); }
 
 /* 加载失败 / 无权限兜底 */
@@ -90,7 +90,9 @@ page { overflow-x: hidden; overscroll-behavior-x: none; }
 .gd-flow-more text { font-size: 24rpx; font-weight: 500; color: var(--outline); }
 
 /* ========== 底部操作栏 ========== */
-.gd-bottom { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; padding: 20rpx var(--margin-screen) calc(env(safe-area-inset-bottom) + 24rpx); background: rgba(248, 249, 255, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 2rpx solid rgba(0, 0, 0, 0.04); }
-.gd-chart-btn { display: flex; align-items: center; justify-content: center; gap: 12rpx; height: 88rpx; border-radius: var(--radius-lg); background: var(--surface-container-low); color: var(--on-surface); font-size: 26rpx; font-weight: 500; }
-.gd-chart-btn:active { background: var(--surface-container); }
-.gd-chart-icon { width: 34rpx; height: 34rpx; }
+/* 底部操作栏：与房间页道具盒同款白卡按钮（底栏本身无底色） */
+.gd-bottom { position: sticky; bottom: 0; z-index: 50; margin-top: auto; padding: 12rpx var(--margin-screen) calc(env(safe-area-inset-bottom) + 8rpx); display: flex; }
+.gd-chart-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10rpx; height: 88rpx; border-radius: var(--radius-md); background: var(--surface-container-lowest); box-shadow: 0 8rpx 24rpx rgba(11, 28, 48, 0.1); box-sizing: border-box; }
+.gd-chart-btn text { font-size: 26rpx; font-weight: 600; color: var(--on-surface); }
+.gd-chart-btn:active { background: var(--surface-container-low); }
+.gd-chart-icon { width: 32rpx; height: 32rpx; }
