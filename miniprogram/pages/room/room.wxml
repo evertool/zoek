@@ -64,7 +64,7 @@
               <view class="invite-btn" hover-class="invite-btn-active">
                 <image class="invite-icon" src="/assets/icons/table-seat-empty-add.svg" mode="aspectFit" />
                 <text>呼叫雀友</text>
-                <button class="invite-hit" open-type="share"></button>
+                <button class="invite-hit" open-type="share" data-seat="{{item.seat}}" bindtap="onSeatInviteTap"></button>
               </view>
             </block>
           </view>

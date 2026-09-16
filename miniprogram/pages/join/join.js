@@ -7,6 +7,7 @@ Page({
   data: {
     inviteToken: '',
     gameID: 0,
+    seat: 0,
     loading: true,
     joining: false,
     error: '',
@@ -17,6 +18,9 @@ Page({
   onLoad(options) {
     // 登录/资料完善守卫：未通过弹回首页，完成后带着原参数回来继续入台
     if (!guard.ensure(true)) return
+
+    // 座位邀请：分享链接带的 seat = 发起邀请的空位，join 成功后透传给房间页自动落座
+    this.setData({ seat: Number(options.seat) || 0 })
 
     // 小程序码扫码进入
     if (options.scene) {
@@ -63,7 +67,7 @@ Page({
       game_id: gameID,
       request_id: api.genRequestID()
     }, { silent: true }).then(res => {
-      wx.redirectTo({ url: `/pages/room/room?game_id=${res.game_id}` })
+      wx.redirectTo({ url: `/pages/room/room?game_id=${res.game_id}${this.data.seat ? '&seat=' + this.data.seat : ''}` })
     }).catch(err => this.handleJoinError(err))
   },
 
@@ -103,7 +107,7 @@ Page({
       invite_token: this.data.inviteToken,
       request_id: api.genRequestID()
     }, { silent: true }).then(res => {
-      wx.redirectTo({ url: `/pages/room/room?game_id=${res.game_id}` })
+      wx.redirectTo({ url: `/pages/room/room?game_id=${res.game_id}${this.data.seat ? '&seat=' + this.data.seat : ''}` })
     }).catch(err => {
       if (err && err.action === 'BACK_TO_ROOM' && err.game_id) {
         wx.redirectTo({ url: `/pages/room/room?game_id=${err.game_id}` })

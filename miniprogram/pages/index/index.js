@@ -204,7 +204,7 @@ Page({
         name: g.name || '未命名牌局',
         statusText: util.statusText(g.status),
         timeText: this.formatRecentTime(g.ended_at || g.created_at),
-        playersText: (g.players || []).map(function(p) { return p.nickname }).slice(0, 4).join('、'),
+        playersText: (g.players || []).filter(function(p) { return !p.is_me }).map(function(p) { return p.nickname }).slice(0, 4).join('、'),
         my_score: g.my_score || 0,
         my_rank: g.my_rank || 0,
         // 名次徽章：1~4 名对应 金/银/铜/铁，其余走中性兜底

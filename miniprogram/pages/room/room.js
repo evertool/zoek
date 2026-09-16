@@ -106,6 +106,8 @@ Page({
       gameID: Number(options.game_id) || 0,
       inviteToken: options.invite_token || ''
     })
+    // 座位邀请：分享链接带的 seat = 发起邀请的空位；入台后自动坐过去（被占则保持默认分配）
+    this._pendingSeat = Number(options.seat) || 0
     if (!this.data.gameID) {
       wx.showToast({ title: '无效牌局', icon: 'none' })
       return
@@ -264,7 +266,10 @@ Page({
       this.applyGame(res, true)
       // 已有弹窗时不打断用户操作
       if (!this.data.showIncomingSwap && !this.data.showSwapModal) this.checkIncomingSwap()
-    }).catch(function() {})
+    }).catch(err => {
+      // 轮询中失去读权限（被移出/散台清理等）：跳回首页，不再周期性弹 403 toast
+      if (err && err.code === 'FORBIDDEN') this.leaveToHome()
+    })
   },
 
   loadGame() {
@@ -272,9 +277,26 @@ Page({
     this.setData({ loading: true, loadError: false })
     api.get('/games/' + this.data.gameID).then(res => {
       this.applyGame(res, false)
-    }).catch(() => {
+    }).catch(err => {
+      // 非局内玩家（403）：停掉轮询/长连接，跳回首页，不在本页反复弹「没有权限」
+      if (err && err.code === 'FORBIDDEN') {
+        this.leaveToHome()
+        return
+      }
       this.setData({ loading: false, loadError: true })
     })
+  },
+
+  // 无权限兜底：停止一切加载行为并回首页
+  leaveToHome() {
+    if (this._leaving) return
+    this._leaving = true
+    this._wsDesired = false
+    this.stopPolling()
+    this.closeRoomWS()
+    setTimeout(function() {
+      wx.switchTab({ url: '/pages/index/index' })
+    }, 600)
   },
 
   applyGame(res, poll) {
@@ -361,7 +383,23 @@ Page({
         this.showToast('超过 5 小时无新账，牌局已自动结算')
       }
       this._prevStatus = res.status
+      // 座位邀请：入台后自动坐到发起邀请的空位（一次性）
+      this.maybeTakeInvitedSeat()
     })
+  },
+
+  // 座位邀请落座：带 seat 参数进入且当前坐的不是那个位 → 目标位仍空就换过去；被占则保持默认分配
+  maybeTakeInvitedSeat() {
+    if (!this._pendingSeat || this._seatTried) return
+    this._seatTried = true // 只试一次，换座失败不打扰（保持后端分配的座位）
+    var seat = this._pendingSeat
+    this._pendingSeat = 0
+    var seats = this.data.seats || []
+    var mine = seats.find(function(s) { return s.player && s.player.isSelf })
+    if (!mine || mine.seat === seat) return
+    var target = seats.find(function(s) { return s.seat === seat })
+    if (!target || target.player) return // 目标位被占：坐哪都一样，不折腾
+    this.swapToEmptySeat(seat)
   },
 
   // 流水账单：取自转分（adjustment）记录，展示"我转给谁 / 谁转给我"（局概念已移除，按时间自然排列）
@@ -868,12 +906,30 @@ Page({
 
   /** 呼叫雀友：分享房间链接给微信好友 */
   onShareAppMessage() {
-    var path = '/pages/room/room?game_id=' + this.data.gameID
-    if (this.data.inviteToken) path += '&invite_token=' + this.data.inviteToken
-    return {
-      title: '开台差你一个，快啲入来！',
-      path: path
+    var title = '开台差你一个，快啲入来！'
+    // 座位邀请：这次分享从哪个空位发起（用完即清，台码/底部按钮的全桌邀请不带 seat）
+    var seat = this._inviteSeat || 0
+    this._inviteSeat = 0
+    var seatParam = seat > 0 ? '&seat=' + seat : ''
+    if (this.data.inviteToken) {
+      return {
+        title: title,
+        path: '/pages/room/room?game_id=' + this.data.gameID + '&invite_token=' + this.data.inviteToken + seatParam
+      }
     }
+    // 台主重进房间后本地没有 invite_token（只在创建时下发过一次）。
+    // 分享路径绝不能缺 token —— 受邀者不是局内玩家，直接开房间页会 403。
+    // 兜底走 join 页：后端 JoinGame 支持纯数字 invite_token（= game_id），
+    // join 幂等（已在局内直接成功），成功后自动跳回房间页。
+    return {
+      title: title,
+      path: '/pages/join/join?invite_token=' + this.data.gameID + (seat > 0 ? '&seat=' + seat : '')
+    }
+  },
+
+  // 座位上的「呼叫雀友」：记录从哪个空位发起（bindtap 先于 open-type=share 拉起）
+  onSeatInviteTap(e) {
+    this._inviteSeat = Number(e.currentTarget.dataset.seat) || 0
   },
 
   closeSwapModal() {

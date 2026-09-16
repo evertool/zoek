@@ -140,6 +140,7 @@
 .recent-card { background: var(--surface-container-lowest); border-radius: var(--radius-lg); padding: var(--space-md); box-shadow: var(--shadow-card); display: flex; flex-direction: column; }
 .recent-item { display: flex; align-items: center; justify-content: space-between; padding: var(--space-xs) 0; }
 .recent-item-icon { width: 80rpx; height: 80rpx; border-radius: var(--radius-default); display: flex; align-items: center; justify-content: center; font-size: 36rpx; flex-shrink: 0; background: var(--surface-container); }
+.recent-item-icon image { width: 72rpx; height: 72rpx; }
 .recent-item-info { flex: 1; min-width: 0; margin-left: var(--space-sm); }
 .recent-item-name { font-size: 28rpx; color: var(--on-surface); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .recent-item-sub { font-size: 24rpx; color: var(--on-surface-variant); display: block; }
