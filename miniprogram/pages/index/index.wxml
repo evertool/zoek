@@ -1,70 +1,13 @@
-<!--pages/index/index.wxml — 首页 v6 Stitch 100% 还原-->
+<!--pages/index/index.wxml — 首页 v8 静默登录直进牌局页-->
 <view class="page">
-  <!-- ===== 未登录：品牌开屏页 ===== -->
-  <view class="login-hero" wx:if="{{!isLoggedIn}}">
-    <view class="tile-rain-area">
-      <view class="lottie-wrap" wx:if="{{!lottieError}}">
-        <canvas id="lottie-login" type="2d" class="lottie-canvas"></canvas>
-      </view>
-      <view class="tile-rain-stage">
-        <view class="hero-aura"></view>
-        <view class="mj-tile rain-tile rain-tile-1 mj-tile-green anim-drop-1">發</view>
-        <view class="mj-tile rain-tile rain-tile-2 mj-tile-red anim-drop-2">中</view>
-        <view class="mj-tile rain-tile rain-tile-3 mj-tile-blank anim-drop-3"><view class="blank-inner"></view></view>
-        <view class="mj-tile rain-tile rain-tile-4 mj-tile-gold anim-drop-4">南</view>
-        <view class="mj-tile rain-tile rain-tile-5 mj-tile-ink anim-drop-5">北</view>
-        <view class="mj-tile rain-tile rain-tile-6 mj-tile-blue anim-drop-6">東</view>
-      </view>
-    </view>
-    <view class="hero-brand anim-fade-up delay-5">得闲开台</view>
-    <!-- <view class="hero-slogan anim-fade-up delay-6">粤语麻雀记分神器</view> -->
-    <view class="hero-sub anim-fade-up delay-7">粤式麻雀｜记分・排位・牌局分析</view>
-    <view class="login-btn-wrap anim-fade-up delay-8">
-      <button class="btn-primary login-btn" bindtap="doLogin">微信授权</button>
-    </view>
-    <view class="hero-footer anim-fade-up delay-8">
-      <view class="footer-line"></view>
-      <text class="footer-text">老友围埋开台，排位记分，牌势有得睇</text>
-      <view class="footer-line"></view>
-    </view>
+  <!-- ===== 登录失败兜底条（静默登录失败时展示，可重试） ===== -->
+  <view class="login-retry-bar" wx:if="{{loginFailed}}" bindtap="retryLogin">
+    <text class="login-retry-text">网络开小差，部分内容未加载</text>
+    <text class="login-retry-btn">点我重试</text>
   </view>
 
-  <!-- ===== 已登录但缺头像/昵称：强制完善资料页 ===== -->
-  <view class="profile-gate" style="padding-top: {{navPadding}}px;" wx:elif="{{needProfile}}">
-    <view class="gate-hero">
-      <view class="gate-logo"><image class="gate-logo-icon" src="/assets/icons/app-icon-hongzhong.svg" mode="aspectFit" /></view>
-      <view class="gate-title">得闲开台</view>
-      <view class="gate-subtitle">开台之前，先俾雀友认得你</view>
-    </view>
-    <view class="gate-card">
-      <view class="gate-card-title">完善资料</view>
-
-      <!-- 微信头像选择 -->
-      <view class="avatar-chooser-wrap">
-        <button class="avatar-chooser" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
-          <image class="avatar-img" src="{{tempAvatar}}" mode="aspectFill" wx:if="{{tempAvatar}}" />
-          <view class="avatar-placeholder" wx:else>
-            <text class="avatar-placeholder-icon">+</text>
-            <text class="avatar-placeholder-text">选头像</text>
-          </view>
-        </button>
-      </view>
-
-      <!-- 微信昵称输入 -->
-      <input class="text-input" type="nickname" placeholder="输入昵称" placeholder-class="input-placeholder" value="{{tempNickname}}" bindinput="onNicknameInput" maxlength="20" />
-
-      <!-- 保存按钮 -->
-      <button class="btn-primary save-profile-btn {{!tempAvatar || !tempNickname ? 'btn-disabled' : ''}}" bindtap="doSaveProfile" disabled="{{!tempAvatar || !tempNickname}}">保存资料</button>
-    </view>
-    <view class="gate-footer">
-      <view class="footer-line"></view>
-      <text class="footer-text">头像昵称仅雀友可见</text>
-      <view class="footer-line"></view>
-    </view>
-  </view>
-
-  <!-- ===== 已登录且资料完整：牌局页 ===== -->
-  <block wx:else>
+  <!-- ===== 牌局页（打开即可浏览，无需任何授权） ===== -->
+  <block>
     <!-- 主内容区 -->
     <view class="main-content" style="padding-top: {{navPadding}}px;">
       <!-- 开台入口卡 -->
@@ -166,4 +109,7 @@
       </view>
     </view>
   </block>
+
+  <!-- 完善头像昵称弹窗：仅点「开台」且资料未完善时弹出，可关闭 -->
+  <profile-sheet show="{{profileSheet}}" bind:saved="onProfileSaved" bind:close="onProfileClose" />
 </view>

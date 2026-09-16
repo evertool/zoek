@@ -11,6 +11,7 @@ import (
 	"github.com/lk/zoek/backend/internal/middleware"
 	"github.com/lk/zoek/backend/internal/model"
 	"github.com/lk/zoek/backend/internal/store"
+	"github.com/lk/zoek/backend/internal/ws"
 )
 
 // AdjustmentHandler handles score adjustment operations (PRD §3.2).
@@ -170,6 +171,18 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 			return
 		}
+	}
+
+	// 给分动画广播：转分直接生效时推给全台玩家（含发起人），前端各自播放筹码飞行动画。
+	// 注意 middleware.RoomSyncBroadcast 的 "game" 信号只带全量刷新不带明细，这里需要携带
+	// from/to/amount 才能让每台手机知道筹码从谁飞向谁。
+	if req.AutoAccept {
+		ws.Emit(gameID, "give", gin.H{
+			"id":             adj.ID,
+			"from_player_id": adj.FromPlayerID,
+			"to_player_id":   adj.ToPlayerID,
+			"amount":         req.Amount,
+		})
 	}
 
 	// Find target player nickname for message

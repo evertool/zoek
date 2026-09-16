@@ -1,6 +1,7 @@
-// utils/guard.js — 登录与资料完善全局守卫
-// 规则：未登录 → 首页登录页；已登录但缺头像/昵称 → 首页强制完善资料页。
-// 通过分享/邀请链接进入的页面被拦下时记录原路径，完成登录和资料后自动回去继续。
+// utils/guard.js — 登录全局守卫
+// 规则：只校验登录态（token）。头像/昵称完善改到「开台/入台」动作时以可关闭弹窗引导，
+// 不再全屏强制，避免审核驳回（用户需先体验功能，且弹窗必须可拒绝且不重复骚扰）。
+// 通过分享/邀请链接进入的页面被拦下时记录原路径，登录后自动回去继续。
 
 /** 取当前页面完整路由（含参数） */
 function currentRoute() {
@@ -15,10 +16,10 @@ function currentRoute() {
   return '/' + cur.route + (qs ? '?' + qs : '')
 }
 
-/** 是否已登录且资料完善 */
+/** 是否已登录（只校验 token，资料完善在开台/入台动作时另行引导） */
 function pass() {
   const app = getApp()
-  return !!app.globalData.token && !app.checkProfileNeeded()
+  return !!app.globalData.token
 }
 
 /**

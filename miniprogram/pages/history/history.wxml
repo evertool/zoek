@@ -131,7 +131,8 @@
                   </text>
                   <text>{{item.footerText}}</text>
                 </view>
-                <view class="hs-card-detail" catchtap="goLedger" data-id="{{item.game_id}}">
+                <!-- 「查看详细账单」与卡片点击同页：牌局结算明细 -->
+                <view class="hs-card-detail" catchtap="goDetail" data-id="{{item.game_id}}">
                   <text>{{item.detailText}}</text>
                   <text class="hs-card-arrow">›</text>
                 </view>

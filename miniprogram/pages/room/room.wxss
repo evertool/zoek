@@ -409,6 +409,48 @@ page { overflow-x: hidden; overscroll-behavior-x: none; }
   100% { transform: scale(1) translate(0,0) rotate(0deg); filter: brightness(1); }
 }
 
+/* 7. 给分动画（docs/design/geifendonghua）：-N 下沉 + 4 枚筹码抛物线 + 到账 Q 弹/波纹/+N 浮升 */
+.fx-give-badge { position: absolute; transform: translate(-50%, 0); padding: 4rpx 18rpx; border-radius: var(--radius-full); font-size: 26rpx; font-weight: 700; white-space: nowrap; z-index: 12; }
+.fx-give-minus { background: rgba(186, 26, 26, 0.9); color: #ffffff; border: 2rpx solid rgba(255, 255, 255, 0.4); box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.25); animation: fxGiveSink 1.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.fx-give-plus { background: var(--primary); color: var(--on-primary); border: 2rpx solid var(--primary-fixed-dim); box-shadow: 0 8rpx 24rpx rgba(0, 82, 53, 0.35); animation: fxGiveFloat 1.75s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes fxGiveSink {
+  0% { opacity: 0; transform: translate(-50%, -10rpx) scale(0.8); }
+  25% { opacity: 1; transform: translate(-50%, 8rpx) scale(1.05); }
+  70% { opacity: 0.9; transform: translate(-50%, 28rpx) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, 52rpx) scale(0.85); }
+}
+@keyframes fxGiveFloat {
+  0% { opacity: 0; transform: translate(-50%, 20rpx) scale(0.65); }
+  20% { opacity: 1; transform: translate(-50%, -12rpx) scale(1.12); }
+  40% { transform: translate(-50%, -28rpx) scale(1); }
+  75% { opacity: 1; transform: translate(-50%, -48rpx) scale(0.98); }
+  100% { opacity: 0; transform: translate(-50%, -72rpx) scale(0.9); }
+}
+/* 筹码：外层管 X（加速冲向目标），内层管 Y 抛物弧 + 720° 旋转 + 中段放大 */
+.fx-give-coin { position: absolute; left: 0; top: 0; width: 44rpx; height: 44rpx; margin: -22rpx 0 0 -22rpx; z-index: 11; animation: fxGiveCoinX 650ms cubic-bezier(0.5, 0, 0.85, 0.5) both; }
+.fx-give-coin-inner { width: 100%; height: 100%; border-radius: 999rpx; background: radial-gradient(circle at 35% 30%, #fff7d6, #fe932c 60%, #b05c00 100%); box-shadow: 0 0 20rpx rgba(254, 147, 44, 0.7), inset 0 2rpx 2rpx rgba(255, 255, 255, 0.8), 0 4rpx 10rpx rgba(0, 0, 0, 0.3); border: 2rpx solid #fef08a; display: flex; align-items: center; justify-content: center; animation: fxGiveCoinArc 650ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+.fx-give-coin-inner text { font-size: 22rpx; font-weight: 800; color: #78350f; }
+@keyframes fxGiveCoinX { from { transform: translateX(var(--sx)); } to { transform: translateX(var(--dx)); } }
+@keyframes fxGiveCoinArc {
+  0% { transform: translateY(var(--sy)) rotate(0deg) scale(0.85); }
+  50% { transform: translateY(calc(var(--sy) + (var(--dy) - var(--sy)) * 0.5 - 150rpx)) rotate(360deg) scale(1.35); }
+  100% { transform: translateY(var(--dy)) rotate(720deg) scale(1.15); }
+}
+/* 到账：目标头像 Q 弹 + 翡翠金光波纹（给分专用，与道具 fx 互不复用） */
+@keyframes fxGiveBounce {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.18); }
+  65% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+.seat-avatar-wrap.fx-give-bounce { animation: fxGiveBounce 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.give-ripple { position: absolute; left: 0; top: 0; right: 0; bottom: 0; border-radius: 50%; border: 4rpx solid var(--primary-fixed-dim); background: rgba(0, 82, 53, 0.2); opacity: 0; pointer-events: none; z-index: 3; }
+.give-ripple.give-ripple-on { animation: fxGiveRing 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes fxGiveRing {
+  0% { transform: scale(0.85); opacity: 0.9; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
 /* 6. 台下猛踢的私密暗号气泡（桌面内浮层，非全局弹窗） */
 .fx-banner { position: absolute; left: 24rpx; right: 24rpx; bottom: 24rpx; display: flex; align-items: center; gap: 12rpx; padding: 16rpx 20rpx; border-radius: 24rpx; background: rgba(33,49,69,0.95); border: 2rpx solid rgba(255,220,195,0.3); box-shadow: 0 16rpx 48rpx rgba(0,0,0,0.35); opacity: 0; transform: translateY(48rpx); transition: all 0.3s ease; z-index: 10; }
 .fx-banner.fx-on { opacity: 1; transform: translateY(0); }

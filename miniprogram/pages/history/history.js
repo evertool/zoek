@@ -203,7 +203,7 @@ Page({
     return (d.getMonth() + 1) + '月' + d.getDate() + '日'
   },
 
-  // 卡片 → 每局详情页；「查看详细手账」→ 手帐明细页
+  // 卡片与「查看详细账单」都进牌局结算明细页（卡片滑开时点击仅收起，不跳转）
   goDetail(e) {
     var gameID = Number(e.currentTarget.dataset.id)
     // 卡片已滑开时，点击仅收起，不跳转详情
@@ -212,11 +212,6 @@ Page({
       return
     }
     wx.navigateTo({ url: '/pages/game-detail/game-detail?game_id=' + gameID })
-  },
-
-  goLedger(e) {
-    var gameID = e.currentTarget.dataset.id
-    wx.navigateTo({ url: '/pages/game-ledger/game-ledger?game_id=' + gameID })
   },
 
   doHide(e) {

@@ -1,5 +1,7 @@
 {
-  "usingComponents": {},
+  "usingComponents": {
+    "profile-sheet": "/components/profile-sheet/profile-sheet"
+  },
   "navigationBarTitleText": "入台",
   "navigationBarBackgroundColor": "#FFF8EF",
   "navigationBarTextStyle": "black",

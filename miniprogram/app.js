@@ -56,6 +56,10 @@ App({
           this.logout()
         }
       })
+    } else {
+      // 新用户（无本地 token）：直接静默登录（wx.login 无需用户授权弹窗），
+      // 失败不阻塞启动，首页仍可浏览，进入房间时会再次兜底
+      this._readyPromise = this.login(true).catch(() => {})
     }
   },
 
@@ -72,13 +76,14 @@ App({
     return this.login()
   },
 
-  /** 微信登录流程（仅获取 code → 后端换 token） */
-  login() {
+  /** 微信登录流程（仅获取 code → 后端换 token）
+   * @param {boolean} silent — 静默登录（启动时自动调用），失败不弹 toast */
+  login(silent) {
     return new Promise((resolve, reject) => {
       wx.login({
         success: (res) => {
           if (!res.code) {
-            wx.showToast({ title: '登录失败', icon: 'none' })
+            if (!silent) wx.showToast({ title: '登录失败', icon: 'none' })
             reject(new Error('no code'))
             return
           }
@@ -100,12 +105,12 @@ App({
               : (!this.globalData.nickname || !this.globalData.avatarURL)
             resolve(data.token)
           }).catch(err => {
-            wx.showToast({ title: '登录失败', icon: 'none' })
+            if (!silent) wx.showToast({ title: '登录失败', icon: 'none' })
             reject(err)
           })
         },
         fail: () => {
-          wx.showToast({ title: '登录失败', icon: 'none' })
+          if (!silent) wx.showToast({ title: '登录失败', icon: 'none' })
           reject(new Error('wx.login failed'))
         }
       })

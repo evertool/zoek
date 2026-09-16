@@ -1,0 +1,28 @@
+<!--components/profile-sheet/profile-sheet.wxml — 完善头像昵称半屏弹窗-->
+<view class="ps-mask {{show ? 'ps-on' : ''}}" bindtap="onMaskTap" wx:if="{{show}}">
+  <view class="ps-sheet" catchtap="noop">
+    <view class="ps-grab"></view>
+    <view class="ps-head">
+      <view class="ps-title">完善资料</view>
+      <view class="ps-close" bindtap="onClose">✕</view>
+    </view>
+    <view class="ps-sub">开台之前，先俾雀友认得你</view>
+
+    <view class="ps-avatar-wrap">
+      <button class="ps-avatar-btn" style="width:144rpx;height:144rpx;padding:0;margin:0;" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <image class="ps-avatar-img" src="{{tempAvatar}}" mode="aspectFill" wx:if="{{tempAvatar}}" />
+        <view class="ps-avatar-empty" wx:else>
+          <text class="ps-avatar-plus">+</text>
+          <text class="ps-avatar-hint">选头像</text>
+        </view>
+      </button>
+    </view>
+
+    <input class="ps-input" type="nickname" placeholder="输入昵称" placeholder-class="ps-input-ph" value="{{tempNickname}}" bindinput="onNicknameInput" maxlength="32" />
+
+    <button class="ps-save {{!tempAvatar || !tempNickname ? 'ps-save-disabled' : ''}}" bindtap="doSave" disabled="{{!tempAvatar || !tempNickname}}">保存并继续</button>
+    <button class="ps-later" bindtap="onClose">暂不完善</button>
+
+    <view class="ps-foot">头像昵称仅雀友可见</view>
+  </view>
+</view>

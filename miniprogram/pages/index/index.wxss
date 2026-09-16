@@ -1,6 +1,11 @@
-/* pages/index/index.wxss — 首页 v6 Stitch 100% 还原 */
+/* pages/index/index.wxss — 首页 v8 静默登录直进牌局页 */
 
 .page { min-height: 100vh; background: var(--background); padding-bottom: 160rpx; }
+
+/* ========== 登录失败兜底条 ========== */
+.login-retry-bar { position: fixed; left: 24rpx; right: 24rpx; bottom: calc(40rpx + env(safe-area-inset-bottom)); z-index: 50; display: flex; align-items: center; justify-content: space-between; padding: 20rpx 28rpx; border-radius: 20rpx; background: #2f3a34; box-shadow: var(--shadow-card, 0 8rpx 24rpx rgba(0,0,0,0.12)); }
+.login-retry-text { font-size: 24rpx; color: #d7e2da; }
+.login-retry-btn { font-size: 24rpx; font-weight: 700; color: #7fd6a8; }
 
 /* ========== 未登录 ========== */
 .login-hero { min-height: 90vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 60rpx 24rpx; }

@@ -1,5 +1,7 @@
 {
-  "usingComponents": {},
+  "usingComponents": {
+    "profile-sheet": "/components/profile-sheet/profile-sheet"
+  },
   "navigationStyle": "custom",
   "enablePullDownRefresh": true,
   "navigationBarTitleText": "得闲开台",

@@ -33,13 +33,15 @@
         <view class="side-fill {{fx.target === item.pos && fx.hit ? 'fx-hit-shake' : ''}} {{fx.target === item.pos && fx.kicked ? 'fx-avatar-kick' : ''}} {{fx.target === item.pos && fx.tomatoHeavy ? 'fx-tomato-heavy' : ''}}">
           <block wx:if="{{item.player}}">
             <view class="seat-head">
-              <view class="seat-avatar-wrap">
+              <view class="seat-avatar-wrap {{fx.giveHit === item.pos ? 'fx-give-bounce' : ''}}">
                 <image class="seat-avatar" src="{{item.player.avatar_url}}" mode="aspectFill" wx:if="{{item.player.avatar_url}}" />
                 <view class="seat-avatar seat-avatar-ph" wx:else>{{item.player.nickname[0]}}</view>
                 <!-- 脸上流淌番茄酱层（丢番茄命中后显现） -->
                 <view class="face-sauce {{fx.sauceTarget === item.pos ? 'fx-sauce-on' : ''}}">
                   <image src="/assets/icons/fx-tomato-face.svg" mode="aspectFill" />
                 </view>
+                <!-- 给分到账：翡翠金光波纹 -->
+                <view class="give-ripple {{fx.giveHit === item.pos ? 'give-ripple-on' : ''}}"></view>
               </view>
               <view class="seat-meta">
                 <view class="seat-owner-tag" wx:if="{{item.isOwner}}">台主</view>
@@ -164,6 +166,15 @@
             <image class="fx-tomato-big" src="/assets/icons/fx-tomato-splatter.svg" mode="aspectFit" />
             <view class="fx-tomato-bubble {{fx.tomato.pos === 'top' ? 'fx-bubble-below' : ''}}"><text>食番茄啦，乱咁出牌！🍅</text></view>
           </view>
+        </block>
+        <!-- 给分动画：-N 徽章下沉 + 4 枚筹码抛物线飞抵 + 到账浮升 +N -->
+        <block wx:if="{{fx.give}}">
+          <view class="fx-give-badge fx-give-minus" style="left: {{fx.give.fromX}}px; top: {{fx.give.fromY}}px;"><text>-{{fx.give.amount}}</text></view>
+          <view class="fx-give-coin" wx:for="{{[0, 1, 2, 3]}}" wx:key="*this" wx:for-item="ci"
+            style="--sx: {{fx.give.fromX}}px; --dx: {{fx.give.toX}}px; --sy: {{fx.give.fromY}}px; --dy: {{fx.give.toY}}px; animation-delay: {{index * 90}}ms;">
+            <view class="fx-give-coin-inner" style="animation-delay: {{index * 90}}ms;"><text>🀄</text></view>
+          </view>
+          <view class="fx-give-badge fx-give-plus" style="left: {{fx.give.toX}}px; top: {{fx.give.toY}}px; animation-delay: 920ms;"><text>+{{fx.give.amount}}</text></view>
         </block>
         <!-- 踢击私密暗号气泡 -->
         <view wx:if="{{fx.banner}}" class="fx-banner {{fx.banner.on ? 'fx-on' : ''}}">

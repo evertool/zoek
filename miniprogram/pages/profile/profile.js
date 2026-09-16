@@ -519,7 +519,7 @@ Page({
   },
 
   showAbout() {
-    this.showToast('得闲开台 v1.2.4 (Build 2026)')
+    this.showToast('得闲开台 v1.0.3 (Build 2026)')
   },
 
   showToast(msg) {

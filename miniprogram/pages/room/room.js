@@ -6,6 +6,7 @@ const guard = require('../../utils/guard')
 const tts = require('../../utils/tts')
 const wsClient = require('../../utils/ws')
 const prefs = require('../../utils/prefs')
+const fxsound = require('../../utils/fxsound')
 
 // 安全加载 lottie（npm 构建失败时不会阻断页面）
 let lottie = null
@@ -234,6 +235,16 @@ Page({
     }
     if (msg.type === 'ledger') {
       this.loadLedger()
+      return
+    }
+    if (msg.type === 'give') {
+      // 给分动画全台同步：转分直接生效时后端广播 from/to/amount
+      var g = msg.data || {}
+      var gid = Number(g.id) || 0
+      // 发起人本地已即时播放过（submitScore 已推调整 id 水位），广播推回自身时跳过
+      if (gid && gid <= (this._lastGiveId || 0)) return
+      if (gid > (this._lastGiveId || 0)) this._lastGiveId = gid
+      this.playGiveFx(Number(g.from_player_id), Number(g.to_player_id), Number(g.amount))
       return
     }
     if (msg.type === 'swap') {
@@ -584,6 +595,7 @@ Page({
     var seat = e.currentTarget.dataset.seat
     var name = e.currentTarget.dataset.name
     var playerId = e.currentTarget.dataset.playerId
+    fxsound.warmup() // 首次点击链路预热 WebAudio（规避 iOS 非手势触发限制）
     this.setData({
       showScoreModal: true,
       scoreTargetSeat: seat,
@@ -645,7 +657,17 @@ Page({
         this.setData({ showScoreModal: false })
         // 台间记分无需对方确认，后端返回"已转记 X 分给 XX"
         this.showToast(res2.message || ('已转记 ' + amount + ' 分给 ' + this.data.scoreTargetName))
-        setTimeout(() => this.loadGame(), 500)
+        // 给分动画全台可见：后端会 WS 广播 "give"，各台手机各自播放。
+        // 发起人本地即时播（不用等广播回环），并推调整 id 水位去重广播回推。
+        var adjId = Number(res2.adjustment && res2.adjustment.id) || 0
+        if (adjId > (this._lastGiveId || 0)) this._lastGiveId = adjId
+        var myPID = 0
+        var seats = this.data.seats || []
+        for (var i = 0; i < seats.length; i++) {
+          if (seats[i].isSelf && seats[i].player) myPID = seats[i].player.player_id
+        }
+        this.playGiveFx(myPID, this.data.scoreTargetId, amount)
+        setTimeout(() => this.loadGame(), 1100)
       })
     }).catch(() => {
       // 业务错误信息已由 api 层 toast
@@ -1023,6 +1045,7 @@ Page({
   // 因此整套编排走 WXSS keyframes；fx 元素坐标由 selectorQuery 实测注入。
 
   openPropModal() {
+    fxsound.warmup() // 首次点击链路预热 WebAudio（规避 iOS 非手势触发限制）
     var seats = this.data.seats || []
     var targets = []
     for (var i = 0; i < seats.length; i++) {
@@ -1254,7 +1277,7 @@ Page({
   },
 
   initialFx() {
-    return { quake: false, target: '', hit: false, kicked: false, slipper: null, stars: null, kick: null, flower: null, tea: null, tomato: null, sauceTarget: '', tomatoHeavy: false, banner: null }
+    return { quake: false, target: '', hit: false, kicked: false, slipper: null, stars: null, kick: null, flower: null, tea: null, tomato: null, sauceTarget: '', tomatoHeavy: false, banner: null, give: null, giveHit: '' }
   },
 
   vibrate(long) {
@@ -1292,12 +1315,14 @@ Page({
     var name = ctx.targetName
     var start = ctx.start
     var center = ctx.center
+    fxsound.slipperWhoosh() // 出手呼啸
     this.setData({
       'fx.slipper': {
         style: '--sx:' + start.x + 'px;--sy:' + start.y + 'px;--dx:' + center.x + 'px;--dy:' + center.y + 'px;'
       }
     })
     this.fxTimeout(function() {
+      fxsound.slipperHit() // 命中啪击脆响（与 CSS 飞行 650ms 同步）
       that.setData({
         'fx.slipper': null,
         'fx.hit': true,
@@ -1315,6 +1340,7 @@ Page({
     var that = this
     var name = ctx.targetName
     var center = ctx.center
+    fxsound.kick() // 低频轰鸣 + 木桌受击
     this.setData({
       'fx.kick': {
         style: 'left:' + center.x + 'px;top:' + center.y + 'px;',
@@ -1367,6 +1393,7 @@ Page({
     var that = this
     var center = ctx.center
     var pos = ctx.pos
+    fxsound.teaPour() // 潺潺流水 + 水泡咕嘟（1.4s，铺满斟茶全程）
     var name = ctx.targetName
     var R = 0.5
     try { R = wx.getSystemInfoSync().windowWidth / 750 } catch (e) {}
@@ -1426,6 +1453,7 @@ Page({
     var that = this
     var pos = ctx.pos
     var fallback = ctx.center
+    fxsound.tomatoWhoosh() // 破空抛掷声
     // 精确定位头像中心（席位中心包含昵称/分数，会偏）
     this.getAvatarCenter(pos, function(av) {
       var c = av || fallback
@@ -1440,6 +1468,7 @@ Page({
       that.vibrate(false)
       // 阶段二：命中——番茄碎裂消失，冲击闪光 + 碎块爆散 + 剧震 + 震屏 + 大爆浆
       that.fxTimeout(function() {
+        fxsound.tomatoSplat() // 湿润爆汁破裂声（与 540ms 命中同步）
         that.setData({
           'fx.tomato': { phase: 'splat', x: c.x, y: c.y, pos: pos, fade: false },
           'fx.sauceTarget': pos,
@@ -1461,6 +1490,73 @@ Page({
       that.fxTimeout(function() {
         that.setData({ 'fx.tomato': null, 'fx.sauceTarget': '' })
       }, 540 + 3300)
+    })
+  },
+
+  // 7. 给分 🀄：-N 徽章下沉 + 4 枚筹码抛物线飞抵 → 目标头像 Q 弹 + 翡翠波纹 + 浮升 +N
+  // （docs/design/geifendonghua：筹码 4 枚错峰 90ms、单枚 650ms，末枚 920ms 到账触发吸收反馈）
+  // 全台可见：后端转分生效时 WS 广播 "give"，每台手机各自播放；发起人本地即时播，
+  // 广播推回自身时凭调整 id 水位去重（submitScore 已推 _lastGiveId）。
+  playGiveFx(fromPlayerId, toPlayerId, amount) {
+    var that = this
+    fromPlayerId = Number(fromPlayerId)
+    toPlayerId = Number(toPlayerId)
+    amount = Number(amount) || 0
+    if (!fromPlayerId || !toPlayerId || fromPlayerId === toPlayerId || !amount) return
+    if (this._givePlaying) return // 与设计稿一致：动画进行中忽略新的给分
+    this._givePlaying = true
+    // 席位定位：筹码从 from 的头像中心飞向 to 的头像中心
+    var seats = this.data.seats || []
+    var fromPos = ''
+    var toPos = ''
+    for (var i = 0; i < seats.length; i++) {
+      var p = seats[i].player
+      if (!p) continue
+      if (Number(p.player_id) === fromPlayerId) fromPos = seats[i].pos
+      if (Number(p.player_id) === toPlayerId) toPos = seats[i].pos
+    }
+    if (!fromPos || !toPos) {
+      this._givePlaying = false
+      return
+    }
+    this.getAvatarCenter(fromPos, function(start) {
+      if (!start) {
+        that._givePlaying = false
+        return
+      }
+      that.getAvatarCenter(toPos, function(end) {
+        if (!end) {
+          that._givePlaying = false
+          return
+        }
+        that.setData({
+          'fx.give': {
+            amount: amount,
+            fromX: start.x, fromY: start.y,
+            toX: end.x, toY: end.y,
+            to: toPos
+          }
+        })
+        // 筹码发射音随错峰节奏逐枚叮当（音高逐枚升高），与 CSS 动画 delay 对齐
+        for (var ci = 0; ci < 4; ci++) {
+          (function(idx) {
+            that.fxTimeout(function() {
+              fxsound.coinClink(idx)
+            }, idx * 90)
+          })(ci)
+        }
+        // 末枚筹码到账（270 + 650 = 920ms）：头像 Q 弹 + 翡翠波纹
+        that.fxTimeout(function() {
+          fxsound.coinArrival() // 金币到账共鸣和弦
+          that.setData({ 'fx.giveHit': toPos })
+          that.vibrate(false)
+        }, 920)
+        // 徽章 / 波纹播完收尾（+N 徽章 920 + 1750ms）
+        that.fxTimeout(function() {
+          that._givePlaying = false
+          that.setData({ 'fx.giveHit': '', 'fx.give': null })
+        }, 2800)
+      })
     })
   },
 

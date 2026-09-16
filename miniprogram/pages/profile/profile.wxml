@@ -204,7 +204,7 @@
           <view class="pf-menu-item pf-menu-item-slim" bindtap="showAbout">
             <text class="pf-menu-slim-label">关于得闲开台</text>
             <view class="pf-menu-right">
-              <text class="pf-menu-right-text pf-menu-mono">v1.2.4</text>
+              <text class="pf-menu-right-text pf-menu-mono">v1.0.3</text>
               <text class="pf-menu-arrow">›</text>
             </view>
           </view>

@@ -14,24 +14,13 @@ const RANK_BADGE_ICONS = {
   4: '/assets/icons/rank_4_iron_badge.svg'
 }
 
-// 安全加载 lottie（npm 构建失败时不会阻断页面）
-let lottie = null
-try {
-  lottie = require('lottie-miniprogram')
-} catch (e) {
-  console.warn('lottie-miniprogram not available, using CSS fallback')
-}
-
 Page({
   data: {
     games: [],
     recent: [],
     loading: true,
-    isLoggedIn: false,
-    needProfile: false,
-    tempAvatar: '',
-    tempNickname: '',
-    lottieError: false,
+    loginFailed: false,
+    profileSheet: false,
     navPadding: 0
   },
 
@@ -41,25 +30,21 @@ Page({
   },
 
   onShow() {
-    // 等待 app onLaunch 中的异步校验完成
+    // 等待 app onLaunch 中的静默登录/校验完成；打开即可浏览，不再有全屏登录/资料闸门
     app.ready().then(() => {
-      const isLoggedIn = !!app.globalData.token
-      const needProfile = isLoggedIn && app.checkProfileNeeded()
-
-      this.setData({ isLoggedIn, needProfile })
-
-      // 未登录时初始化 Lottie 动画
-      if (!isLoggedIn && lottie && !this._lottieLoaded) {
-        this._lottieLoaded = true
-        setTimeout(() => this.initLottie(), 100)
+      // 守卫记下的目标页（分享/扫码直入被登录拦下的场景）优先回去
+      if (app.globalData.pendingRoute) {
+        this.goPendingRoute()
+        return
       }
-
-      if (isLoggedIn && !needProfile) {
+      if (app.globalData.token) {
+        this.setData({ loginFailed: false })
         this.loadGames()
         this.loadRecent()
         this.startPolling()
       } else {
-        this.setData({ loading: false })
+        // 静默登录失败（网络波动）：展示内容 + 兜底重试条，不阻塞浏览
+        this.setData({ loading: false, loginFailed: true })
       }
     })
   },
@@ -81,53 +66,21 @@ Page({
     this.stopPolling()
   },
 
-  /** 加载 Lottie 麻将牌动画 */
-  initLottie() {
-    if (!lottie) {
-      this.setData({ lottieError: true })
-      return
-    }
-    // lottie-miniprogram 的 path 只支持 http 协议
-    // 本地文件需要用 animationData 直接传 JSON 对象
-    let animationData = null
-    try {
-      animationData = require('../../assets/animations/login-tiles.js')
-    } catch (e) {
-      console.error('Lottie JSON load failed:', e)
-      this.setData({ lottieError: true })
-      return
-    }
-    const query = wx.createSelectorQuery()
-    query.select('#lottie-login').fields({ node: true, size: true }).exec((res) => {
-      if (!res || !res[0] || !res[0].node) {
-        this.setData({ lottieError: true })
-        return
-      }
-      const canvas = res[0].node
-      const ctx = canvas.getContext('2d')
-      const dpr = wx.getSystemInfoSync().pixelRatio
-      canvas.width = res[0].width * dpr
-      canvas.height = res[0].height * dpr
-      ctx.scale(dpr, dpr)
-      try {
-        lottie.loadAnimation({
-          loop: true,
-          autoplay: true,
-          animationData: animationData,
-          rendererSettings: {
-            context: ctx,
-            dpr: dpr
-          }
-        })
-      } catch (err) {
-        console.error('Lottie load failed:', err)
-        this.setData({ lottieError: true })
-      }
+  /** 静默登录失败后的手动重试 */
+  retryLogin() {
+    var that = this
+    this.setData({ loginFailed: false, loading: true })
+    app.login(true).then(function() {
+      that.loadGames()
+      that.loadRecent()
+      that.startPolling()
+    }).catch(function() {
+      that.setData({ loading: false, loginFailed: true })
     })
   },
 
   onPullDownRefresh() {
-    if (app.globalData.token && !app.checkProfileNeeded()) {
+    if (app.globalData.token) {
       this.loadGames().then(() => {
         wx.stopPullDownRefresh()
       })
@@ -245,25 +198,7 @@ Page({
     return { title: '得闲开台 — 粤语麻雀记分神器', path: '/pages/index/index' }
   },
 
-  // ===== 登录流程 =====
-  doLogin() {
-    wx.showLoading({ title: '登录中...' })
-    app.login().then(() => {
-      wx.hideLoading()
-      const needProfile = app.checkProfileNeeded()
-      this.setData({
-        isLoggedIn: true,
-        needProfile
-      })
-      // 资料完整：有被守卫拦下的目标页（分享入台/牌台）就回去，否则留在牌局页
-      if (!needProfile && !this.goPendingRoute()) {
-        this.loadGames()
-      }
-    }).catch(() => {
-      wx.hideLoading()
-    })
-  },
-
+  // ===== 登录兜底（静默登录已在 app 启动时自动完成，此处仅守卫回跳） =====
   /** 登录/完善资料完成后回到进入前的页面；返回 false 表示没有待跳页 */
   goPendingRoute() {
     const target = app.globalData.pendingRoute
@@ -275,74 +210,44 @@ Page({
     return false
   },
 
-  // ===== 头像昵称授权 =====
-  onChooseAvatar(e) {
-    this.setData({ tempAvatar: e.detail.avatarUrl })
+  // ===== 完善资料弹窗（仅开台动作触发，可关闭） =====
+  onProfileSaved() {
+    this.setData({ profileSheet: false })
+    if (this._pendingCreate) {
+      this._pendingCreate = false
+      this.doCreate()
+    }
   },
 
-  onNicknameInput(e) {
-    this.setData({ tempNickname: e.detail.value })
-  },
-
-  doSaveProfile() {
-    var nickname = this.data.tempNickname.trim()
-    var avatarPath = this.data.tempAvatar
-
-    // 必填校验（按钮已 disabled，此处为安全冗余）
-    if (!nickname) {
-      wx.showToast({ title: '请输入昵称', icon: 'none' })
-      return
-    }
-    if (!avatarPath) {
-      wx.showToast({ title: '请选择头像', icon: 'none' })
-      return
-    }
-    if (this._saving) return
-    this._saving = true
-
-    wx.showLoading({ title: '上传头像...' })
-    // 上传头像到服务器（内部自动压缩）
-    util.uploadAvatar(avatarPath).then(function (relPath) {
-      // 拿到相对路径后再调 saveProfile 保存昵称+路径
-      return app.saveProfile(nickname, relPath)
-    }).then(function (res) {
-      wx.hideLoading()
-      this._saving = false
-      if (res && res.need_profile === false) {
-        wx.showToast({ title: '资料已保存', icon: 'success' })
-        this.setData({ needProfile: false, tempAvatar: '', tempNickname: '' })
-        if (!this.goPendingRoute()) {
-          this.loadGames()
-        }
-      } else {
-        wx.showModal({
-          title: '保存失败',
-          content: '头像或昵称未能通过校验，请重新选择',
-          showCancel: false
-        })
-      }
-    }.bind(this)).catch(function (err) {
-      wx.hideLoading()
-      this._saving = false
-      var msg = '保存失败，请重试'
-      if (err && err.message === 'FILE_TOO_LARGE') {
-        msg = '头像文件超过5MB，请重新选择'
-      }
-      wx.showToast({ title: msg, icon: 'none' })
-    }.bind(this))
+  onProfileClose() {
+    // 用户拒绝完善：关闭弹窗留在首页，不打扰
+    this._pendingCreate = false
+    this.setData({ profileSheet: false })
   },
 
   // ===== 列表操作 =====
   // PRD v1.0 §4.2-A: 开台零摩擦——点按钮直接创建牌桌并进入房间，不填台名
+  // 资料未完善时弹出可关闭的完善弹窗，保存后自动继续开台
   goCreate() {
+    var that = this
     if (!app.globalData.token) {
-      this.doLogin()
+      // 静默登录兜底（正常情况下启动时已完成）
+      app.login(true).then(function() {
+        that.goCreate()
+      }).catch(function() {
+        wx.showToast({ title: '网络开小差，请重试', icon: 'none' })
+      })
       return
     }
     if (app.checkProfileNeeded()) {
-      this.setData({ needProfile: true })
+      this._pendingCreate = true
+      this.setData({ profileSheet: true })
       return
     }
+    this.doCreate()
+  },
+
+  doCreate() {
     if (this._creating) return
     this._creating = true
     wx.showLoading({ title: '开台中...' })
