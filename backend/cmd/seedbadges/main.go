@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	userLKA   = int64(1) // lkahung：点亮全部徽章
-	userWang  = int64(26)
+	userLKA     = int64(1) // lkahung：点亮全部徽章
+	userWang    = int64(26)
 	userInvoker = int64(27)
 	totalGames  = 210
 )

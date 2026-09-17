@@ -168,7 +168,8 @@ func (s *Store) GetUserByID(id int64) (*model.User, error) {
 
 // UpdateUserProfile updates nickname and avatar.
 // avatarURL 应为服务器相对路径（如 /uploads/avatars/xxx.jpg）。
-// 昵称+头像都有效时，同时将 ProfileCompleted 置 true。
+// 昵称+头像都有效时，同时将 ProfileCompleted 置 true；
+// 昵称变更时同步进行中的局（forming/active）的昵称快照，历史局不动。
 func (s *Store) UpdateUserProfile(id int64, nickname, avatarURL string) (*model.User, error) {
 	updates := map[string]interface{}{}
 	if nickname != "" {
@@ -186,6 +187,23 @@ func (s *Store) UpdateUserProfile(id int64, nickname, avatarURL string) (*model.
 	}
 	if err := s.DB.Model(&model.User{}).Where("id = ?", id).Updates(updates).Error; err != nil {
 		return nil, err
+	}
+	// 昵称变更时，同步进行中的局（forming/active）里的昵称快照；
+	// 已结束的局（ended/expired/cancelled）保留旧快照，历史记录不回溯。
+	if nickname != "" {
+		var gameIDs []int64
+		if err := s.DB.Model(&model.Game{}).
+			Where("status IN ?", []string{"forming", "active"}).
+			Pluck("id", &gameIDs).Error; err != nil {
+			return nil, fmt.Errorf("sync nickname snapshot: %w", err)
+		}
+		if len(gameIDs) > 0 {
+			if err := s.DB.Model(&model.GamePlayer{}).
+				Where("user_id = ? AND game_id IN ?", id, gameIDs).
+				Update("nickname_snapshot", nickname).Error; err != nil {
+				return nil, fmt.Errorf("sync nickname snapshot: %w", err)
+			}
+		}
 	}
 	return s.GetUserByID(id)
 }
@@ -1666,9 +1684,9 @@ type LeaderboardEntry struct {
 	BestScore  int      `json:"best_score"`  // 窗口内单场最高分
 	Tags       []string `json:"tags"`        // 规则标签：连胜王/今晚手气王/稳如泰山/大翻盘赢家/常客/铁脚/雀神
 	IsSelf     bool     `json:"is_self"`
-	InGame     bool     `json:"in_game"`   // 当前已在 forming/active 牌局落座（已在位）
-	Qualified  bool     `json:"qualified"` // 完成局数达到门槛，进入正式榜单
-	TierName   string   `json:"tier_name"` // 排位段位全名
+	InGame     bool     `json:"in_game"`    // 当前已在 forming/active 牌局落座（已在位）
+	Qualified  bool     `json:"qualified"`  // 完成局数达到门槛，进入正式榜单
+	TierName   string   `json:"tier_name"`  // 排位段位全名
 	TierIndex  int      `json:"tier_index"` // 段位序号 1~6（前端映射段位图标）
 	TierShort  string   `json:"tier_short"`
 	Grade      string   `json:"grade"`

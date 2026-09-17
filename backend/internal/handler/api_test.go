@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lk/zoek/backend/internal/logger"
 	"github.com/lk/zoek/backend/internal/middleware"
+	"github.com/lk/zoek/backend/internal/model"
 	"github.com/lk/zoek/backend/internal/store"
 	"github.com/lk/zoek/backend/pkg/wechat"
 	"gorm.io/driver/sqlite" // test-only: in-memory SQLite for fast tests
@@ -1394,4 +1395,58 @@ func TestGameQRCodeEnvVersion(t *testing.T) {
 	// 非法值直接拒，不要把垃圾丢给微信（微信会回 40097 invalid args）
 	w := doRequest(t, r, "GET", base+"?env_version=release_error", auths[0], nil)
 	assertStatus(t, w, http.StatusBadRequest)
+}
+
+// TestNicknameSyncToOngoingGames 修改昵称后：
+//   - 进行中的局（forming/active）昵称快照同步；
+//   - 已结束的局保留旧快照，不回溯历史记录。
+func TestNicknameSyncToOngoingGames(t *testing.T) {
+	r, _, s := testSetup(t)
+	auth1 := loginAndAuth(t, r, "creator")
+	auth2 := loginAndAuth(t, r, "joiner")
+
+	// 建局 + 加入（forming）
+	w := doRequest(t, r, "POST", "/api/v1/games", auth1, map[string]string{"name": "局A", "request_id": "r1"})
+	assertStatus(t, w, http.StatusCreated)
+	m := parseJSON(t, w)
+	gameID := int64(m["game_id"].(float64))
+	token := m["invite_token"].(string)
+	w = doRequest(t, r, "POST", "/api/v1/games/join", auth2, map[string]string{"invite_token": token, "request_id": "r2"})
+	assertStatus(t, w, http.StatusCreated)
+
+	playerNicknames := func() map[string]bool {
+		w := doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auth1, nil)
+		assertStatus(t, w, http.StatusOK)
+		nicks := map[string]bool{}
+		for _, p := range parseJSON(t, w)["players"].([]interface{}) {
+			nicks[p.(map[string]interface{})["nickname"].(string)] = true
+		}
+		return nicks
+	}
+
+	// forming 局：joiner 改昵称 → 快照同步
+	w = doRequest(t, r, "PUT", "/api/v1/user/profile", auth2, map[string]string{"nickname": "雀神阿佐"})
+	assertStatus(t, w, http.StatusOK)
+	if nicks := playerNicknames(); !nicks["雀神阿佐"] {
+		t.Fatalf("forming 局未同步昵称: %v", nicks)
+	}
+
+	// start → active 局：creator 改昵称 → 快照同步
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/start", gameID), auth1, map[string]string{"request_id": "r3"})
+	assertStatus(t, w, http.StatusOK)
+	w = doRequest(t, r, "PUT", "/api/v1/user/profile", auth1, map[string]string{"nickname": "岭南雀宗"})
+	assertStatus(t, w, http.StatusOK)
+	if nicks := playerNicknames(); !nicks["岭南雀宗"] {
+		t.Fatalf("active 局未同步昵称: %v", nicks)
+	}
+
+	// 已结束的局：保留旧快照，不回溯
+	if err := s.DB.Model(&model.Game{}).Where("id = ?", gameID).Update("status", "ended").Error; err != nil {
+		t.Fatalf("force end game: %v", err)
+	}
+	w = doRequest(t, r, "PUT", "/api/v1/user/profile", auth2, map[string]string{"nickname": "改名不回溯"})
+	assertStatus(t, w, http.StatusOK)
+	if nicks := playerNicknames(); nicks["改名不回溯"] || !nicks["雀神阿佐"] {
+		t.Fatalf("历史局不应回溯昵称: %v", nicks)
+	}
 }
