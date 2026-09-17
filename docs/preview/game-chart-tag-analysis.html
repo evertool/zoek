@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh" data-page-node-id="WpQG0BjuGZLkuYx4VHWOUo">
+<head data-page-node-id="QSdi4XsyXIE1IhJtnupaws">
+<meta charset="utf-8" data-page-node-id="CV95uMpO4hJH1lLvxGKFVa">
+<meta name="viewport" content="width=device-width, initial-scale=1" data-page-node-id="5DxDaJz9WJno3EFnXsZXFs">
+<title>积分走势 · 标签分析（静态预览）</title>
+<style>
+  :root { --surface:#ffffff; --low:#f2f5f3; --high:#e7ebe8; --text:#1c1f1d; --sub:#5c6660; --outline:#9aa49d; --green:#1b6b4a; --red:#b91c1c; }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 375px; margin: 0 auto; background: #eef1ef; font-family: -apple-system, 'PingFang SC', sans-serif; color: var(--text); padding: 12px 0 40px; }
+  .card { background: var(--surface); border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.06); margin: 0 12px 12px; padding: 16px; }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+  .sec-title { font-size: 15px; font-weight: 700; }
+  .sec-sub { font-size: 10px; color: var(--outline); }
+  .tag-stats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .tag-chip { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 999px; background: var(--low); font-size: 11px; }
+  .tag-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .tag-name { font-weight: 600; }
+  .tag-count { color: var(--sub); font-size: 10px; }
+  .tag-net { font-weight: 700; }
+  .tag-net.pos { color: var(--green); } .tag-net.neg { color: var(--red); } .tag-net.zero { color: var(--sub); }
+  canvas { width: 100%; height: 190px; display: block; }
+  .note { font-size: 10px; color: var(--outline); margin-top: 8px; }
+  .empty { text-align: center; color: var(--sub); font-size: 13px; padding: 80px 0; }
+  h4 { font-size: 12px; color: var(--sub); margin: 0 12px 8px; font-weight: 500; }
+</style>
+</head>
+<body data-page-node-id="qEehEtOIqPA3TepOsiZmum">
+<h4 data-page-node-id="k06sS3T6SToqvMgblzkIPS">预览 A：有标签数据（?d=0）</h4>
+<div class="card" data-page-node-id="C6j3BZdcsQZi1WbK7fcqSY">
+  <div class="sec-head" data-page-node-id="URCvbs4O1yQ5HgPTV7349M"><span class="sec-title" data-page-node-id="eDm6iwGfGmqj6Ry3H4P6mI">🀄 标签分析 · 我的赔付走势</span><span class="sec-sub" data-page-node-id="PLi4UgjUHsyhqyd78dO3P3">只计我给分时贴的标签 · 付出为负</span></div>
+  <div class="tag-stats" id="chips" data-page-node-id="cGTGjlXoM5ILLy7AJcKEGb"></div>
+  <canvas id="tag-chart" width="686" height="380" data-page-node-id="Pwb3JW5vZCdlnE71hrKfN4"></canvas>
+  <div class="note" data-page-node-id="zGEv12UC5FTZfUkggYBnga">每条线 = 我给分贴该标签的累计付出分 · 点图例可筛选</div>
+</div>
+<h4 data-page-node-id="I0mtvdOT9Bv9eAEWWKuEX4">预览 B：无标签数据（?d=1）→ 区块整体隐藏，仅显示提示</h4>
+<div class="card" data-page-node-id="O8AioHwSFyLvDrx16dWW8I"><div class="empty" data-page-node-id="KCHMBMbSACuByWuRkebEvO">本局没有我给分时贴的标签</div></div>
+<script>
+// 与 game-chart.js 同源的数据结构（?d=1 空态）
+const hasData = location.search.indexOf('d=1') === -1;
+const STATS = [
+  { code:'gangbao',  label:'杠爆',  count:3, myNet:-36, color:'#d97706', series:[0,-12,-24,-36] },
+  { code:'fanggang', label:'放杠',  count:4, myNet:-21, color:'#b91c1c', series:[0,-8,-13,-16,-21] },
+  { code:'qianggang',label:'抢杠',  count:1, myNet:-3,  color:'#db2777', series:[0,-3] }
+];
+// 新口径：只统计我给分时贴的标签，净分恒为负
+const chips = document.getElementById('chips');
+if (hasData) {
+  STATS.forEach(s => {
+    const cls = s.myNet > 0 ? 'pos' : (s.myNet < 0 ? 'neg' : 'zero');
+    chips.insertAdjacentHTML('beforeend',
+      `<span class="tag-chip"><span class="tag-dot" style="background:${s.color}"></span>` +
+      `<span class="tag-name">${s.label}</span><span class="tag-count">${s.count}笔</span>` +
+      `<span class="tag-net ${cls}">${s.myNet>0?'+':''}${s.myNet}</span></span>`);
+  });
+  // 折线图（与 drawTagChart 同逻辑：0 对称轴、终点标注）
+  const cv = document.getElementById('tag-chart');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const padL = 60, padR = 80, padT = 24, padB = 44; // padB 留给 x 轴刻度
+  const w = W - padL - padR, h = H - padT - padB;
+  const maxSteps = Math.max(...STATS.map(s => s.series.length - 1));
+  const bound = Math.max(...STATS.flatMap(s => s.series).map(Math.abs), 1);
+  const x = i => padL + (i / maxSteps) * w;
+  const y = v => padT + (1 - (v + bound) / (2 * bound)) * h;
+  ctx.strokeStyle = '#bfc9c0'; ctx.setLineDash([6,6]); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(padL, y(0)); ctx.lineTo(W - padR, y(0)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = '#6f7a72'; ctx.font = '16px sans-serif'; ctx.textAlign = 'right';
+  ctx.fillText('0', padL - 8, y(0) + 5);
+  ctx.fillText('+' + bound, padL - 8, y(bound) + 5);
+  ctx.fillText('-' + bound, padL - 8, y(-bound) + 5);
+  // x 轴刻度：第几笔（间隔自适应，与 drawTagChart 同逻辑；复用上方已有 maxSteps）
+  const step = Math.max(1, Math.ceil(maxSteps / 6));
+  ctx.fillStyle = '#6f7a72'; ctx.font = '16px sans-serif'; ctx.textAlign = 'center';
+  ctx.strokeStyle = '#d5dcd7'; ctx.setLineDash([]); ctx.lineWidth = 1.5;
+  for (let i = step; i <= maxSteps; i += step) {
+    const tx = x(i);
+    ctx.beginPath(); ctx.moveTo(tx, y(-bound)); ctx.lineTo(tx, y(-bound) + 6); ctx.stroke();
+    ctx.fillText(String(i), tx, y(-bound) + 26);
+  }
+  ctx.textAlign = 'left';
+  ctx.fillText('笔', x(maxSteps) + 10, y(-bound) + 26);
+  STATS.forEach(s => {
+    ctx.strokeStyle = s.color; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    s.series.forEach((v, i) => i === 0 ? ctx.moveTo(x(i), y(v)) : ctx.lineTo(x(i), y(v)));
+    ctx.stroke();
+    const lx = x(s.series.length - 1), ly = y(s.series[s.series.length - 1]);
+    ctx.fillStyle = s.color;
+    ctx.beginPath(); ctx.arc(lx, ly, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.font = 'bold 18px sans-serif'; ctx.textAlign = 'left';
+    const end = s.series[s.series.length - 1];
+    ctx.fillText((end > 0 ? '+' : '') + end, lx + 8, ly + 6);
+  });
+} else {
+  document.querySelector('#tag-chart').style.display = 'none';
+}
+</script>
+</body>
+</html>

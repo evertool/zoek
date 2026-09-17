@@ -1,23 +1,38 @@
-// pages/game-chart/game-chart.js — 图表分析页（累计走势 + 战局复盘 + 逐笔流水条形图）
+// pages/game-chart/game-chart.js — 图表分析页（累计走势 + 战局复盘 + 逐笔流水条形图 + 标签分析）
 // 局概念已移除：走势与条形图全部以「逐笔转分流水」为步进，不再按局取数
 const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
 const guard = require('../../utils/guard')
+const scoreTags = require('../../utils/score-tags')
 
 const LINE_COLORS = ['#1b6b4a', '#0284c7', '#d97706', '#b91c1c']
 const SEAT_WINDS = ['東', '南', '西', '北']
 // 风位文字 → SVG 图标名（assets/icons/seat-wind-*.svg），与首页/明细页同套资源
 const WIND_CLASS_MAP = { '東': 'east', '东': 'east', '南': 'south', '西': 'west', '北': 'north' }
 
+// 标签走势线配色：code 固定色（一眼认出「放杠=亏」这类语义色），未知 code 落到兜底调色盘
+const TAG_COLORS = {
+  zimo: '#1b6b4a',      // 自摸 · 收入绿
+  minggang: '#0284c7',  // 明杠 · 蓝
+  angang: '#7c3aed',    // 暗杠 · 紫
+  fanggang: '#b91c1c',  // 放杠 · 赔分红
+  gangbao: '#d97706',   // 杠爆 · 橙
+  qianggang: '#db2777'  // 抢杠 · 玫红
+}
+const TAG_FALLBACK_COLORS = ['#0f766e', '#4f46e5', '#ca8a04', '#64748b']
+
 Page({
-  data: {
+    data: {
     capsuleTop: 0,
     capsuleHeight: 32,
     gameID: 0,
     detail: null,
     players: [],
     insights: [],
+    // 标签分析：统计 chips + 按标签累计走势
+    tagStats: [],       // [{code,label,count,myNet,color,show}] 只统计我给分时贴的标签
+    hasTagData: false,
     diffText: '0.00',
     pressureText: '',
     flowCount: 0,
@@ -78,6 +93,54 @@ Page({
         flowSteps.push({ fromP: fromP, toP: toP, amount: amount })
       })
 
+      // ===== 标签分析：自摸/明杠/暗杠/放杠/杠爆/抢杠 =====
+      // 口径：只统计「我给分」时贴的标签（from = 我，即我的赔付记录），
+      // 别人给我分时贴的标签不分析——走势线因此都是负分（我付出去的分）。
+      var myID = Number(app.globalData.userID)
+      var tagAgg = {} // code -> {code,label,count,myNet,events}
+      entries.forEach(function(a) {
+        var tags = a.tags || []
+        if (!tags.length) return
+        var fromP = byPlayerID[Number(a.from_player_id)]
+        if (!fromP || Number(fromP.user_id) !== myID) return // 只看我给分的笔
+        var amount = Number(a.amount) || 0
+        tags.forEach(function(code) {
+          var st = tagAgg[code]
+          if (!st) {
+            st = tagAgg[code] = {
+              code: code,
+              label: code, // 最终文案由 LABEL_BY_CODE 映射；未知 code 原样兜底
+              count: 0, myNet: 0, events: []
+            }
+          }
+          st.count++
+          st.myNet -= amount
+          st.events.push(-amount) // 走势步进：我给分恒为负
+        })
+      })
+      var LABEL_BY_CODE = scoreTags.SCORE_TAGS.reduce(function(acc, t) { acc[t.code] = t.label; return acc }, {})
+      var tagStats = Object.keys(tagAgg).map(function(code, i) {
+        var st = tagAgg[code]
+        return {
+          code: code,
+          label: LABEL_BY_CODE[code] || code,
+          count: st.count,
+          myNet: st.myNet,
+          color: TAG_COLORS[code] || TAG_FALLBACK_COLORS[i % TAG_FALLBACK_COLORS.length],
+          show: true
+        }
+      })
+      // 多的排前面，少的排后面
+      tagStats.sort(function(a, b) { return b.count - a.count })
+      // 走势序列（绘制用，不进 data）：每条线 = 该标签下我的累计净分（events 在 tagAgg 上）
+      var tagSeries = {}
+      Object.keys(tagAgg).forEach(function(code) {
+        var cum = [0]
+        tagAgg[code].events.forEach(function(delta) { cum.push(cum[cum.length - 1] + delta) })
+        tagSeries[code] = cum
+      })
+      this._tagSeries = tagSeries
+
       players.forEach(function(p) {
         p.cum = cum[Number(p.player_id)] || [0]
         p.finalScore = p.cum[p.cum.length - 1] || 0
@@ -104,6 +167,8 @@ Page({
         },
         players: players,
         insights: this.buildInsights(players, flowSteps),
+        tagStats: tagStats,
+        hasTagData: tagStats.length > 0,
         diffText: Math.abs(totalFinal).toFixed(2),
         pressureText: pressure,
         flowCount: flowSteps.length,
@@ -214,6 +279,17 @@ Page({
     this.drawCharts()
   },
 
+  // 标签走势图例筛选（点击隐藏/显示某条标签线）
+  onTagLegendTap(e) {
+    var code = e.currentTarget.dataset.code
+    var tagStats = this.data.tagStats.map(s => (s.code === code ? { ...s, show: !s.show } : s))
+    this.setData({ tagStats: tagStats })
+    const query = wx.createSelectorQuery().in(this)
+    query.select('#tag-chart').fields({ node: true, size: true }).exec(res => {
+      if (res && res[0] && res[0].node) this.drawTagChart(res[0].node, res[0].width, res[0].height)
+    })
+  },
+
   // Canvas 2D 折线图 + 逐笔条形图（节点可能晚于首查渲染，重试兜底）
   // 注意：两张画布各建独立的 SelectorQuery——同一 query 复用 exec 在真机上会静默失败
   drawCharts(retry) {
@@ -230,6 +306,12 @@ Page({
     barQuery.select('#bar-chart').fields({ node: true, size: true }).exec(res2 => {
       if (res2 && res2[0] && res2[0].node) {
         this.drawFlowBarChart(res2[0].node, res2[0].width, res2[0].height)
+      }
+    })
+    const tagQuery = wx.createSelectorQuery().in(this)
+    tagQuery.select('#tag-chart').fields({ node: true, size: true }).exec(res3 => {
+      if (res3 && res3[0] && res3[0].node) {
+        this.drawTagChart(res3[0].node, res3[0].width, res3[0].height)
       }
     })
   },
@@ -360,6 +442,99 @@ Page({
       else if (outgoing) { ctx.fillStyle = '#b91c1c'; ctx.fillText('-' + s.amount, width - padR + 46, cy + 3) }
       else { ctx.fillStyle = '#6f7a72'; ctx.fillText(String(s.amount), width - padR + 46, cy + 3) }
     })
+  },
+
+  // 标签走势线性图：每条线 = 一个标签下「我的累计净得分」随事件推进
+  // x 轴 = 我给分贴该标签的第几笔，y 轴 = 累计付出分（0 轴为分水岭，恒为负）
+  drawTagChart(node, width, height) {
+    const ctx = this.chartContext(node, width, height)
+    var stats = (this.data.tagStats || []).filter(function(s) { return s.show !== false })
+    var series = this._tagSeries || {}
+    var lines = stats.filter(function(s) { return (series[s.code] || []).length > 1 })
+    if (!lines.length) {
+      ctx.clearRect(0, 0, width, height)
+      ctx.fillStyle = '#6f7a72'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center'
+      ctx.fillText('暂无我给分时贴的标签', width / 2, height / 2)
+      return
+    }
+    var padL = 34, padR = 48, padT = 14, padB = 26 // padB 留给 x 轴「第几笔」刻度
+    var w = width - padL - padR, h = height - padT - padB
+    var maxSteps = 1
+    var allVals = [0]
+    lines.forEach(function(s) {
+      var cum = series[s.code]
+      if (cum.length - 1 > maxSteps) maxSteps = cum.length - 1
+      allVals = allVals.concat(cum)
+    })
+    var maxV = Math.max.apply(null, allVals), minV = Math.min.apply(null, allVals)
+    // 净分走势以 0 为对称轴缩放，涨跌一眼可比
+    var bound = Math.max(Math.abs(maxV), Math.abs(minV), 1)
+    var x = function(i) { return padL + (i / maxSteps) * w }
+    var y = function(v) { return padT + (1 - (v + bound) / (2 * bound)) * h }
+
+    var drawStatic = function() {
+      ctx.strokeStyle = '#bfc9c0'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1
+      ctx.beginPath(); ctx.moveTo(padL, y(0)); ctx.lineTo(width - padR, y(0)); ctx.stroke()
+      ctx.setLineDash([])
+      ctx.fillStyle = '#6f7a72'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right'
+      ctx.fillText('0', padL - 4, y(0) + 3)
+      ctx.fillText('+' + bound, padL - 4, y(bound) + 3)
+      ctx.fillText('-' + bound, padL - 4, y(-bound) + 3)
+
+      // x 轴刻度：第几笔（间隔自适应，最多约 7 个刻度；0 = 起手，不标文字避免「第0笔」歧义）
+      ctx.textAlign = 'center'
+      var step = Math.max(1, Math.ceil(maxSteps / 6))
+      ctx.strokeStyle = '#d5dcd7'; ctx.setLineDash([]); ctx.lineWidth = 1
+      for (var i = step; i <= maxSteps; i += step) {
+        var tx = x(i)
+        ctx.beginPath(); ctx.moveTo(tx, padT + h); ctx.lineTo(tx, padT + h + 3); ctx.stroke()
+        ctx.fillText(String(i), tx, padT + h + 14)
+      }
+      // 轴单位：末尾标「笔」（刻度密集时贴不下则省略）
+      if (maxSteps >= step) {
+        ctx.textAlign = 'left'
+        ctx.fillText('笔', x(maxSteps) + 6, padT + h + 14)
+      }
+    }
+
+    var drawLines = function() {
+      lines.forEach(function(s) {
+        var cum = series[s.code]
+        ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.lineJoin = 'round'
+        ctx.beginPath()
+        cum.forEach(function(v, i) { i === 0 ? ctx.moveTo(x(i), y(v)) : ctx.lineTo(x(i), y(v)) })
+        ctx.stroke()
+        // 终点圆点 + 累计净分
+        var lx = x(cum.length - 1), ly = y(cum[cum.length - 1])
+        ctx.fillStyle = s.color
+        ctx.beginPath(); ctx.arc(lx, ly, 3, 0, Math.PI * 2); ctx.fill()
+        ctx.font = 'bold 10px sans-serif'; ctx.textAlign = 'left'
+        var end = cum[cum.length - 1]
+        ctx.fillText((end > 0 ? '+' : '') + end, lx + 5, ly + 3)
+      })
+    }
+
+    var duration = 900
+    var start = Date.now()
+    var tick = function() {
+      var t = Math.min(1, (Date.now() - start) / duration)
+      ctx.clearRect(0, 0, width, height)
+      drawStatic()
+      ctx.save()
+      ctx.beginPath()
+      ctx.rect(0, 0, padL + (w + padR) * t + 2, height)
+      ctx.clip()
+      drawLines()
+      ctx.restore()
+      if (t < 1 && node.requestAnimationFrame) {
+        node.requestAnimationFrame(tick)
+      }
+    }
+    if (node.requestAnimationFrame) {
+      node.requestAnimationFrame(tick)
+    } else {
+      drawStatic(); drawLines()
+    }
   },
 
   goBack() {

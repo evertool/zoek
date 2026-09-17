@@ -13,6 +13,7 @@ import (
 	"github.com/lk/zoek/backend/internal/middleware"
 	"github.com/lk/zoek/backend/internal/model"
 	"github.com/lk/zoek/backend/internal/store"
+	"github.com/lk/zoek/backend/internal/ws"
 	"github.com/lk/zoek/backend/pkg/wechat"
 )
 
@@ -606,6 +607,11 @@ func (h *GameHandler) JoinGame(c *gin.Context) {
 	if game.Status == "forming" {
 		_, _ = h.Store.StartGameIfReady(game.ID)
 	}
+
+	// 广播刷新信号给台内长连接（含台主）。
+	// /games/join 路由没有 :game_id 路径参数，middleware.RoomSyncBroadcast 解析不到
+	// gameID 会跳过广播，所以这里必须显式发；否则台主要等 30s 慢轮询才能看到新人。
+	ws.Dirty(game.ID, "game")
 
 	// Refresh game status after potential auto-start
 	fresh, _ := h.Store.GetGame(game.ID)

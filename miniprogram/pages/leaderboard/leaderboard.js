@@ -61,7 +61,7 @@ Page({
   },
 
   // 积分榜 / 段位榜切换：列表从原始榜单重建；我的卡片切换统计口径
-  // （段位榜只算满 4 人的排位局，积分榜算同窗口全部对局）
+  // （两个榜的列表口径一致：仅计满 4 人排位局；积分榜卡片取榜单内自己条目，段位榜卡片走 /rank/me）
   switchBoard(e) {
     const tab = e.currentTarget.dataset.tab
     if (tab === this.data.boardTab) return
@@ -92,49 +92,68 @@ Page({
     }
   },
 
-  /** 积分榜口径：榜单中「我」的条目（同窗口全部对局），未入榜回退全量统计 */
-  applyScoreCard() {
+  /**
+   * 卡片战绩数字：两个榜统一取榜单内「我」的条目（同窗口、满4人口径），
+   * 保证积分榜/段位榜切换时场次/胜场/胜率/连胜/单场最高完全一致；
+   * 未入榜（窗口内无满4人同台局）显示 0，不回退 /user/stats 全量统计。
+   */
+  buildCardStats() {
     var mine = (this._rawEntries || []).find(function(e) { return e.is_self })
-    var base = mine || this._userStats || {}
-      this.setData({
-        stats: {
-          ...this.data.stats,
-          my_rank: (this.data.stats && this.data.stats.my_rank) || 0,
-          games: base.games || 0,
-          wins: base.wins || 0,
-          draws: base.draws || 0,
-          win_rate: Math.round(base.win_rate || 0),
-        best_streak: base.best_streak || 0,
-        best_score: base.best_score || 0,
-        total_score: base.total_score || 0,
-          tier_short: base.tier_short || '',
-          tier_icon: base.tier_icon || '',
-          stars: base.stars || 0,
-          scoreText: util.formatWan(base.total_score || 0),
-        active_text: (base.games || 0) > 0 ? '本周期活跃 · 雀艺渐入佳境' : '未参与牌局'
-        }
-      })
+    var myRank = 0
+    ;(this._rawEntries || []).forEach(function(e, i) { if (e.is_self) myRank = i + 1 })
+    var has = !!mine
+    return {
+      my_rank: myRank,
+      games: has ? (mine.games || 0) : 0,
+      wins: has ? (mine.wins || 0) : 0,
+      draws: has ? (mine.draws || 0) : 0,
+      win_rate: has ? Math.round(mine.win_rate || 0) : 0,
+      best_streak: has ? (mine.best_streak || 0) : 0,
+      best_score: has ? (mine.best_score || 0) : 0,
+      total_score: has ? (mine.total_score || 0) : 0,
+      active_text: has ? '本周期活跃 · 雀艺渐入佳境' : '暂无满4人同台局'
+    }
   },
 
-  /** 段位榜口径：/rank/me（仅满 4 人排位局） */
+  /** 积分榜卡片：净胜分为主体，段位 chip 用榜单条目自带的段位 */
+  applyScoreCard() {
+    var mine = (this._rawEntries || []).find(function(e) { return e.is_self }) || {}
+    var st = this.buildCardStats()
+    this.setData({
+      stats: {
+        ...this.data.stats,
+        ...st,
+        tier_short: mine.tier_short || '',
+        tier_icon: mine.tier_icon || '',
+        stars: mine.stars || 0,
+        scoreText: util.formatWan(st.total_score)
+      }
+    })
+  },
+
+  /** 段位榜卡片：战绩数字与积分榜完全一致；仅段位图标/星级/排位积分来自 /rank/me */
   applyRankedCard() {
+    var mine = (this._rawEntries || []).find(function(e) { return e.is_self }) || {}
+    var st = this.buildCardStats()
+    this.setData({
+      stats: {
+        ...this.data.stats,
+        ...st,
+        tier_short: mine.tier_short || '',
+        tier_icon: mine.tier_icon || '',
+        stars: mine.stars || 0,
+        scoreText: util.formatWan(st.total_score)
+      }
+    })
     api.get('/rank/me').then(res => {
       if (this.data.boardTab !== 'rank') return // 用户已切回积分榜，丢弃
       this.setData({
         stats: {
           ...this.data.stats,
-          games: res.total_games || 0,
-          wins: res.wins || 0,
-          draws: res.draws || 0,
-          win_rate: Math.round(res.win_rate || 0),
-          best_streak: res.best_streak || 0,
-          best_score: res.best_score || 0,
-          total_score: res.points || 0,
           tier_short: (res.tier && res.tier.tier_short) || '',
           tier_icon: res.tier ? util.tierIcon(res.tier.tier_index, res.tier.is_peak) : '',
           stars: (res.tier && res.tier.stars_in_tier) || 0,
-          scoreText: util.formatWan(res.points || 0),
-          active_text: '段位赛绩 · 满4人局计入排位'
+          scoreText: util.formatWan(res.points || 0) // 主体数字换成排位积分
         }
       })
     }).catch(function() {})
@@ -142,10 +161,8 @@ Page({
 
   loadAll() {
     this.setData({ loading: true })
-    return Promise.all([
-      api.get('/user/stats'),
-      api.get('/leaderboard', { days: this.data.currentPeriod })
-    ]).then(([stats, lb]) => {
+    // 卡片与列表统一用 /leaderboard 满4人口径（未入榜时卡片显示 0 + 原因说明）
+    return api.get('/leaderboard', { days: this.data.currentPeriod }).then(lb => {
       const entries = (lb.leaderboard || []).map(e => {
         const totalScore = e.total_score || 0
         return {
@@ -162,7 +179,6 @@ Page({
         }
       })
       this._rawEntries = entries // 保存服务端原始排序，切换榜单时从这里重建
-      this._userStats = stats   // 全量个人统计（积分榜未入榜时兜底）
 
       this.setData({
         days: lb.days || 0,

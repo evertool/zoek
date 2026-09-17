@@ -1728,12 +1728,42 @@ type UserStats struct {
 //   - 今晚手气王：单场期间最高积分记录 ≥ 300；
 //   - 稳如泰山：任一单场终局记分为 0；
 //   - 常客：≥ 20 场；                   - 铁脚：≥ 200 场。
+//
+// GetLeaderboard 雀友榜（积分榜/段位榜同口径）：
+//   - 入榜资格：统计窗口内与「我」同过 4 人台的雀友（含自己）；
+//   - 统计口径：这些雀友在窗口内的「所有」4 人局——不只计和我一起打的场次。
 func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardEntry, error) {
+	const fourPlayerGames = "id IN (SELECT game_id FROM game_players GROUP BY game_id HAVING COUNT(*) = 4)"
+
+	// 第一步：窗口内我参与过的 4 人局 → 同台雀友集合（含自己）
+	myGamesQuery := s.DB.Model(&model.Game{}).
+		Where("status = 'ended' AND ended_at IS NOT NULL AND "+fourPlayerGames+
+			" AND id IN (SELECT game_id FROM game_players WHERE user_id = ?)", userID)
+	if days > 0 {
+		myGamesQuery = myGamesQuery.Where("ended_at >= ?", time.Now().AddDate(0, 0, -days))
+	}
+	var myGameIDs []int64
+	if err := myGamesQuery.Pluck("id", &myGameIDs).Error; err != nil {
+		return nil, err
+	}
+	if len(myGameIDs) == 0 {
+		return []LeaderboardEntry{}, nil // 窗口内没打过满4人同台局 → 空榜
+	}
+	var peerIDs []int64
+	if err := s.DB.Model(&model.GamePlayer{}).
+		Where("game_id IN ?", myGameIDs).
+		Distinct().Pluck("user_id", &peerIDs).Error; err != nil {
+		return nil, err
+	}
+	peerSet := make(map[int64]bool, len(peerIDs))
+	for _, uid := range peerIDs {
+		peerSet[uid] = true
+	}
+
+	// 第二步：这些雀友在窗口内的所有 4 人局（不限是否与我同台）
 	query := s.DB.Where(
-		"status = 'ended' AND ended_at IS NOT NULL AND id IN "+
-			"(SELECT game_id FROM game_players WHERE user_id = ?) "+
-			// 积分榜与段位榜同口径：仅计满 4 人的排位局
-			"AND id IN (SELECT game_id FROM game_players GROUP BY game_id HAVING COUNT(*) = 4)", userID)
+		"status = 'ended' AND ended_at IS NOT NULL AND "+fourPlayerGames+
+			" AND id IN (SELECT game_id FROM game_players WHERE user_id IN ?)", peerIDs)
 	if days > 0 {
 		query = query.Where("ended_at >= ?", time.Now().AddDate(0, 0, -days))
 	}
@@ -1823,6 +1853,9 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 
 	entries := make([]LeaderboardEntry, 0, len(accs))
 	for uid, a := range accs {
+		if !peerSet[uid] {
+			continue // 只显示与我同过台的雀友（peer 和外人打的局会带进无关玩家）
+		}
 		if a.games < minGames {
 			continue // 同台切磋 ≥ minGames 场才可入榜
 		}

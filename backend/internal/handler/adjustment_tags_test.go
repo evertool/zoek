@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+
+	"github.com/lk/zoek/backend/internal/model"
 )
 
 // 给分标签（自摸/明杠/暗杠/杠爆/抢杠）可多选：
@@ -117,4 +119,50 @@ func toStrings(t *testing.T, v interface{}) []string {
 		out = append(out, fmt.Sprint(it))
 	}
 	return out
+}
+
+// 历史战绩详情（/games/:id/history）的给分流水也必须带 tags，
+// 否则战绩页「自摸/明杠」等标签不显示（回归缺陷：GetHistoryDetail 漏带 Tags 字段）。
+func TestHistoryDetailIncludesTags(t *testing.T) {
+	r, _, s := testSetup(t)
+	gameID, auth1, auth2 := createGameAndStart(t, r)
+
+	w := doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	roundID := int64(parseJSON(t, w)["round_id"].(float64))
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auth1, nil)
+	var toPlayerID int64
+	for _, p := range parseJSON(t, w)["players"].([]interface{}) {
+		pMap := p.(map[string]interface{})
+		if pMap["role"] == "player" {
+			toPlayerID = int64(pMap["player_id"].(float64))
+		}
+	}
+
+	// 带标签的快捷给分（即时生效）
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/adjustments", gameID, roundID), auth1,
+		map[string]interface{}{
+			"to_player_id":    toPlayerID,
+			"adjustment_type": "supplement",
+			"amount":          8,
+			"auto_accept":     true,
+			"tags":            []string{"zimo", "angang"},
+			"request_id":      "hist-tag-1",
+		})
+	assertStatus(t, w, http.StatusCreated)
+
+	// 强制散台后看历史详情
+	if err := s.DB.Model(&model.Game{}).Where("id = ?", gameID).Update("status", "ended").Error; err != nil {
+		t.Fatalf("force end game: %v", err)
+	}
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/history", gameID), auth2, nil)
+	assertStatus(t, w, http.StatusOK)
+	adjs := parseJSON(t, w)["adjustments"].([]interface{})
+	if len(adjs) != 1 {
+		t.Fatalf("history adjustments len = %d, want 1", len(adjs))
+	}
+	tags := toStrings(t, adjs[0].(map[string]interface{})["tags"])
+	if len(tags) != 2 || tags[0] != "zimo" || tags[1] != "angang" {
+		t.Fatalf("history detail tags = %v, want [zimo angang]", tags)
+	}
 }

@@ -296,6 +296,7 @@ func (h *SettlementHandler) GetHistoryDetail(c *gin.Context) {
 			AdjustmentType: a.AdjustmentType,
 			Amount:         a.Amount,
 			Reason:         a.Reason,
+			Tags:           splitAdjustmentTags(a.Tags), // 历史详情也要带标签，否则战绩页给分流水不显示「自摸/明杠」等
 			Status:         a.Status,
 			ExpiresAt:      a.ExpiresAt,
 			CreatedAt:      a.CreatedAt,

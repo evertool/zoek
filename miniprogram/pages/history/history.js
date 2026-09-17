@@ -28,7 +28,7 @@ Page({
     // 标签筛选：按本场名次 胜/平/负
     result: '',
     resultTabs: [
-      { label: '全部对局', value: '' },
+      { label: '全部', value: '' },
       { label: '胜', value: 'win' },
       { label: '平', value: 'draw' },
       { label: '负', value: 'lose' }

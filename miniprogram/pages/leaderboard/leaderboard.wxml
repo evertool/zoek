@@ -177,8 +177,8 @@
 
         <view class="empty-state" wx:if="{{entries.length === 0}}" style="padding: 80rpx 40rpx;">
           <view class="empty-tile mj-tile mj-tile-gold anim-float">空</view>
-          <view class="empty-text">近{{days}}天仲未开过台</view>
-          <view class="text-secondary" style="margin-top: 8rpx;">同雀友打完一场就会上榜</view>
+          <view class="empty-text">{{days > 0 ? '近' + days + '天' : ''}}仲未打过满4人同台局</view>
+          <view class="text-secondary" style="margin-top: 8rpx;">同雀友开一张4人台打完就会上榜</view>
         </view>
       </view>
 

@@ -59,6 +59,27 @@
         <view class="gc-pressure" wx:if="{{pressureText}}"><text>● {{pressureText}}</text></view>
       </view>
 
+      <!-- 标签分析：只统计我给分时贴的标签（我的赔付牌型：放杠/杠爆等） -->
+      <view class="gc-section card anim-fade-up delay-2" wx:if="{{hasTagData}}">
+        <view class="gc-section-head">
+          <text class="gc-section-title">🀄 标签分析 · 我的赔付走势</text>
+          <text class="gc-section-sub">只计我给分时贴的标签 · 付出为负</text>
+        </view>
+        <!-- 标签统计 chips：我给分笔数 + 累计付出 -->
+        <view class="gc-tag-stats">
+          <view class="gc-tag-chip" wx:for="{{tagStats}}" wx:for-item="t" wx:key="code" data-code="{{t.code}}" bindtap="onTagLegendTap">
+            <view class="gc-tag-dot" style="background: {{t.color}}; {{t.show === false ? 'opacity:0.25;' : ''}}"></view>
+            <text class="gc-tag-name {{t.show === false ? 'off' : ''}}">{{t.label}}</text>
+            <text class="gc-tag-count">{{t.count}}笔</text>
+            <text class="gc-tag-net {{t.myNet > 0 ? 'pos' : (t.myNet < 0 ? 'neg' : '')}}">{{t.myNet > 0 ? '+' : ''}}{{t.myNet}}</text>
+          </view>
+        </view>
+        <canvas type="2d" id="tag-chart" class="gc-tag-canvas"></canvas>
+        <view class="gc-tag-note">
+          <text>每条线 = 我给分贴该标签的累计付出分 · 横轴为第几笔 · 点图例可筛选</text>
+        </view>
+      </view>
+
       <!-- 战局复盘 -->
       <view class="gc-section card anim-fade-up delay-2">
         <view class="gc-section-head">

@@ -6,7 +6,7 @@ const util = require('./utils/util')
 // develop = 本地开发（局域网 IP，仅开发者工具勾选「不校验合法域名」时可用）
 // trial   = 体验版；release = 正式版 —— 两者都必须走 https 正式域名（微信强制）
 const ENV_CONFIG = {
-  develop: 'http://192.168.1.15:8080/api/v1',
+  develop: 'http://192.168.0.128:8080/api/v1',
   trial: 'https://zoek.246891.xyz/api/v1',
   release: 'https://zoek.246891.xyz/api/v1'
 }
@@ -54,6 +54,10 @@ App({
         // 仅 401（token 过期）才登出；网络波动等不登出
         if (err && err.code === 'UNAUTHORIZED') {
           this.logout()
+          // token 过期 ≠ 网络问题：wx.login 静默换新 token，用户无感知。
+          // 不重登的话，7 天 token 到期后首页必然出现「网络开小差，部分内容未加载」
+          // （ready() resolve 时 token 已空，onShow 只能展示失败重试条）。
+          return this.login(true).catch(() => {})
         }
       })
     } else {

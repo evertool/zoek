@@ -4,17 +4,21 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/lk/zoek/backend/internal/logger"
 	"github.com/lk/zoek/backend/internal/middleware"
 	"github.com/lk/zoek/backend/internal/model"
 	"github.com/lk/zoek/backend/internal/store"
+	"github.com/lk/zoek/backend/internal/ws"
 	"github.com/lk/zoek/backend/pkg/wechat"
 	"gorm.io/driver/sqlite" // test-only: in-memory SQLite for fast tests
 	"gorm.io/gorm"
@@ -1509,5 +1513,199 @@ func TestNicknameSyncToOngoingGames(t *testing.T) {
 	assertStatus(t, w, http.StatusOK)
 	if nicks := playerNicknames(); nicks["改名不回溯"] || !nicks["雀神阿佐"] {
 		t.Fatalf("历史局不应回溯昵称: %v", nicks)
+	}
+}
+
+// TestJoinPushesGameRefresh 扫码进房必须即时推送：
+// /games/join 没有 :game_id 路径参数，middleware.RoomSyncBroadcast 解析不到 gameID
+// 会跳过广播（回归缺陷：台主要等 30s 慢轮询才能看到新人）。
+// 这里起真 HTTP 服务，台主挂上 WS 长连接后另一人加入，断言台主秒收 {"type":"game"}。
+func TestJoinPushesGameRefresh(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	s := store.New(db, logger.NewNop())
+	if err := s.AutoMigrate(); err != nil {
+		t.Fatalf("migrate: %v", err)
+	}
+	jwt := middleware.NewJWTManager("test-secret", 0)
+	// 注意：ws.Dirty 固定广播到进程级 ws.Default，测试必须用同一个 hub
+	hub := ws.Default
+	authH := NewAuthHandler(s, jwt, wechat.NewMockClient(func(code string) (string, string, error) {
+		return "wx_openid_" + code, "", nil
+	}))
+	gameH := NewGameHandler(s, jwt, wechat.NewMockQRClient(
+		func(code string) (string, string, error) { return "wx_openid_" + code, "", nil },
+		func(page, scene, envVersion string) ([]byte, error) { return []byte("mock-png-data"), nil },
+	))
+
+	r := gin.New()
+	r.Use(middleware.RequestID())
+	v1 := r.Group("/api/v1")
+	v1.POST("/auth/login", authH.Login)
+	auth := v1.Group("")
+	auth.Use(jwt.Auth())
+	auth.Use(middleware.RoomSyncBroadcast())
+	{
+		auth.POST("/games", gameH.CreateGame)
+		auth.POST("/games/join", gameH.JoinGame)
+	}
+	v1.GET("/ws", NewWSHandler(s, jwt, hub).ServeWS)
+
+	srv := httptest.NewServer(r)
+	defer srv.Close()
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
+
+	// 台主登录建局
+	auth1 := loginAndAuthURL(t, srv.URL, "creator")
+	w := doRequestURL(t, srv.URL, "POST", "/api/v1/games", auth1, map[string]string{"name": "局A", "request_id": "r1"})
+	assertStatus(t, w, http.StatusCreated)
+	m := parseJSON(t, w)
+	gameID := int64(m["game_id"].(float64))
+	inviteToken := m["invite_token"].(string)
+
+	// 台主以玩家身份挂上房间长连接
+	wsConn, _, err := websocket.DefaultDialer.Dial(
+		fmt.Sprintf("%s/api/v1/ws?token=%s&game_id=%d", wsURL,
+			strings.TrimPrefix(auth1, "Bearer "), gameID), nil)
+	if err != nil {
+		t.Fatalf("ws dial: %v", err)
+	}
+	defer wsConn.Close()
+	deadline := time.Now().Add(2 * time.Second)
+	for hub.RoomSize(gameID) == 0 { // 等服务端注册完成，避免广播早于入册
+		if time.Now().After(deadline) {
+			t.Fatal("ws connection not registered in hub")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	// 玩家扫码进房（走 /games/join，无 :game_id 路径参数）
+	auth2 := loginAndAuthURL(t, srv.URL, "joiner")
+	w = doRequestURL(t, srv.URL, "POST", "/api/v1/games/join", auth2,
+		map[string]string{"invite_token": inviteToken, "request_id": "r2"})
+	assertStatus(t, w, http.StatusCreated)
+
+	// 台主必须在 2s 内收到 "game" 刷新信号（服务端 ping 间隔 25s，不会被误认）
+	_ = wsConn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	for {
+		_, raw, err := wsConn.ReadMessage()
+		if err != nil {
+			t.Fatalf("join 后未收到 game 刷新推送: %v", err)
+		}
+		var msg struct {
+			Type string `json:"type"`
+		}
+		if json.Unmarshal(raw, &msg) == nil && msg.Type == "game" {
+			return
+		}
+	}
+}
+
+// loginAndAuthURL / doRequestURL：指向独立 httptest server 的变体（WS 端到端测试用）。
+func loginAndAuthURL(t *testing.T, baseURL, code string) string {
+	t.Helper()
+	w := doRequestURL(t, baseURL, "POST", "/api/v1/auth/login", "",
+		map[string]string{"code": code, "nickname": "玩家" + code})
+	assertStatus(t, w, http.StatusOK)
+	token := parseJSON(t, w)["token"].(string)
+	return "Bearer " + token
+}
+
+func doRequestURL(t *testing.T, baseURL, method, path, auth string, body interface{}) *httptest.ResponseRecorder {
+	t.Helper()
+	var buf bytes.Buffer
+	if body != nil {
+		json.NewEncoder(&buf).Encode(body)
+	}
+	req, err := http.NewRequest(method, baseURL+path, &buf)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if auth != "" {
+		req.Header.Set("Authorization", auth)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("do request: %v", err)
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	return &httptest.ResponseRecorder{
+		Code:    resp.StatusCode,
+		Body:    bytes.NewBuffer(raw),
+		Flushed: true,
+	}
+}
+
+// TestLeaderboardPeersScope 雀友榜口径：
+//   - 入榜资格：与我同过 4 人台的雀友（从没和我同台的 G 不上榜）；
+//   - 统计：这些雀友的所有 4 人局场次（C/E 和我各只同台 1 次但各打 2 场 → games=2）。
+func TestLeaderboardPeersScope(t *testing.T) {
+	r, _, _ := testSetup(t)
+
+	// 建 4 人局并打完 1 局：creator + 3 名 joiner，scores 按座次计分
+	play4p := func(prefix string, creator string, joiners []string, scores []int) {
+		creatorAuth := loginAndAuth(t, r, creator)
+		w := doRequest(t, r, "POST", "/api/v1/games", creatorAuth, map[string]string{"request_id": prefix + "-create"})
+		assertStatus(t, w, http.StatusCreated)
+		m := parseJSON(t, w)
+		gameID := int64(m["game_id"].(float64))
+		inviteToken := m["invite_token"].(string)
+		auths := []string{creatorAuth}
+		for i, code := range joiners {
+			ja := loginAndAuth(t, r, code)
+			w = doRequest(t, r, "POST", "/api/v1/games/join", ja,
+				map[string]string{"invite_token": inviteToken, "request_id": fmt.Sprintf("%s-join-%d", prefix, i)})
+			assertStatus(t, w, http.StatusCreated)
+			auths = append(auths, ja)
+		}
+		w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auths[0], nil)
+		assertStatus(t, w, http.StatusOK)
+		roundID := int64(parseJSON(t, w)["round_id"].(float64))
+		playRound(t, r, gameID, roundID, auths, scores)
+		w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auths[0],
+			map[string]string{"request_id": prefix + "-end"})
+		assertStatus(t, w, http.StatusOK)
+	}
+
+	// 局1：A,B,C,D；局2：A,B,E,F；局3（无 A）：C,D,E,G
+	play4p("ps-g1", "ps-a", []string{"ps-b", "ps-c", "ps-d"}, []int{16, 5, -8, -13})
+	play4p("ps-g2", "ps-a", []string{"ps-b", "ps-e", "ps-f"}, []int{10, -2, 3, -11})
+	play4p("ps-g3", "ps-c", []string{"ps-d", "ps-e", "ps-g"}, []int{8, 1, 2, -11})
+
+	authA := loginAndAuth(t, r, "ps-a")
+	w := doRequest(t, r, "GET", "/api/v1/leaderboard", authA, nil)
+	assertStatus(t, w, http.StatusOK)
+	lb := parseJSON(t, w)["leaderboard"].([]interface{})
+
+	gamesBy := map[string]float64{}
+	for _, it := range lb {
+		e := it.(map[string]interface{})
+		nick := e["nickname"].(string)
+		if nick == "玩家ps-g" {
+			t.Fatalf("G（从未与 A 同台）不应上榜: %v", lb)
+		}
+		gamesBy[nick] = e["games"].(float64)
+	}
+	if len(lb) != 6 {
+		t.Fatalf("leaderboard size = %d, want 6 (A~F, 无 G)", len(lb))
+	}
+	// 全量口径：C 参与局1+局3 = 2 场，E 参与局2+局3 = 2 场（各与 A 同台仅 1 场）
+	for _, check := range []struct {
+		nick string
+		want float64
+	}{
+		{"玩家ps-a", 2}, {"玩家ps-b", 2}, {"玩家ps-c", 2}, {"玩家ps-d", 2}, {"玩家ps-e", 2}, {"玩家ps-f", 1},
+	} {
+		if gamesBy[check.nick] != check.want {
+			t.Fatalf("%s games = %v, want %v（统计应为所有4人局而非仅与我同台）", check.nick, gamesBy[check.nick], check.want)
+		}
 	}
 }
