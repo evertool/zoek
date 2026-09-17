@@ -517,15 +517,20 @@ func (h *GameHandler) JoinGame(c *gin.Context) {
 		return
 	}
 
-	// 已完结的台：房间已不存在，邀请/扫码入口改为带 game_id 返回，
-	// 前端据此跳对局记录详情（非本台成员由详情页兜底提示无权限）
+	// 已完结的台：
+	//   在台雀友（含曾离座，game_players 有行即可）→ 带 game_id 返回 GAME_ENDED，前端跳对局记录详情；
+	//   非本台玩家 → 记录仅同台可见，不跳转也不外泄 game_id，按「已经散台」提示。
 	if game.Status == "ended" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    errs.ErrGameEnded.Code,
-			"message": "呢张台已经散咗，带你睇返对局记录",
-			"action":  errs.ActionReadOnly,
-			"game_id": game.ID,
-		})
+		if row, rowErr := h.Store.GetGamePlayerRow(game.ID, userID); rowErr == nil && row != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"code":    errs.ErrGameEnded.Code,
+				"message": "呢张台已经散咗，带你睇返对局记录",
+				"action":  errs.ActionReadOnly,
+				"game_id": game.ID,
+			})
+			return
+		}
+		c.JSON(http.StatusBadRequest, errs.ErrGameDissolved)
 		return
 	}
 

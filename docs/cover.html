@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 900px; height: 383px; overflow: hidden; }
+  .cover {
+    position: relative; width: 900px; height: 383px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #232347 60%, #2c2050 100%);
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    display: flex; align-items: center; padding: 0 64px;
+  }
+  /* 背景装饰麻将牌 */
+  .deco-tile {
+    position: absolute; border-radius: 16px;
+    background: linear-gradient(160deg, #fdfdf8 0%, #e8e6dc 100%);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.9);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; opacity: 0.92;
+  }
+  .t1 { width: 110px; height: 150px; right: 340px; top: -46px; transform: rotate(14deg); color: #c8372d; font-size: 64px; }
+  .t2 { width: 96px; height: 130px; right: 150px; bottom: -40px; transform: rotate(-11deg); color: #1e6b46; font-size: 56px; }
+  .t3 { width: 78px; height: 106px; right: 70px; top: 60px; transform: rotate(7deg); color: #b98a1c; font-size: 44px; }
+  .glow { position: absolute; width: 420px; height: 420px; right: 60px; top: -20px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(230,83,60,0.22) 0%, rgba(230,83,60,0) 70%); }
+  /* 左侧文案 */
+  .left { position: relative; z-index: 2; }
+  .tag {
+    display: inline-block; padding: 6px 16px; border: 1px solid rgba(245,166,35,0.7);
+    border-radius: 999px; color: #f5a623; font-size: 18px; letter-spacing: 6px; margin-bottom: 22px;
+  }
+  h1 { color: #ffffff; font-size: 58px; letter-spacing: 4px; line-height: 1.25; margin: 0; }
+  h1 .red { color: #ff6a4d; }
+  .sub { margin-top: 16px; color: rgba(255,255,255,0.65); font-size: 20px; letter-spacing: 3px; }
+</style>
+</head>
+<body>
+  <div class="cover">
+    <div class="glow"></div>
+    <div class="deco-tile t1">中</div>
+    <div class="deco-tile t2">發</div>
+    <div class="deco-tile t3">東</div>
+    <div class="left">
+      <div class="tag">粤式麻雀计分神器</div>
+      <h1>得闲就开台<br>分数<span class="red">唔使数啤牌</span></h1>
+      <div class="sub">零和记分 · 排位段位 · 桌面互动</div>
+    </div>
+  </div>
+</body>
+</html>

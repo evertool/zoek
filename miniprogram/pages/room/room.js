@@ -18,7 +18,7 @@ try {
 
 const POLL_INTERVAL = 4000
 const SLOW_POLL_INTERVAL = 30000 // WS 在线时的兜底刷新间隔（防推送丢失）
-const LEDGER_PAGE_SIZE = 4 // 流水账单每页条数（上滑翻页）
+const LEDGER_PAGE_SIZE = 7 // 流水账单每页条数（上滑翻页）
 const WINDS = ['東', '南', '西', '北']
 // 座位 → 桌面方位：与 WINDS 同序（東 南 西 北）→ 左 上 右 下
 // 即 南在上、東在左、西在右、北在下（沿用设计稿的方位，不要按通用罗盘翻成「北在上」）
@@ -57,6 +57,7 @@ Page({
     hasScores: false,
     // 是否出示台码（拉人入台）：牌局还在进行 + 成员没锁 + 没满 4 人，见 applyGame
     canInvite: false,
+    showFooter: false,
     showQrModal: false,
     showScoreModal: false,
     ledgerShown: LEDGER_PAGE_SIZE,
@@ -77,7 +78,6 @@ Page({
     showSwapAnim: false,
     // 席位互动道具（动画编排移植自 docs/design/room-donghua/code.html，只做动画不改桌面样式）
     showPropModal: false,
-    propTargets: [],
     propTarget: '',
     propTargetName: '',
     fx: {
@@ -93,7 +93,9 @@ Page({
       tomato: null,   // 丢番茄（phase: fly/splat；服务端 type 仍为 dimsum）
       sauceTarget: '', // 脸上番茄酱层的目标席位
       tomatoHeavy: false, // 番茄重击头像剧震
-      banner: null    // 踢击私密暗号气泡 { title, desc, on }
+      banner: null,   // 踢击私密暗号气泡 { title, desc, on }
+      gives: [],      // 给分动画（数组：不同席位对可并行，同对去重）{ key, amount, from, to, fromX, fromY, toX, toY }
+      giveHit: {}     // 给分到账标记（按席位 pos 的 map：{top: true}）驱动头像 Q 弹与波纹
     }
   },
 
@@ -370,12 +372,20 @@ Page({
       statusText: util.statusText(res.status)
     }
 
+    var hasScores = (res.completed_rounds || 0) > 0 || this.data.ledger.length > 0
+
     this.setData({
       game: game,
       players: players,
       seats: seats,
+      // 已散台（ended/cancelled/expired）：给分 / 道具 / 换位等写操作统一拦下，
+      // 席位卡上的「给分」按钮也随之隐藏（wxml 用 !dissolved 判断）
+      dissolved: res.status === 'ended' || res.status === 'cancelled' || res.status === 'expired',
       isOwner: Number(res.creator_id) === myID,
-      hasScores: (res.completed_rounds || 0) > 0 || this.data.ledger.length > 0,
+      hasScores: hasScores,
+      // 底栏只在还有底栏动作时渲染：取消开台（组桌/开局未记分的台主）或睇翻记录（已散台）；
+      // 结束散台已上收到头部台码旁，记分中的台主不再渲染空底栏
+      showFooter: (isOwner && (res.status === 'forming' || (res.status === 'active' && !hasScores))) || res.status === 'ended',
       // 台码（拉人入台）出示条件，与后端 GetGameQRCode / JoinGame 的守卫保持一致：
       //   牌局还在进行（forming=组桌中 / active=已开局）+ 成员没锁 + 还没满 4 人。
       // 注意**不能用 hasScores**：那是「本局有没有流水账单」。房间页的「给分」走转分接口，
@@ -625,26 +635,42 @@ Page({
     this.setData({ currentScore: next, scoreText: String(next) })
   },
 
+  // 点输入框聚焦时：默认 0 分自动清空，直接输入即是新分数（未动过预设/步进时才清）
+  onScoreFocus() {
+    if (!this.data.currentScore) this.setData({ scoreText: '' })
+  },
+
   // 直接手输分数：只留数字，空输入按 0 处理
   onScoreInput(e) {
     var raw = String(e.detail.value || '').replace(/[^0-9]/g, '')
     this.setData({ scoreText: raw, currentScore: Number(raw) || 0 })
   },
 
+  // 键盘上的「完成」键直接提交：输入 → 点键盘确认 → 完成给分，省去收起键盘再点按钮两步
+  onScoreConfirm() {
+    this.submitScore()
+  },
+
   submitScore() {
+    // 防重复提交：键盘确认与底部确认按钮可能连点
+    if (this._scoreSubmitting) return
+    // 已散台禁止给分（UI 已隐藏按钮，这里兜底拦截）
+    if (!this.ensureActive()) return
     var amount = this.data.currentScore
     if (amount === 0) {
-      wx.showToast({ title: '分数不能为0', icon: 'none' })
+      this.showToast('分数不能为0')
       return
     }
     // 转分语义：我出分、对方得分。扣分（对方出分）须由对方在其页面发起，后端不支持反向
     if (amount < 0) {
-      wx.showToast({ title: '转记需为正数，扣分请由对方操作', icon: 'none', duration: 2500 })
+      this.showToast('转记需为正数，扣分请由对方操作')
       return
     }
-    api.get('/games/' + this.data.gameID + '/rounds/current').then(round => {
+    this._scoreSubmitting = true
+    api.get('/games/' + this.data.gameID + '/rounds/current', { silent: true }).then(round => {
       if (!round || !round.round_id) {
-        wx.showToast({ title: '暂无进行中的局', icon: 'none' })
+        this._scoreSubmitting = false
+        this.showToast('暂无进行中的局')
         return
       }
       return api.post('/games/' + this.data.gameID + '/rounds/' + round.round_id + '/adjustments', {
@@ -653,7 +679,8 @@ Page({
         amount: amount,
         auto_accept: true,
         request_id: api.genRequestID()
-      }).then(res2 => {
+      }, { silent: true }).then(res2 => {
+        this._scoreSubmitting = false
         this.setData({ showScoreModal: false })
         // 台间记分无需对方确认，后端返回"已转记 X 分给 XX"
         this.showToast(res2.message || ('已转记 ' + amount + ' 分给 ' + this.data.scoreTargetName))
@@ -669,8 +696,10 @@ Page({
         this.playGiveFx(myPID, this.data.scoreTargetId, amount)
         setTimeout(() => this.loadGame(), 1100)
       })
-    }).catch(() => {
-      // 业务错误信息已由 api 层 toast
+    }).catch(err => {
+      this._scoreSubmitting = false
+      // 统一用自定义顶部 toast，避免与 wx.showToast（居中）叠成两个
+      this.showToast((err && err.message) || '转分失败，请重试')
     })
   },
 
@@ -682,10 +711,21 @@ Page({
     return (this.data.ledger || []).length > 0
   },
 
+  // 已散台的台：给分 / 道具 / 换位申请 / 长按换空位等写操作统一拦下，
+  // 只弹一条「散咗台啦！」（此前各路径文案不一，且 api 层的居中 toast 与
+  // 自定义顶部 toast 会同时出现两个）。
+  ensureActive() {
+    if (!this.data.dissolved) return true
+    this.showToast('散咗台啦！')
+    return false
+  },
+
   // 长按座位：空位=即时换座（无需申请）/ 自己=退出牌台 / 他人=申请换位
   // 长按他人座位一律走「申请换位」（台主也一样，见 PRD §8.7）；
   // 台主额外能在换位弹窗里把对方「移出牌台」，那才是受流水账单限制的离座动作。
   onSeatLongPress(e) {
+    // 已散台：换空位 / 申请换位 / 离座 / 移出一律拦截
+    if (!this.ensureActive()) return
     var seat = Number(e.currentTarget.dataset.seat)
     var seatInfo = this.data.seats.find(function(s) { return s.seat === seat })
     if (!seatInfo) return
@@ -798,16 +838,19 @@ Page({
 
   // 发起换位申请（对方确认后才互换）
   sendSwapRequest() {
+    if (!this.ensureActive()) return // 弹窗开着时牌局可能刚好散台
     var seat = this.data.swapTargetSeat
     this.setData({ showSwapModal: false })
     api.post('/games/' + this.data.gameID + '/swap_requests', {
       target_seat: seat
-    }).then(res => {
+    }, { silent: true }).then(res => {
       var id = res.request && res.request.id
       this._mySwapReqId = id || 0
       this._mySwapStatus = id ? 'pending' : ''
       this.showToast(res.message || '换位申请已发送，等待对方确认')
-    }).catch(() => {})
+    }).catch(err => {
+      this.showToast((err && err.message) || '换位申请发送失败，请重试')
+    })
   },
 
   // 轮询：①是否有发给我的换位申请；②我发出的申请被同意/拒绝/超时
@@ -885,10 +928,11 @@ Page({
     api.post('/games/' + this.data.gameID + '/swap_seat', {
       target_seat: seat,
       request_id: api.genRequestID()
-    }).then(() => {
+    }, { silent: true }).then(() => {
       this.loadGame()
-    }).catch(() => {
-      this.showToast('换座失败，请稍后再试')
+    }).catch(err => {
+      // api 已静音：错误只走自定义顶部 toast，不会与居中 toast 叠加
+      this.showToast((err && err.message) || '换座失败，请稍后再试')
     })
   },
 
@@ -1044,29 +1088,21 @@ Page({
   // 动画层说明：地震/头像弹飞作用在真实节点上（Lottie canvas 无法驱动 DOM），
   // 因此整套编排走 WXSS keyframes；fx 元素坐标由 selectorQuery 实测注入。
 
-  openPropModal() {
+  // 点席位头像/昵称打开道具盒：目标就是被点的那个席位，不再做目标选择
+  openPropModal(e) {
+    if (!this.ensureActive()) return // 已散台不给开道具盒
     fxsound.warmup() // 首次点击链路预热 WebAudio（规避 iOS 非手势触发限制）
-    var seats = this.data.seats || []
-    var targets = []
-    for (var i = 0; i < seats.length; i++) {
-      var s = seats[i]
-      if (s.player && !s.isSelf) targets.push({ pos: s.pos, name: s.player.nickname, pid: Number(s.player.player_id) })
-    }
-    if (!targets.length) {
-      this.showToast('仲未有其他雀友在座，暂无互动目标')
+    var ds = e.currentTarget.dataset
+    var pid = Number(ds.pid) || 0
+    if (!ds.pos || !pid) return
+    if (pid === this.myPlayerID()) {
+      this.showToast('道具要送畀其他雀友')
       return
-    }
-    // 记住本局上次选中的目标（按牌局存 storage），还在座则默认选他
-    var saved = Number(wx.getStorageSync('prop_target_' + this.data.gameID)) || 0
-    var def = targets[0]
-    for (var j = 0; j < targets.length; j++) {
-      if (saved && targets[j].pid === saved) def = targets[j]
     }
     this.setData({
       showPropModal: true,
-      propTargets: targets,
-      propTarget: def.pos,
-      propTargetName: def.name
+      propTarget: ds.pos,
+      propTargetName: ds.name
     })
   },
 
@@ -1074,14 +1110,9 @@ Page({
     this.setData({ showPropModal: false })
   },
 
-  selectPropTarget(e) {
-    this.setData({ propTarget: e.currentTarget.dataset.pos, propTargetName: e.currentTarget.dataset.name })
-    try {
-      wx.setStorageSync('prop_target_' + this.data.gameID, Number(e.currentTarget.dataset.pid) || 0)
-    } catch (err) {}
-  },
-
   useProp(e) {
+    // 已散台禁止用道具
+    if (!this.ensureActive()) return
     var type = e.currentTarget.dataset.type
     var pos = this.data.propTarget
     if (!pos) {
@@ -1107,7 +1138,8 @@ Page({
     this.closePropModal()
     var that = this
     // 上报后端 → 同步给同桌；本人立即本地播放（不等轮询）
-    api.post('/games/' + this.data.gameID + '/props', { to_player_id: toPID, type: type }).then(function(res) {
+    // api 静音：错误统一走下方自定义 toast，避免与居中 toast 叠加
+    api.post('/games/' + this.data.gameID + '/props', { to_player_id: toPID, type: type }, { silent: true }).then(function(res) {
       that.bumpPropWM(res.id)
       that.enqueueProp(type, myPID, toPID, Number(res.id) || 0, true)
     }).catch(function(err) {
@@ -1277,7 +1309,7 @@ Page({
   },
 
   initialFx() {
-    return { quake: false, target: '', hit: false, kicked: false, slipper: null, stars: null, kick: null, flower: null, tea: null, tomato: null, sauceTarget: '', tomatoHeavy: false, banner: null, give: null, giveHit: '' }
+    return { quake: false, target: '', hit: false, kicked: false, slipper: null, stars: null, kick: null, flower: null, tea: null, tomato: null, sauceTarget: '', tomatoHeavy: false, banner: null, gives: [], giveHit: {} }
   },
 
   vibrate(long) {
@@ -1368,7 +1400,7 @@ Page({
     }, 1200)
     this.fxTimeout(function() {
       that.setData({ 'fx.banner': null, 'fx.kicked': false })
-    }, 4200)
+    }, 1300) // 大力踢提示显示约 1s
   },
 
   // 3. 花儿谢了 🥀：鲜花送到 → 0.7s 后枯萎凋零 + 愁云雨丝 + 粤语气泡
@@ -1497,14 +1529,14 @@ Page({
   // （docs/design/geifendonghua：筹码 4 枚错峰 90ms、单枚 650ms，末枚 920ms 到账触发吸收反馈）
   // 全台可见：后端转分生效时 WS 广播 "give"，每台手机各自播放；发起人本地即时播，
   // 广播推回自身时凭调整 id 水位去重（submitScore 已推 _lastGiveId）。
+  // 并发：fx.gives 是数组，不同席位对（A→C 与 B→C）并行各播各的；
+  // 仅同一对席位重复给分时去重（同航线两批筹码会叠在一起看不清）。
   playGiveFx(fromPlayerId, toPlayerId, amount) {
     var that = this
     fromPlayerId = Number(fromPlayerId)
     toPlayerId = Number(toPlayerId)
     amount = Number(amount) || 0
     if (!fromPlayerId || !toPlayerId || fromPlayerId === toPlayerId || !amount) return
-    if (this._givePlaying) return // 与设计稿一致：动画进行中忽略新的给分
-    this._givePlaying = true
     // 席位定位：筹码从 from 的头像中心飞向 to 的头像中心
     var seats = this.data.seats || []
     var fromPos = ''
@@ -1515,28 +1547,29 @@ Page({
       if (Number(p.player_id) === fromPlayerId) fromPos = seats[i].pos
       if (Number(p.player_id) === toPlayerId) toPos = seats[i].pos
     }
-    if (!fromPos || !toPos) {
-      this._givePlaying = false
-      return
+    if (!fromPos || !toPos) return
+    var list = this.data.fx.gives || []
+    for (var k = 0; k < list.length; k++) {
+      if (list[k].from === fromPos && list[k].to === toPos) return // 同航线在飞：去重
     }
     this.getAvatarCenter(fromPos, function(start) {
-      if (!start) {
-        that._givePlaying = false
-        return
-      }
+      if (!start) return
       that.getAvatarCenter(toPos, function(end) {
-        if (!end) {
-          that._givePlaying = false
-          return
+        if (!end) return
+        // setData 前重读最新列表：两次给分在异步测量窗口内先后进入时，
+        // 若仍用进入时的旧数组拼接，后一次会把前一次的动画项顶掉
+        var cur = that.data.fx.gives || []
+        for (var m = 0; m < cur.length; m++) {
+          if (cur[m].from === fromPos && cur[m].to === toPos) return
         }
-        that.setData({
-          'fx.give': {
-            amount: amount,
-            fromX: start.x, fromY: start.y,
-            toX: end.x, toY: end.y,
-            to: toPos
-          }
-        })
+        var key = 'g' + (++that._giveSeq)
+        var item = {
+          key: key, amount: amount,
+          from: fromPos, to: toPos,
+          fromX: start.x, fromY: start.y,
+          toX: end.x, toY: end.y
+        }
+        that.setData({ 'fx.gives': cur.concat([item]) })
         // 筹码发射音随错峰节奏逐枚叮当（音高逐枚升高），与 CSS 动画 delay 对齐
         for (var ci = 0; ci < 4; ci++) {
           (function(idx) {
@@ -1548,13 +1581,16 @@ Page({
         // 末枚筹码到账（270 + 650 = 920ms）：头像 Q 弹 + 翡翠波纹
         that.fxTimeout(function() {
           fxsound.coinArrival() // 金币到账共鸣和弦
-          that.setData({ 'fx.giveHit': toPos })
+          var patch = {}
+          patch['fx.giveHit.' + toPos] = true
+          that.setData(patch)
           that.vibrate(false)
         }, 920)
-        // 徽章 / 波纹播完收尾（+N 徽章 920 + 1750ms）
+        // 徽章 / 波纹播完收尾（+N 徽章 920 + 1750ms）：只摘掉自己这一组
         that.fxTimeout(function() {
-          that._givePlaying = false
-          that.setData({ 'fx.giveHit': '', 'fx.give': null })
+          var patch2 = {}
+          patch2['fx.giveHit.' + toPos] = false
+          that.setData(Object.assign({ 'fx.gives': (that.data.fx.gives || []).filter(function(g) { return g.key !== key }) }, patch2))
         }, 2800)
       })
     })

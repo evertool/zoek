@@ -72,18 +72,11 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 		return
 	}
 
-	// Game must be active or ended (PRD §3.2 rule 10: 24h window after end)
-	if game.Status != "active" && game.Status != "ended" {
-		c.JSON(http.StatusBadRequest, errs.ErrGameNotActive)
+	// 散台一律拦截给分：牌局结束后积分已结算，不再接受任何转分/补退分。
+	// （原 PRD §3.2 rule 10 的「散台后 24h 补退分窗口」已下线，用户确认不留）
+	if game.Status != "active" {
+		c.JSON(http.StatusBadRequest, errs.ErrGameEnded)
 		return
-	}
-
-	// Check 24h window if ended
-	if game.Status == "ended" && game.EndedAt != nil {
-		if time.Now().After(game.EndedAt.Add(24 * time.Hour)) {
-			c.JSON(http.StatusForbidden, errs.ErrGameEnded)
-			return
-		}
 	}
 
 	// Must be a player
@@ -163,14 +156,6 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 	if err := h.Store.CreateAdjustment(adj); err != nil {
 		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 		return
-	}
-
-	// 台间记分直接生效且牌局已结束 → 同样触发排位重排
-	if req.AutoAccept && game.Status == "ended" {
-		if err := h.Store.RecalculateGameRank(gameID); err != nil {
-			c.JSON(http.StatusInternalServerError, errs.ErrInternal)
-			return
-		}
 	}
 
 	// 给分动画广播：转分直接生效时推给全台玩家（含发起人），前端各自播放筹码飞行动画。
@@ -286,6 +271,17 @@ func (h *AdjustmentHandler) AcceptAdjustment(c *gin.Context) {
 		return
 	}
 
+	// 散台后积分已结算：不再接受任何转分生效（含散台前发起、散台后才确认的补退分）
+	game, gErr := h.Store.GetGame(gameID)
+	if gErr != nil || game == nil {
+		c.JSON(http.StatusNotFound, errs.ErrNotFound)
+		return
+	}
+	if game.Status != "active" {
+		c.JSON(http.StatusBadRequest, errs.ErrGameEnded)
+		return
+	}
+
 	// Only the to_player's user can accept (PRD §3.2 rule 5)
 	toPlayer, err := h.Store.GetGamePlayer(gameID, userID)
 	if err != nil || toPlayer.ID != adj.ToPlayerID {
@@ -301,17 +297,6 @@ func (h *AdjustmentHandler) AcceptAdjustment(c *gin.Context) {
 		}
 		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 		return
-	}
-
-	// Update settlement timestamp if game is ended (PRD §3.2 rule 11)
-	game, _ := h.Store.GetGame(gameID)
-	if game != nil && game.Status == "ended" {
-		_ = h.Store.UpdateSettlementTime(gameID)
-		// 补退分改变最终分 → 按最新口径重排该局排位（胜负平/星级/净胜分）
-		if err := h.Store.RecalculateGameRank(gameID); err != nil {
-			c.JSON(http.StatusInternalServerError, errs.ErrInternal)
-			return
-		}
 	}
 
 	// Find from player nickname for message

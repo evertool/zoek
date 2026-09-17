@@ -15,7 +15,12 @@
     <!-- 还能凑脚就出示台码（拉人入台）：牌局进行中 + 成员没锁 + 未满 4 人，判据见 room.js applyGame -->
     <view class="qr-text-btn" wx:if="{{canInvite}}" bindtap="openQrModal">
       <image class="qr-text-icon" src="/assets/icons/table-qrcode.svg" mode="aspectFit" />
-      <text>出示台码</text>
+      <text>台码</text>
+    </view>
+    <!-- 散台（台主 · 记分中且有流水）：紧挨台码，原底部按钮上收 -->
+    <view class="end-btn" wx:if="{{isOwner && game.status === 'active' && hasScores}}" bindtap="doEnd">
+      <image class="end-btn-icon" src="/assets/icons/action-exit.svg" mode="aspectFit" />
+      <text>散台</text>
     </view>
   </view>
 
@@ -32,8 +37,10 @@
         data-seat="{{item.seat}}" bindlongpress="onSeatLongPress">
         <view class="side-fill {{fx.target === item.pos && fx.hit ? 'fx-hit-shake' : ''}} {{fx.target === item.pos && fx.kicked ? 'fx-avatar-kick' : ''}} {{fx.target === item.pos && fx.tomatoHeavy ? 'fx-tomato-heavy' : ''}}">
           <block wx:if="{{item.player}}">
-            <view class="seat-head">
-              <view class="seat-avatar-wrap {{fx.giveHit === item.pos ? 'fx-give-bounce' : ''}}">
+            <!-- 点头像/昵称 = 打开道具盒，目标就是本席位 -->
+            <view class="seat-head" hover-class="seat-head-active" catchtap="openPropModal"
+              data-pos="{{item.pos}}" data-pid="{{item.player.player_id}}" data-name="{{item.player.nickname}}">
+              <view class="seat-avatar-wrap {{fx.giveHit[item.pos] ? 'fx-give-bounce' : ''}}">
                 <image class="seat-avatar" src="{{item.player.avatar_url}}" mode="aspectFill" wx:if="{{item.player.avatar_url}}" />
                 <view class="seat-avatar seat-avatar-ph" wx:else>{{item.player.nickname[0]}}</view>
                 <!-- 脸上流淌番茄酱层（丢番茄命中后显现） -->
@@ -41,7 +48,7 @@
                   <image src="/assets/icons/fx-tomato-face.svg" mode="aspectFill" />
                 </view>
                 <!-- 给分到账：翡翠金光波纹 -->
-                <view class="give-ripple {{fx.giveHit === item.pos ? 'give-ripple-on' : ''}}"></view>
+                <view class="give-ripple {{fx.giveHit[item.pos] ? 'give-ripple-on' : ''}}"></view>
               </view>
               <view class="seat-meta">
                 <view class="seat-owner-tag" wx:if="{{item.isOwner}}">台主</view>
@@ -49,12 +56,12 @@
               </view>
             </view>
             <text class="seat-score {{item.score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.score >= 0 ? '+' : ''}}{{item.score}}</text>
-            <!-- 给分：我出分、对方得分（自己那一席不给分） -->
-            <view class="give-btn" wx:if="{{!item.isSelf}}" catchtap="openScoringModal"
+            <!-- 给分：我出分、对方得分（自己那一席不给分；已散台的台不给分） -->
+            <view class="give-btn" wx:if="{{!item.isSelf && !dissolved}}" catchtap="openScoringModal"
               data-seat="{{item.seat}}" data-name="{{item.player.nickname}}" data-player-id="{{item.player.player_id}}">
               <text class="give-btn-plus">＋</text><text>给分</text>
             </view>
-            <view class="give-btn give-btn-self" wx:else><text>我</text></view>
+            <view class="give-btn give-btn-self" wx:elif="{{item.isSelf}}"><text>我</text></view>
           </block>
           <block wx:else>
             <image class="seat-empty-ring" src="/assets/icons/table-seat-empty-add.svg" mode="aspectFit" />
@@ -81,7 +88,7 @@
       <!-- 长按换座提示 -->
       <view class="stage-hint">
         <image class="stage-hint-icon" src="/assets/icons/sys-info-circle.svg" mode="aspectFit" />
-        <text>长按席位可对调座次</text>
+        <text>点头像可送道具 · 长按席位可对调座次</text>
       </view>
 
       <!-- 席位互动道具 fx 层：只做动画（pointer-events:none，不挡任何操作） -->
@@ -167,14 +174,16 @@
             <view class="fx-tomato-bubble {{fx.tomato.pos === 'top' ? 'fx-bubble-below' : ''}}"><text>食番茄啦，乱咁出牌！🍅</text></view>
           </view>
         </block>
-        <!-- 给分动画：-N 徽章下沉 + 4 枚筹码抛物线飞抵 + 到账浮升 +N -->
-        <block wx:if="{{fx.give}}">
-          <view class="fx-give-badge fx-give-minus" style="left: {{fx.give.fromX}}px; top: {{fx.give.fromY}}px;"><text>-{{fx.give.amount}}</text></view>
-          <view class="fx-give-coin" wx:for="{{[0, 1, 2, 3]}}" wx:key="*this" wx:for-item="ci"
-            style="--sx: {{fx.give.fromX}}px; --dx: {{fx.give.toX}}px; --sy: {{fx.give.fromY}}px; --dy: {{fx.give.toY}}px; animation-delay: {{index * 90}}ms;">
-            <view class="fx-give-coin-inner" style="animation-delay: {{index * 90}}ms;"><text>🀄</text></view>
-          </view>
-          <view class="fx-give-badge fx-give-plus" style="left: {{fx.give.toX}}px; top: {{fx.give.toY}}px; animation-delay: 920ms;"><text>+{{fx.give.amount}}</text></view>
+        <!-- 给分动画（可多组并行）：每组 = -N 徽章下沉 + 4 枚筹码抛物线飞抵 + 到账浮升 +N -->
+        <block wx:if="{{fx.gives.length}}">
+          <block wx:for="{{fx.gives}}" wx:for-item="g" wx:key="key">
+            <view class="fx-give-badge fx-give-minus" style="left: {{g.fromX}}px; top: {{g.fromY}}px;"><text>-{{g.amount}}</text></view>
+            <view class="fx-give-coin" wx:for="{{[0, 1, 2, 3]}}" wx:key="*this" wx:for-item="ci"
+              style="--sx: {{g.fromX}}px; --dx: {{g.toX}}px; --sy: {{g.fromY}}px; --dy: {{g.toY}}px; animation-delay: {{index * 90}}ms;">
+              <view class="fx-give-coin-inner" style="animation-delay: {{index * 90}}ms;"><text>🀄</text></view>
+            </view>
+            <view class="fx-give-badge fx-give-plus" style="left: {{g.toX}}px; top: {{g.toY}}px; animation-delay: 920ms;"><text>+{{g.amount}}</text></view>
+          </block>
         </block>
         <!-- 踢击私密暗号气泡 -->
         <view wx:if="{{fx.banner}}" class="fx-banner {{fx.banner.on ? 'fx-on' : ''}}">
@@ -280,9 +289,9 @@
       <view class="score-amount-box">
         <view class="score-step-btn" bindtap="adjustScore" data-delta="-1"><text>−</text></view>
         <view class="score-amount-center">
-          <text class="score-amount-label">本次转入分值</text>
+          <text class="score-amount-label">请输入分数</text>
           <view class="score-amount-value">
-            <input class="score-amount-input" type="number" maxlength="3" value="{{scoreText}}" bindinput="onScoreInput" />
+            <input class="score-amount-input" type="number" maxlength="3" value="{{scoreText}}" confirm-type="done" bindfocus="onScoreFocus" bindinput="onScoreInput" bindconfirm="onScoreConfirm" />
             <text class="score-amount-unit">分</text>
           </view>
         </view>
@@ -339,17 +348,9 @@
       <view class="prop-head">
         <view style="flex: 1; min-width: 0;">
           <text class="prop-title">互动道具</text>
-          <text class="prop-sub">{{propTargetName ? '向【' + propTargetName + '】发送互动微道具或暗号' : '先选一个互动目标席位'}}</text>
+          <text class="prop-sub" wx:if="{{propTargetName}}">向【{{propTargetName}}】发送互动微道具或暗号</text>
         </view>
         <view class="modal-close-btn" bindtap="closePropModal"><text>✕</text></view>
-      </view>
-      <view class="prop-targets">
-        <text class="prop-targets-label">互动目标：</text>
-        <view wx:for="{{propTargets}}" wx:key="pos"
-          class="prop-target-chip {{propTarget === item.pos ? 'prop-target-on' : ''}}"
-          data-pos="{{item.pos}}" data-name="{{item.name}}" data-pid="{{item.pid}}" bindtap="selectPropTarget">
-          <text>{{item.name}}</text>
-        </view>
       </view>
       <view class="prop-grid">
         <view class="prop-card" data-type="slipper" bindtap="useProp">
@@ -391,19 +392,11 @@
     <canvas type="2d" id="lottie-swap" class="swap-anim-canvas"></canvas>
   </view>
 
-  <!-- 底部操作栏：茶台道具盒（左）+ 按牌局状态切换的主操作（右） -->
-  <view class="room-footer safe-bottom" wx:if="{{game}}">
-    <view class="foot-btn" bindtap="openPropModal">
-      <image class="foot-btn-icon" src="/assets/icons/sys-auto-fix-high.svg" mode="aspectFit" /><text class="foot-btn-text">道具盒</text>
-    </view>
-    <view class="foot-btn foot-btn-danger" wx:if="{{isOwner && game.status === 'forming'}}" bindtap="doCancel">
+  <!-- 底部操作栏：仅剩「取消开台」（组桌/开局未记分）与「睇翻记录」（已散台）；
+       结束散台已上收到头部台码旁，仅记分中的台主可见 -->
+  <view class="room-footer safe-bottom" wx:if="{{game && showFooter}}">
+    <view class="foot-btn foot-btn-danger" wx:if="{{isOwner && (game.status === 'forming' || (game.status === 'active' && !hasScores))}}" bindtap="doCancel">
       <image class="foot-btn-icon" src="/assets/icons/action-exit.svg" mode="aspectFit" /><text class="foot-btn-text">取消开台</text>
-    </view>
-    <view class="foot-btn foot-btn-danger" wx:elif="{{isOwner && game.status === 'active' && !hasScores}}" bindtap="doCancel">
-      <image class="foot-btn-icon" src="/assets/icons/action-exit.svg" mode="aspectFit" /><text class="foot-btn-text">取消开台</text>
-    </view>
-    <view class="foot-btn foot-btn-danger" wx:elif="{{isOwner && game.status === 'active'}}" bindtap="doEnd">
-      <image class="foot-btn-icon" src="/assets/icons/action-exit.svg" mode="aspectFit" /><text class="foot-btn-text">结束散台</text>
     </view>
     <view class="foot-btn" wx:elif="{{game.status === 'ended'}}" bindtap="goRecordDetail">
       <text class="foot-btn-text">睇翻记录</text>

@@ -405,7 +405,10 @@ func TestJoinGameAlreadyJoined(t *testing.T) {
 	assertStatus(t, w, http.StatusOK)
 }
 
-// 已完结的台：邀请/扫码入口不再进房，返回 GAME_ENDED + game_id，前端跳对局记录详情。
+// 已完结的台：邀请/扫码入口不再进房。
+//
+//	在台雀友（含曾离座）返回 GAME_ENDED + game_id，前端跳对局记录详情；
+//	非本台玩家按已散台提示（GAME_DISSOLVED），不跳转也不外泄 game_id。
 func TestJoinEndedGameReturnsDetailHint(t *testing.T) {
 	r, _, _ := testSetup(t)
 	gameID, auths := createGame4P(t, r)
@@ -432,13 +435,60 @@ func TestJoinEndedGameReturnsDetailHint(t *testing.T) {
 		t.Fatalf("join ended game game_id = %v, want %d", m["game_id"], gameID)
 	}
 
-	// 局外人点旧邀请：同样 GAME_ENDED（是否看得到记录由详情页按权限兜底）
+	// 局外人点旧邀请：非本台玩家按已散台提示，不带 game_id（记录仅同台可见）
 	outside := loginAndAuth(t, r, "outsider")
 	w = doRequest(t, r, "POST", "/api/v1/games/join", outside,
 		map[string]interface{}{"invite_token": token, "request_id": "join-ended"})
 	assertStatus(t, w, http.StatusBadRequest)
-	if m = parseJSON(t, w); m["code"] != "GAME_ENDED" {
-		t.Fatalf("outsider join ended game code = %v, want GAME_ENDED", m["code"])
+	if m = parseJSON(t, w); m["code"] != "GAME_DISSOLVED" {
+		t.Fatalf("outsider join ended game code = %v, want GAME_DISSOLVED", m["code"])
+	}
+	if _, has := m["game_id"]; has {
+		t.Fatalf("outsider join ended game should not leak game_id, got %v", m["game_id"])
+	}
+}
+
+// 散台后一律拦截给分：牌局结束积分已结算，不再接受任何转分/补退分
+// （auto_accept 与「发起→确认」两种方式都拒，原 24h 补退分窗口已下线）。
+func TestAdjustmentRejectedAfterEnd(t *testing.T) {
+	r, _, _ := testSetup(t)
+	gameID, auths := createGame4P(t, r)
+
+	// 打完一局并散台
+	w := doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auths[0], nil)
+	assertStatus(t, w, http.StatusOK)
+	roundID := int64(parseJSON(t, w)["round_id"].(float64))
+	playRound(t, r, gameID, roundID, auths, []int{10, 5, -5, -10})
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auths[0], map[string]string{"request_id": "e1"})
+	assertStatus(t, w, http.StatusOK)
+
+	// 拿一个在座玩家的 player_id 作为转分目标
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auths[0], nil)
+	assertStatus(t, w, http.StatusOK)
+	players := parseJSON(t, w)["players"].([]interface{})
+	toID := int64(players[1].(map[string]interface{})["player_id"].(float64))
+
+	path := fmt.Sprintf("/api/v1/games/%d/rounds/0/adjustments", gameID)
+	cases := []struct {
+		name       string
+		autoAccept bool
+	}{
+		{"auto_accept 台间快捷给分", true},
+		{"pending 发起→确认补退分", false},
+	}
+	for _, tc := range cases {
+		w = doRequest(t, r, "POST", path, auths[0],
+			map[string]interface{}{
+				"to_player_id":    toID,
+				"adjustment_type": "supplement",
+				"amount":          5,
+				"auto_accept":     tc.autoAccept,
+				"request_id":      "adj-after-end",
+			})
+		assertStatus(t, w, http.StatusBadRequest)
+		if m := parseJSON(t, w); m["code"] != "GAME_ENDED" {
+			t.Fatalf("%s on ended game code = %v, want GAME_ENDED", tc.name, m["code"])
+		}
 	}
 }
 
@@ -1040,9 +1090,6 @@ func TestAdjustmentFlow(t *testing.T) {
 	_ = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/lock", gameID, roundID), auth1,
 		map[string]string{"request_id": "l1"})
 
-	// End game
-	_ = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auth1, map[string]string{"request_id": "e1"})
-
 	// Get game players to find player IDs
 	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auth1, nil)
 	m = parseJSON(t, w)
@@ -1055,7 +1102,7 @@ func TestAdjustmentFlow(t *testing.T) {
 		}
 	}
 
-	// Create adjustment
+	// Create adjustment（牌局进行中：发起 → 对方确认的补退分流程）
 	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/adjustments", gameID, roundID), auth1,
 		map[string]interface{}{
 			"to_player_id":    toPlayerID,
@@ -1078,6 +1125,20 @@ func TestAdjustmentFlow(t *testing.T) {
 	m = parseJSON(t, w)
 	if m["adjustment_count"].(float64) != 1 {
 		t.Fatalf("adjustment_count = %v, want 1", m["adjustment_count"])
+	}
+
+	// End game：散台后积分已结算，任何转分（含补退分）一律拒绝
+	_ = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auth1, map[string]string{"request_id": "e1"})
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/adjustments", gameID, roundID), auth1,
+		map[string]interface{}{
+			"to_player_id":    toPlayerID,
+			"adjustment_type": "supplement",
+			"amount":          5,
+			"request_id":      "adj2",
+		})
+	assertStatus(t, w, http.StatusBadRequest)
+	if m = parseJSON(t, w); m["code"] != "GAME_ENDED" {
+		t.Fatalf("adjustment after end code = %v, want GAME_ENDED", m["code"])
 	}
 }
 
