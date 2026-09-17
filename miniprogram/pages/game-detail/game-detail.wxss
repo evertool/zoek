@@ -80,7 +80,12 @@ page { overflow-x: hidden; overscroll-behavior-x: none; }
 .gd-flow-arrow-in { color: var(--primary); }
 .gd-flow-arrow-out { color: var(--tertiary); }
 .gd-flow-arrow-neutral { color: var(--outline); }
-.gd-flow-sub { font-size: 22rpx; color: var(--outline); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 次行：时间（含原因）与给分标签同行，标签紧跟在时间右边（sub 只缩不涨，标签才贴着时间） */
+.gd-flow-subline { display: flex; align-items: center; gap: 8rpx; min-width: 0; }
+.gd-flow-sub { min-width: 0; flex-shrink: 1; font-size: 22rpx; color: var(--outline); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 给分标签小胶囊（自摸/明杠/暗杠/杠爆/抢杠） */
+.gd-flow-tag { flex-shrink: 0; display: flex; align-items: center; height: 32rpx; padding: 0 10rpx; border-radius: 8rpx; background: rgba(0,82,53,0.10); border: 2rpx solid rgba(0,82,53,0.18); }
+.gd-flow-tag text { font-size: 20rpx; font-weight: 600; color: var(--primary); line-height: 1; }
 .gd-flow-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4rpx; flex-shrink: 0; }
 .gd-flow-score { font-size: 34rpx; font-weight: 700; line-height: 1.1; }
 .gd-flow-time { font-size: 20rpx; color: var(--outline); }

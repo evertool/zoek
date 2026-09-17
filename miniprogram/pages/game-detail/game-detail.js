@@ -3,6 +3,7 @@ const app = getApp()
 const api = require('../../utils/api')
 const util = require('../../utils/util')
 const guard = require('../../utils/guard')
+const scoreTags = require('../../utils/score-tags')
 
 const FLOW_PAGE_SIZE = 5 // 流水默认展示条数，其余折叠
 
@@ -87,7 +88,9 @@ Page({
         var mine = outgoing || incoming
         var amount = Number(a.amount) || 0
         var delta = mine ? (outgoing ? -amount : amount) : amount
-        var reason = a.reason || '转分'
+        // 「转分」占位文案已下线：没写原因就只显示时间，这笔的语义交给右边的标签
+        // （自摸/明杠/…；没标签的就只剩时间）
+        var reason = a.reason || ''
         var time = this.formatHM(a.created_at)
         return {
           id: a.id,
@@ -99,7 +102,9 @@ Page({
           fromInitial: (from.nickname || '雀')[0],
           reasonText: reason,
           timeText: time,
-          subText: time + ' · ' + reason,
+          subText: reason ? (time + ' · ' + reason) : time,
+          // 给分标签（自摸/明杠/暗杠/杠爆/抢杠）：code → 中文，空数组就不渲染
+          tags: scoreTags.labelsOf(a.tags),
           score: delta,
           scoreText: mine ? ((delta > 0 ? '+' : '') + delta) : String(amount),
           scoreClass: mine

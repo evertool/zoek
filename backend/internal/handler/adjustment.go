@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +35,8 @@ type CreateAdjustmentRequest struct {
 	Amount         int    `json:"amount"`
 	Reason         string `json:"reason"`
 	RequestID      string `json:"request_id"`
+	// Tags：可多选的给分标签 code（自摸/明杠/暗杠/杠爆/抢杠），见 allowedAdjustmentTags
+	Tags []string `json:"tags"`
 	// AutoAccept: 台间记分（比分）场景无需对方确认，建单即生效
 	AutoAccept bool `json:"auto_accept"`
 }
@@ -47,9 +50,56 @@ type AdjustmentResponse struct {
 	AdjustmentType string    `json:"adjustment_type"`
 	Amount         int       `json:"amount"`
 	Reason         string    `json:"reason,omitempty"`
+	Tags           []string  `json:"tags"`
 	Status         string    `json:"status"`
 	ExpiresAt      time.Time `json:"expires_at"`
 	CreatedAt      time.Time `json:"created_at"`
+}
+
+// allowedAdjustmentTags 给分标签白名单。code 与小程序 utils/score-tags.js 的 SCORE_TAGS
+// 一一对应：自摸 zimo / 明杠 minggang / 暗杠 angang / 放杠 fanggang / 杠爆 gangbao / 抢杠 qianggang。
+// 落到 score_adjustments.tags 的是 code 的逗号串，展示文案由端上映射（后端不碰中文）。
+var allowedAdjustmentTags = map[string]bool{
+	"zimo":      true,
+	"minggang":  true,
+	"angang":    true,
+	"fanggang":  true,
+	"gangbao":   true,
+	"qianggang": true,
+}
+
+// normalizeAdjustmentTags 去空、去重、白名单校验；遇到不认识的 code 直接报错，
+// 避免脏标签进库（端上加了新标签忘了同步这里时，接口会明确失败而不是静默吞掉）。
+func normalizeAdjustmentTags(tags []string) ([]string, error) {
+	out := make([]string, 0, len(tags))
+	seen := map[string]bool{}
+	for _, t := range tags {
+		t = strings.TrimSpace(t)
+		if t == "" || seen[t] {
+			continue
+		}
+		if !allowedAdjustmentTags[t] {
+			return nil, fmt.Errorf("unknown adjustment tag: %s", t)
+		}
+		seen[t] = true
+		out = append(out, t)
+	}
+	return out, nil
+}
+
+// joinAdjustmentTags / splitAdjustmentTags：库里存逗号串，接口进出都是数组
+func joinAdjustmentTags(tags []string) string {
+	return strings.Join(tags, ",")
+}
+
+func splitAdjustmentTags(s string) []string {
+	out := []string{}
+	for _, p := range strings.Split(s, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // ---------------------------------------------------------------------------
@@ -107,6 +157,13 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 		return
 	}
 
+	// 给分标签（可多选）：只认白名单里的 code
+	tags, tagErr := normalizeAdjustmentTags(req.Tags)
+	if tagErr != nil {
+		c.JSON(http.StatusBadRequest, errs.New("INVALID_TAG", "给分标签不被支持", errs.ActionRetry))
+		return
+	}
+
 	// To player must be different and in same game (PRD §3.2 rules 1-2)
 	if req.ToPlayerID == fromPlayer.ID {
 		c.JSON(http.StatusBadRequest, errs.New("SAME_PLAYER", "不能向自己发起调整", errs.ActionRetry))
@@ -140,6 +197,7 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 		AdjustmentType: req.AdjustmentType,
 		Amount:         req.Amount,
 		Reason:         req.Reason,
+		Tags:           joinAdjustmentTags(tags),
 		ProposedBy:     fromPlayer.ID,
 		Status:         "pending",
 		RequestID:      requestID,
@@ -198,6 +256,7 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 			AdjustmentType: adj.AdjustmentType,
 			Amount:         adj.Amount,
 			Reason:         adj.Reason,
+			Tags:           splitAdjustmentTags(adj.Tags),
 			Status:         adj.Status,
 			ExpiresAt:      adj.ExpiresAt,
 			CreatedAt:      adj.CreatedAt,
@@ -238,6 +297,7 @@ func (h *AdjustmentHandler) ListAdjustments(c *gin.Context) {
 			AdjustmentType: a.AdjustmentType,
 			Amount:         a.Amount,
 			Reason:         a.Reason,
+			Tags:           splitAdjustmentTags(a.Tags),
 			Status:         a.Status,
 			ExpiresAt:      a.ExpiresAt,
 			CreatedAt:      a.CreatedAt,

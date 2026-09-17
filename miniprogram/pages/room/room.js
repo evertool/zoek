@@ -7,6 +7,7 @@ const tts = require('../../utils/tts')
 const wsClient = require('../../utils/ws')
 const prefs = require('../../utils/prefs')
 const fxsound = require('../../utils/fxsound')
+const scoreTags = require('../../utils/score-tags')
 
 // 安全加载 lottie（npm 构建失败时不会阻断页面）
 let lottie = null
@@ -23,6 +24,11 @@ const WINDS = ['東', '南', '西', '北']
 // 座位 → 桌面方位：与 WINDS 同序（東 南 西 北）→ 左 上 右 下
 // 即 南在上、東在左、西在右、北在下（沿用设计稿的方位，不要按通用罗盘翻成「北在上」）
 const SEAT_POS = ['left', 'top', 'right', 'bottom']
+
+// 给分标签的「全不选」初始态（打开抽屉 / 关闭 / 提交后都要回到这个状态）
+function blankTagOptions() {
+  return scoreTags.SCORE_TAGS.map(function(t) { return { code: t.code, label: t.label, on: false } })
+}
 
 // ArrayBuffer → base64：小程序没有全局 btoa，优先用官方能力，缺失时手工分块编码兜底
 function arrayBufferToBase64(buffer) {
@@ -72,6 +78,16 @@ Page({
     scoreTargetWind: '',
     currentScore: 0,
     scoreText: '0',
+    // 已「上膛」的预设分值：点一下填入，再点同一下直接转出（0 = 没上膛）
+    presetArmed: 0,
+    // 给分标签（多选）：scoreTags 是已选 code（提交用），tagOptions 带 on 标志给 WXML 渲染
+    // （WXML 表达式不能调 indexOf，所以选中态必须落到数据里）
+    scoreTags: [],
+    tagOptions: blankTagOptions(),
+    // 给分抽屉：打开即聚焦输入框（省掉「先点输入框」这一步）
+    scoreFocus: false,
+    // 键盘高度(px)：抽屉整体上移这么多，确认按钮始终露在键盘上方
+    kbHeight: 0,
     swapTargetText: '',
     showToast: false,
     toastMsg: '',
@@ -462,6 +478,8 @@ Page({
           peerInitial: (peer.name || '雀')[0],
           desc: fromName + ' → ' + toName,
           sub: (a.reason ? a.reason + ' · ' : '') + util.formatTime(a.created_at),
+          // 给分标签（自摸/明杠/…）：code → 中文，仅有值时才渲染（见 wxml 的 ledger-tag）
+          tags: scoreTags.labelsOf(a.tags),
           score: mine ? (outgoing ? -a.amount : a.amount) : 0,
           amount: a.amount,
           mine: mine
@@ -606,6 +624,7 @@ Page({
     var name = e.currentTarget.dataset.name
     var playerId = e.currentTarget.dataset.playerId
     fxsound.warmup() // 首次点击链路预热 WebAudio（规避 iOS 非手势触发限制）
+    var that = this
     this.setData({
       showScoreModal: true,
       scoreTargetSeat: seat,
@@ -614,25 +633,94 @@ Page({
       scoreTargetWind: WINDS[Number(seat) - 1] || '',
       scoreTargetId: playerId,
       currentScore: 0,
-      scoreText: '0'
+      scoreText: '0',
+      // 打开即聚焦：直接弹数字键盘，输完点键盘「完成」或点下方确认都能提交，省掉「先点输入框」
+      scoreFocus: true,
+      presetArmed: 0,
+      scoreTags: [],
+      tagOptions: blankTagOptions(),
+      kbHeight: 0
     })
+    // 抽屉渲染后量一次高度，用于限制键盘上移量（小屏不把抽屉顶出屏幕）
+    wx.nextTick(function() { that.measureScoreSheet() })
   },
 
   closeScoringModal() {
-    this.setData({ showScoreModal: false })
+    this.setData({
+      showScoreModal: false, scoreFocus: false, presetArmed: 0,
+      scoreTags: [], tagOptions: blankTagOptions(), kbHeight: 0
+    })
+    // input 设了 hold-keyboard（点页面不收键盘），抽屉关掉后要显式收，别让键盘悬在那儿
+    this.hideScoreKeyboard()
   },
 
-  // 快捷预设：直接「设为」该分值（不是累加）
+  // hold-keyboard 下键盘不会被点击自动收起，凡是「该收了」的时机都显式调一次
+  hideScoreKeyboard() {
+    if (wx.hideKeyboard) wx.hideKeyboard({ fail: function() {} })
+  },
+
+  // 实测给分抽屉高度（px），打开时量一次；拿不到就退回「不限幅」
+  measureScoreSheet() {
+    var that = this
+    wx.createSelectorQuery().in(this).select('.score-sheet').boundingClientRect(function(rect) {
+      if (rect && rect.height) that._scoreSheetH = rect.height
+    }).exec()
+  },
+
+  // 键盘弹起/收起：抽屉整体上移，保证底部「确认转出 X 分」不被键盘挡住。
+  // 输入框设了 adjust-position="{{false}}"（关掉框架自带顶起），位移只由这里给，避免两套叠加。
+  // 上移量：屏幕放得下就整张露出来（上移 = 键盘高）；放不下时（小屏 + 抽屉加过标签行后更高）
+  // 宁可切掉抽屉顶部那点留白，也要保住按钮——按钮距抽屉底 20~68px，所以最低上移到「键盘高 − 20」。
+  onKeyboardHeightChange(e) {
+    var kb = (e.detail && e.detail.height) || 0
+    var lift = kb
+    if (kb > 0) {
+      var winH = 0
+      try { winH = (wx.getWindowInfo && wx.getWindowInfo().windowHeight) || 0 } catch (err) {}
+      var sheetH = this._scoreSheetH || 0
+      if (winH && sheetH) {
+        var cap = winH - sheetH + 20
+        lift = Math.max(0, Math.min(kb, Math.max(cap, kb - 20)))
+      }
+    }
+    if (lift !== this.data.kbHeight) this.setData({ kbHeight: lift })
+  },
+
+  // 给分标签：点一下加上，再点一下取消（多选、不分先后顺序，落库按 SCORE_TAGS 的固定序）
+  toggleScoreTag(e) {
+    var code = e.currentTarget.dataset.code
+    if (!code) return
+    var picked = {}
+    var opts = this.data.tagOptions.map(function(t) {
+      var on = t.code === code ? !t.on : t.on
+      if (on) picked[t.code] = true
+      return { code: t.code, label: t.label, on: on }
+    })
+    // 提交时的顺序跟展示顺序一致，避免同一组标签因点选先后落出不同的串
+    var sel = []
+    for (var i = 0; i < opts.length; i++) {
+      if (opts[i].on) sel.push(opts[i].code)
+    }
+    this.setData({ tagOptions: opts, scoreTags: sel })
+  },
+
+  // 预设点一下填入分值 + 上膛，再点同一分值直接转出（防误点即转分）；
+  // 手输 / ± 步进视为改分，上膛作废（见 onScoreInput / adjustScore）
   setScoreValue(e) {
     var val = Number(e.currentTarget.dataset.val) || 0
-    this.setData({ currentScore: val, scoreText: String(val) })
+    if (!val) return
+    if (val === this.data.presetArmed && val === this.data.currentScore) {
+      this.submitScore()
+      return
+    }
+    this.setData({ currentScore: val, scoreText: String(val), presetArmed: val })
   },
 
   adjustScore(e) {
     var delta = Number(e.currentTarget.dataset.delta)
     var next = (this.data.currentScore || 0) + delta
     if (next < 0) next = 0
-    this.setData({ currentScore: next, scoreText: String(next) })
+    this.setData({ currentScore: next, scoreText: String(next), presetArmed: 0 })
   },
 
   // 点输入框聚焦时：默认 0 分自动清空，直接输入即是新分数（未动过预设/步进时才清）
@@ -643,7 +731,16 @@ Page({
   // 直接手输分数：只留数字，空输入按 0 处理
   onScoreInput(e) {
     var raw = String(e.detail.value || '').replace(/[^0-9]/g, '')
-    this.setData({ scoreText: raw, currentScore: Number(raw) || 0 })
+    var num = Number(raw) || 0
+    // 手输即视为改分：预设的「再点一次转出」上膛状态作废。
+    // 但值正好等于上膛值时保留——点预设会给 input 回填 value，若某基础库把这次回填也走 bindinput，
+    // 上膛状态会在第一次点击后当场被清掉，连点两下就永远不生效。
+    var armed = this.data.presetArmed
+    this.setData({
+      scoreText: raw,
+      currentScore: num,
+      presetArmed: (armed && num === armed) ? armed : 0
+    })
   },
 
   // 键盘上的「完成」键直接提交：输入 → 点键盘确认 → 完成给分，省去收起键盘再点按钮两步
@@ -667,6 +764,8 @@ Page({
       return
     }
     this._scoreSubmitting = true
+    var tags = this.data.scoreTags || []
+    var tagLabels = scoreTags.labelsOf(tags)
     api.get('/games/' + this.data.gameID + '/rounds/current', { silent: true }).then(round => {
       if (!round || !round.round_id) {
         this._scoreSubmitting = false
@@ -677,13 +776,19 @@ Page({
         to_player_id: this.data.scoreTargetId,
         adjustment_type: 'supplement',
         amount: amount,
+        tags: tags,
         auto_accept: true,
         request_id: api.genRequestID()
       }, { silent: true }).then(res2 => {
         this._scoreSubmitting = false
-        this.setData({ showScoreModal: false })
-        // 台间记分无需对方确认，后端返回"已转记 X 分给 XX"
-        this.showToast(res2.message || ('已转记 ' + amount + ' 分给 ' + this.data.scoreTargetName))
+        this.setData({
+          showScoreModal: false, scoreFocus: false, presetArmed: 0,
+          scoreTags: [], tagOptions: blankTagOptions(), kbHeight: 0
+        })
+        this.hideScoreKeyboard() // hold-keyboard 下要显式收键盘
+        // 台间记分无需对方确认，后端返回"已转记 X 分给 XX"；选过标签就在后面带上，便于确认没漏选
+        var baseMsg = res2.message || ('已转记 ' + amount + ' 分给 ' + this.data.scoreTargetName)
+        this.showToast(tagLabels.length ? baseMsg + '（' + tagLabels.join('·') + '）' : baseMsg)
         // 给分动画全台可见：后端会 WS 广播 "give"，各台手机各自播放。
         // 发起人本地即时播（不用等广播回环），并推调整 id 水位去重广播回推。
         var adjId = Number(res2.adjustment && res2.adjustment.id) || 0
@@ -1072,10 +1177,17 @@ Page({
         if (res.confirm) {
           api.post('/games/' + this.data.gameID + '/end', {
             request_id: api.genRequestID()
-          }).then(() => {
+          }).then((res2) => {
             this._leaving = true
             this.closeRoomWS()
             this.stopPolling()
+            // 一点流水都没有的台：后端直接删掉房间（没有账可结），记录详情已不存在，
+            // 回首页而不是跳一个 404 的详情页
+            if (res2 && res2.dissolved) {
+              wx.showToast({ title: res2.message || '牌桌已散', icon: 'none' })
+              setTimeout(function() { wx.reLaunch({ url: '/pages/index/index' }) }, 900)
+              return
+            }
             wx.showToast({ title: '已散台', icon: 'success' })
             wx.redirectTo({ url: '/pages/game-detail/game-detail?game_id=' + this.data.gameID })
           })

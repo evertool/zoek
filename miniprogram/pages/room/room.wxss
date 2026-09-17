@@ -109,6 +109,11 @@ page { overflow-x: hidden; overscroll-behavior-x: none; }
 .ledger-avatar-ph { display: flex; align-items: center; justify-content: center; font-size: 26rpx; font-weight: 600; color: var(--on-surface); }
 .ledger-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2rpx; }
 .ledger-item-title { font-size: 24rpx; color: var(--on-surface); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 次行：时间（含原因）与给分标签同行，标签紧跟在时间右边（sub 只缩不涨，标签才贴着时间） */
+.ledger-item-subline { display: flex; align-items: center; gap: 8rpx; min-width: 0; }
+.ledger-item-sub { min-width: 0; flex-shrink: 1; font-size: 20rpx; color: var(--outline); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ledger-tag { flex-shrink: 0; display: flex; align-items: center; height: 32rpx; padding: 0 10rpx; border-radius: 8rpx; background: rgba(0,82,53,0.10); border: 2rpx solid rgba(0,82,53,0.18); }
+.ledger-tag text { font-size: 20rpx; font-weight: 600; color: var(--primary); line-height: 1; }
 .ledger-item-sub { font-size: 20rpx; color: var(--outline); }
 .ledger-item-score { font-size: 32rpx; font-weight: 700; flex-shrink: 0; }
 .ledger-empty { padding: 32rpx 0; text-align: center; font-size: 24rpx; color: var(--outline); }
@@ -163,13 +168,28 @@ page { overflow-x: hidden; overscroll-behavior-x: none; }
 .score-amount-center { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
 .score-amount-label { font-size: 24rpx; color: var(--on-surface-variant); }
 .score-amount-value { display: flex; align-items: baseline; justify-content: center; margin-top: 4rpx; }
-.score-amount-input { width: 120rpx; height: 88rpx; font-size: 76rpx; font-weight: 700; color: var(--primary); text-align: center; }
+/* 宽度按 3 位数留量：76rpx 粗体数字一位约 42rpx，「100」约 126rpx，
+   原来 120rpx 会裁掉最后一位（含光标），放到 220rpx 才够 */
+.score-amount-input { width: 220rpx; height: 88rpx; font-size: 76rpx; font-weight: 700; color: var(--primary); text-align: center; }
+/* 空态占位：抽屉打开即聚焦会清空默认 0，用灰色 0 占位，避免看起来是个空框 */
+.score-amount-ph { color: var(--on-surface-variant); font-weight: 700; }
 .score-amount-unit { font-size: 30rpx; font-weight: 600; color: var(--primary); margin-left: 4rpx; }
 
 .score-preset-label { font-size: 24rpx; color: var(--on-surface-variant); display: block; margin: var(--space-md) 0 var(--space-xs); }
+/* 预设已上膛：文案转绿加粗，提示「再点一下即刻转出」 */
+.score-preset-label-on { color: var(--primary); font-weight: 600; }
 .score-preset-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gutter-grid); }
 .score-preset-btn { height: 88rpx; border-radius: var(--radius-default); background: var(--surface-container-lowest); border: 2rpx solid var(--outline-variant); display: flex; align-items: center; justify-content: center; font-size: 28rpx; font-weight: 700; color: var(--on-surface); }
 .score-preset-on { border: 4rpx solid var(--primary); background: rgba(0,82,53,0.06); color: var(--primary); }
+
+/* 给分标签（可多选）：6 个一排的次级胶囊，选中转绿（比预设更轻，不抢主操作视线） */
+.score-tag-label { font-size: 24rpx; color: var(--on-surface-variant); display: block; margin: var(--space-md) 0 var(--space-xs); }
+.score-tag-hint { font-size: 20rpx; color: var(--outline); }
+.score-tag-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12rpx; }
+.score-tag { height: 72rpx; border-radius: var(--radius-default); background: var(--surface-container); border: 2rpx solid var(--outline-variant); display: flex; align-items: center; justify-content: center; }
+.score-tag text { font-size: 24rpx; font-weight: 500; color: var(--on-surface-variant); }
+.score-tag-on { background: rgba(0,82,53,0.10); border-color: var(--primary); }
+.score-tag-on text { color: var(--primary); font-weight: 700; }
 
 .score-submit-btn { margin-top: var(--space-lg); height: 96rpx; border-radius: var(--radius-md); background: var(--primary); color: var(--on-primary); display: flex; align-items: center; justify-content: center; gap: 12rpx; font-size: 30rpx; font-weight: 600; }
 .score-submit-btn-off { opacity: 0.45; }

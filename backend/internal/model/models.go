@@ -127,6 +127,7 @@ type ScoreAdjustment struct {
 	AdjustmentType string     `gorm:"type:varchar(16);not null" json:"adjustment_type"`
 	Amount         int        `gorm:"not null" json:"amount"`
 	Reason         string     `gorm:"type:varchar(256)" json:"reason,omitempty"`
+	Tags           string     `gorm:"type:varchar(128)" json:"tags,omitempty"` // 给分标签：英文 code 的逗号串，文案见小程序 utils/score-tags.js
 	ProposedBy     int64      `gorm:"not null" json:"proposed_by"`
 	Status         string     `gorm:"type:varchar(16);not null;default:pending" json:"status"`
 	RequestID      string     `gorm:"type:varchar(64);not null;uniqueIndex:uk_adjustment_request" json:"request_id"`

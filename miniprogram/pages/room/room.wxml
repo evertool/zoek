@@ -211,7 +211,13 @@
           <view class="ledger-avatar ledger-avatar-ph" wx:else>{{item.peerInitial}}</view>
           <view class="ledger-info">
             <text class="ledger-item-title">{{item.desc}}</text>
-            <text class="ledger-item-sub">{{item.sub}}</text>
+            <!-- 次行：时间（含原因）与给分标签同行，标签跟在时间右边 -->
+            <view class="ledger-item-subline">
+              <text class="ledger-item-sub">{{item.sub}}</text>
+              <block wx:if="{{item.tags.length}}">
+                <view class="ledger-tag" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this"><text>{{tag}}</text></view>
+              </block>
+            </view>
           </view>
           <text class="ledger-item-score {{item.score >= 0 ? 'text-positive' : 'text-negative'}}" wx:if="{{item.mine}}">{{item.score >= 0 ? '+' : ''}}{{item.score}}</text>
           <text class="ledger-item-score text-secondary" wx:else>{{item.amount}}</text>
@@ -274,9 +280,10 @@
     </view>
   </view>
 
-  <!-- 模态层 2: 比分抽屉 -->
-  <view class="modal-overlay modal-bottom {{showScoreModal ? 'modal-show' : ''}}">
-    <view class="score-sheet" catchtap="stopPropagation">
+  <!-- 模态层 2: 比分抽屉（点遮罩也可关，与台码/换位/道具一致） -->
+  <view class="modal-overlay modal-bottom {{showScoreModal ? 'modal-show' : ''}}" bindtap="closeScoringModal">
+    <!-- 键盘弹起时整体上移 kbHeight，保证「确认转出」按钮不被键盘挡（见 onKeyboardHeightChange） -->
+    <view class="score-sheet" catchtap="stopPropagation" style="margin-bottom: {{kbHeight}}px">
       <view class="score-sheet-header">
         <view class="score-sheet-icon"><image src="/assets/icons/arrows-split-up-and-left-solid-full.svg" mode="aspectFit" /></view>
         <view class="score-sheet-heading">
@@ -291,16 +298,33 @@
         <view class="score-amount-center">
           <text class="score-amount-label">请输入分数</text>
           <view class="score-amount-value">
-            <input class="score-amount-input" type="number" maxlength="3" value="{{scoreText}}" confirm-type="done" bindfocus="onScoreFocus" bindinput="onScoreInput" bindconfirm="onScoreConfirm" />
+            <!-- 打开抽屉即聚焦（scoreFocus），输入完键盘「完成」或直接点下方确认按钮都能提交；
+                 hold-keyboard：点页面（预设 / ± 按钮 / 遮罩）不再收键盘——否则点一下预设键盘就
+                 收下去再弹回来，闪一下很难受（官方属性，基础库 2.8.2+）。
+                 adjust-position 关掉框架自带顶起，位移完全交给 onKeyboardHeightChange，避免两套叠加 -->
+            <input class="score-amount-input" type="number" maxlength="3" value="{{scoreText}}"
+              placeholder="0" placeholder-class="score-amount-ph"
+              focus="{{scoreFocus}}" hold-keyboard="{{true}}"
+              adjust-position="{{false}}" bindkeyboardheightchange="onKeyboardHeightChange"
+              confirm-type="done" bindfocus="onScoreFocus" bindinput="onScoreInput" bindconfirm="onScoreConfirm" />
             <text class="score-amount-unit">分</text>
           </view>
         </view>
         <view class="score-step-btn" bindtap="adjustScore" data-delta="1"><text>＋</text></view>
       </view>
 
-      <text class="score-preset-label">快捷预设分值</text>
+      <!-- 预设：点一下填入，再点同一下直接转出（已在 js 侧上膛），文案跟着状态走 -->
+      <text class="score-preset-label {{presetArmed ? 'score-preset-label-on' : ''}}">{{presetArmed ? '再点一下「' + presetArmed + ' 分」即刻转出' : '快捷预设分值 · 连点两下直接转出'}}</text>
       <view class="score-preset-row">
-        <view class="score-preset-btn {{currentScore === item ? 'score-preset-on' : ''}}" wx:for="{{[5, 10, 20]}}" wx:key="*this" data-val="{{item}}" bindtap="setScoreValue"><text>{{item}} 分</text></view>
+        <view class="score-preset-btn {{presetArmed === item ? 'score-preset-on' : ''}}" wx:for="{{[5, 10, 20]}}" wx:key="*this" data-val="{{item}}" bindtap="setScoreValue"><text>{{item}} 分</text></view>
+      </view>
+
+      <!-- 给分标签（可多选）：自摸/明杠/暗杠/放杠/杠爆/抢杠，落库存 code（utils/score-tags.js 映射文案），
+           选中的会跟着这笔转分一起进流水账单 -->
+      <text class="score-tag-label">给分标签 <text class="score-tag-hint">可多选</text></text>
+      <view class="score-tag-row">
+        <view class="score-tag {{item.on ? 'score-tag-on' : ''}}" wx:for="{{tagOptions}}" wx:key="code"
+          data-code="{{item.code}}" bindtap="toggleScoreTag"><text>{{item.label}}</text></view>
       </view>
 
       <view class="score-submit-btn {{currentScore <= 0 ? 'score-submit-btn-off' : ''}}" bindtap="submitScore">
