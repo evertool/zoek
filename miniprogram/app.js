@@ -2,22 +2,49 @@
 const api = require('./utils/api')
 const util = require('./utils/util')
 
-// 按运行环境切换 baseURL（小程序无 process.env，用 envVersion 区分）
-// develop = 本地开发（局域网 IP，仅开发者工具勾选「不校验合法域名」时可用）
-// trial   = 体验版；release = 正式版 —— 两者都必须走 https 正式域名（微信强制）
-const ENV_CONFIG = {
-  develop: 'http://192.168.1.15:8080/api/v1',
-  trial: 'https://zoek.246891.xyz/api/v1',
-  release: 'https://zoek.246891.xyz/api/v1'
-}
+// ===== 后端地址 =====
+// ⚠️ 绝不能再按 envVersion 选环境。微信官方文档对 envVersion=develop 的定义是：
+//   「开发版，提交代码审核时默认使用开发版进行审核」
+// 即**审核员打开小程序时 envVersion 就是 'develop'**（社区里大量开发者踩过这个坑）。
+// 曾经此处 develop → 局域网地址 http://192.168.1.15:8080，于是审核端所有请求必然失败
+// （真机强制 https + 域名白名单，且 project.config.json 里 urlCheck:false 只在开发者工具生效，
+// 本地完全测不出来）→ 首页整页「网络开小差」→ 审核以「可用性/完整性」被拒。
+// 唯一可靠的判据是「跑在开发者工具还是真机」：真机（开发版/审核版、体验版、正式版）一律正式域名。
+const PROD_BASE_URL = 'https://zoek.246891.xyz/api/v1'
+const DEV_BASE_URL = 'http://192.168.1.15:8080/api/v1'
+
 const envVersion = (() => {
   try {
-    return wx.getAccountInfoSync().miniProgram.envVersion
+    return wx.getAccountInfoSync().miniProgram.envVersion || ''
   } catch (e) {
-    return 'develop'
+    return ''
   }
 })()
-const baseURL = ENV_CONFIG[envVersion] || ENV_CONFIG.develop
+
+// 是否跑在微信开发者工具里（真机上 platform 为 ios / android / mac / windows）
+function inDevtools() {
+  try {
+    return (wx.getSystemInfoSync() || {}).platform === 'devtools'
+  } catch (e) {
+    return false
+  }
+}
+
+// baseURL 选择：
+//   · 真机（预览/真机调试/体验版/正式版/审核版）→ 永远正式域名。
+//     这是铁律，不提供任何开关 —— 审核环境也在这里面，一旦能跑偏就会重演本次拒审。
+//   · 开发者工具 → 默认连本地局域网后端（保持原有开发习惯，避免误操作线上数据）；
+//     想在工具里连线上：控制台 wx.setStorageSync('use_prod_api', 1) 后重新编译。
+function wantLocalAPI() {
+  if (!inDevtools()) return false
+  try {
+    return wx.getStorageSync('use_prod_api') !== 1
+  } catch (e) {
+    return true // 开关读不到时按本地处理（真机已在上一行返回 false，不影响线上）
+  }
+}
+
+const baseURL = wantLocalAPI() ? DEV_BASE_URL : PROD_BASE_URL
 
 App({
   globalData: {
@@ -26,8 +53,9 @@ App({
     nickname: '',
     avatarURL: '',
     baseURL,
-    // 当前运行版本：develop（开发者工具/开发版）/ trial（体验版）/ release（正式版）。
-    // 除了选 baseURL，台码生成也要按它决定扫码后打开哪个版本的小程序。
+    // 当前运行版本：develop（开发者工具 / 审核版）/ trial（体验版）/ release（正式版）。
+    // 仅供台码生成决定「扫码后打开哪个版本的小程序」使用。
+    // ⚠️ 不要拿它选 baseURL —— 审核环境下这里也是 develop（见文件顶部说明）。
     envVersion,
     needProfile: false,
     // 守卫拦下的目标页（如分享入台/牌台），登录+完善资料后自动回去

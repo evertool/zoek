@@ -1,5 +1,6 @@
 // utils/api.js — 后端 API 请求封装
-const app = getApp()
+// 注意：这里不要在模块顶层调用 getApp() —— app.js 顶层 require 本文件时 App 尚未创建，
+// 拿到的是 undefined。所有请求函数内部都各自 getApp() 取最新实例。
 
 /**
  * 统一请求方法
@@ -28,10 +29,19 @@ function request(method, path, data = {}, opts = {}) {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data)
         } else if (res.statusCode === 401) {
+          const err = res.data || {}
+          // 后端把「微信登录失败」也归到 401，但那是登录动作本身失败（code 换 token 失败），
+          // 不是凭证过期：不能顺手登出、也不能把 code 改写成 UNAUTHORIZED，
+          // 否则真实失败原因（WX_LOGIN_FAILED + action:RETRY）会被吃掉，排查时只剩「未登录」。
+          // 这里也不弹 toast —— 调用方（app.login(silent)）自己决定要不要提示，
+          // 静默登录失败必须无打扰，否则首页一进就蹦报错弹窗。
+          if (err.code === 'WX_LOGIN_FAILED') {
+            reject(err)
+            return
+          }
           // token 过期，清除登录状态
           app.logout()
           // 不在请求层自动 reLaunch，由页面守卫处理
-          const err = res.data || {}
           err.code = 'UNAUTHORIZED'
           reject(err)
         } else {

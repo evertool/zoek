@@ -38,15 +38,57 @@ Page({
         return
       }
       if (app.globalData.token) {
+        this._reloginTries = 0
         this.setData({ loginFailed: false })
         this.loadGames()
         this.loadRecent()
         this.startPolling()
       } else {
-        // 静默登录失败（网络波动）：展示内容 + 兜底重试条，不阻塞浏览
-        this.setData({ loading: false, loginFailed: true })
+        // 静默登录没拿到 token（冷启动/弱网抖动居多）：先自动重试，
+        // 别一上来就把「网络开小差」兜底条摆出来 —— 审核会当成页面报错。
+        this._reloginTries = 0
+        this.autoRelogin()
       }
     })
+  },
+
+  /**
+   * 静默登录失败后的自动重试。
+   * 前两次静默重试（700ms / 1500ms）不打扰用户，仍拿不到 token 才露出兜底重试条。
+   * 页面在等待期间保持 loading（空态卡不渲染），观感上是「加载中」而不是「报错」。
+   */
+  autoRelogin() {
+    var that = this
+    if (this._reloginTimer) return
+    this._reloginTries = (this._reloginTries || 0) + 1
+    if (this._reloginTries > 2) {
+      this.setData({ loading: false, loginFailed: true })
+      return
+    }
+    this.setData({ loading: true })
+    var delay = this._reloginTries === 1 ? 700 : 1500
+    this._reloginTimer = setTimeout(function() {
+      that._reloginTimer = null
+      // 等待期间可能已被别处（onLaunch 的 token 刷新）补上 token，先看一眼
+      if (app.globalData.token) {
+        that.onReloginOK()
+        return
+      }
+      app.login(true).then(function() {
+        that.onReloginOK()
+      }).catch(function() {
+        that.autoRelogin()
+      })
+    }, delay)
+  },
+
+  /** 重登成功（或 token 已就绪）后统一收尾：拉数据 + 起轮询 */
+  onReloginOK() {
+    this._reloginTries = 0
+    this.setData({ loginFailed: false })
+    this.loadGames()
+    this.loadRecent()
+    this.startPolling()
   },
 
   /** 当前牌局实时刷新：雀友进来后头像自动更新 */
@@ -64,16 +106,21 @@ Page({
 
   onHide() {
     this.stopPolling()
+    // 自动重登的定时器不该在页面不可见时继续跑（回来时 onShow 会重新给机会）
+    if (this._reloginTimer) {
+      clearTimeout(this._reloginTimer)
+      this._reloginTimer = null
+    }
+    this._reloginTries = 0
   },
 
-  /** 静默登录失败后的手动重试 */
+  /** 静默登录失败后的手动重试（兜底条点击） */
   retryLogin() {
     var that = this
+    this._reloginTries = 0
     this.setData({ loginFailed: false, loading: true })
     app.login(true).then(function() {
-      that.loadGames()
-      that.loadRecent()
-      that.startPolling()
+      that.onReloginOK()
     }).catch(function() {
       that.setData({ loading: false, loginFailed: true })
     })
@@ -146,6 +193,12 @@ Page({
       this.setData({ games, loading: false })
     }).catch(() => {
       this.setData({ loading: false })
+      // 401 时 api 层已登出（token 被清空）：说明本地凭证失效，静默重登后重来，
+      // 别让首页停在「未有进行中嘅牌局」的空态上骗人。
+      if (!app.globalData.token) {
+        this.stopPolling()
+        this.autoRelogin()
+      }
     })
   },
 
