@@ -94,9 +94,8 @@ func TestEndGameWithLedgerKeepsRoom(t *testing.T) {
 	}
 }
 
-// 只有「待确认」转分（没锁定局、没生效转分）：算有流水 → 不删房间，
-// 走既有的「无法结算」提示。
-func TestPendingAdjustmentOnlyKeepsRoom(t *testing.T) {
+// 只有一笔转分（没有锁定局）：也是流水 → 散台照常结算，房间保留记录、不被清理掉。
+func TestAdjustmentOnlyKeepsRoom(t *testing.T) {
 	r, _, s := testSetup(t)
 	gameID, auth1, _ := createGameAndStart(t, r)
 
@@ -104,15 +103,12 @@ func TestPendingAdjustmentOnlyKeepsRoom(t *testing.T) {
 	if err != nil || len(players) < 2 {
 		t.Fatalf("取在座玩家失败: %v", err)
 	}
-	addAdjustment(t, s, gameID, players[0].ID, players[1].ID, "pending", "adj-pending-round")
+	addAdjustment(t, s, gameID, players[0].ID, players[1].ID, "accepted", "adj-ledger-round")
 
 	w := doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auth1, map[string]string{"request_id": "e3"})
-	assertStatus(t, w, http.StatusBadRequest)
-	if code := parseJSON(t, w)["code"]; code != "NO_SCORE_RECORDS" {
-		t.Fatalf("code = %v, want NO_SCORE_RECORDS", code)
-	}
+	assertStatus(t, w, http.StatusOK)
 	if _, err := s.GetGame(gameID); err != nil {
-		t.Fatal("有待确认流水（账单挂在台上）的房间不该被删掉")
+		t.Fatal("有流水（账单挂在台上）的房间不该被删掉")
 	}
 }
 

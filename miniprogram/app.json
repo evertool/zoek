@@ -2,8 +2,6 @@
   "pages": [
     "pages/index/index",
     "pages/room/room",
-    "pages/score/score",
-    "pages/adjustment/adjustment",
     "pages/history/history",
     "pages/detail/detail",
     "pages/game-detail/game-detail",

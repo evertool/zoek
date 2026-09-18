@@ -76,21 +76,6 @@
         </view>
       </view>
 
-      <!-- 雀局合影留念 -->
-      <view class="gl-section anim-fade-up delay-2">
-        <view class="gl-section-head">
-          <text class="gl-section-title">📷 雀局合影留念</text>
-          <text class="gl-section-sub">茶余饭后 · 拍张合照留念</text>
-        </view>
-        <view class="gl-photo card" bindtap="pickPhoto">
-          <image class="gl-photo-img" src="{{photoPath}}" mode="aspectFill" wx:if="{{photoPath}}" />
-          <view class="gl-photo-empty" wx:else>
-            <text class="gl-photo-plus">＋</text>
-            <text class="gl-photo-tip">留下今天嘅雀局合影</text>
-          </view>
-        </view>
-      </view>
-
       <!-- 底部动作 -->
       <view class="gl-actions">
         <view class="btn-secondary gl-actions-back" bindtap="goBack"><text>← 返回手帐</text></view>

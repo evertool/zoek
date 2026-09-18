@@ -17,7 +17,6 @@ Page({
     visibleCount: 10,
     totalRounds: 0,
     awards: [],
-    photoPath: '',
     loading: true,
     navPadding: 0
   },
@@ -163,19 +162,6 @@ Page({
     var pages = getCurrentPages()
     if (pages.length > 1) wx.navigateBack()
     else wx.reLaunch({ url: '/pages/history/history' })
-  },
-
-  // 合影留念：本机选图临时预览（不上传）
-  pickPhoto() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      success: (res) => {
-        if (res.tempFiles && res.tempFiles[0]) {
-          this.setData({ photoPath: res.tempFiles[0].tempFilePath })
-        }
-      }
-    })
   },
 
   // 原班雀友再开一局：开新台后原桌友扫码/邀请再加入

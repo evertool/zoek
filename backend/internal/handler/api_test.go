@@ -103,9 +103,6 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 
 			auth.POST("/games/:game_id/rounds/:round_id/adjustments", adjH.CreateAdjustment)
 			auth.GET("/games/:game_id/adjustments", adjH.ListAdjustments)
-			auth.POST("/games/:game_id/adjustments/:adjustment_id/accept", adjH.AcceptAdjustment)
-			auth.POST("/games/:game_id/adjustments/:adjustment_id/reject", adjH.RejectAdjustment)
-			auth.POST("/games/:game_id/adjustments/:adjustment_id/cancel", adjH.CancelAdjustment)
 
 			auth.GET("/games/:game_id/settlement", settleH.GetSettlement)
 			auth.GET("/games/:game_id/history", settleH.GetHistoryDetail)
@@ -452,8 +449,8 @@ func TestJoinEndedGameReturnsDetailHint(t *testing.T) {
 	}
 }
 
-// 散台后一律拦截给分：牌局结束积分已结算，不再接受任何转分/补退分
-// （auto_accept 与「发起→确认」两种方式都拒，原 24h 补退分窗口已下线）。
+// 散台后一律拦截给分：牌局结束积分已结算，不再接受任何转分
+// （给分早已一律直接生效，「发起→确认」那套补退分流程已下线）。
 func TestAdjustmentRejectedAfterEnd(t *testing.T) {
 	r, _, _ := testSetup(t)
 	gameID, auths := createGame4P(t, r)
@@ -472,27 +469,16 @@ func TestAdjustmentRejectedAfterEnd(t *testing.T) {
 	players := parseJSON(t, w)["players"].([]interface{})
 	toID := int64(players[1].(map[string]interface{})["player_id"].(float64))
 
-	path := fmt.Sprintf("/api/v1/games/%d/rounds/0/adjustments", gameID)
-	cases := []struct {
-		name       string
-		autoAccept bool
-	}{
-		{"auto_accept 台间快捷给分", true},
-		{"pending 发起→确认补退分", false},
-	}
-	for _, tc := range cases {
-		w = doRequest(t, r, "POST", path, auths[0],
-			map[string]interface{}{
-				"to_player_id":    toID,
-				"adjustment_type": "supplement",
-				"amount":          5,
-				"auto_accept":     tc.autoAccept,
-				"request_id":      "adj-after-end",
-			})
-		assertStatus(t, w, http.StatusBadRequest)
-		if m := parseJSON(t, w); m["code"] != "GAME_ENDED" {
-			t.Fatalf("%s on ended game code = %v, want GAME_ENDED", tc.name, m["code"])
-		}
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/0/adjustments", gameID), auths[0],
+		map[string]interface{}{
+			"to_player_id":    toID,
+			"adjustment_type": "supplement",
+			"amount":          5,
+			"request_id":      "adj-after-end",
+		})
+	assertStatus(t, w, http.StatusBadRequest)
+	if m := parseJSON(t, w); m["code"] != "GAME_ENDED" {
+		t.Fatalf("散台后给分 code = %v, want GAME_ENDED", m["code"])
 	}
 }
 
@@ -1113,7 +1099,7 @@ func TestAdjustmentFlow(t *testing.T) {
 		}
 	}
 
-	// Create adjustment（牌局进行中：发起 → 对方确认的补退分流程）
+	// Create adjustment：给分一律直接生效（没有「待确认 → 对方确认」这一步）
 	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/adjustments", gameID, roundID), auth1,
 		map[string]interface{}{
 			"to_player_id":    toPlayerID,
@@ -1125,20 +1111,18 @@ func TestAdjustmentFlow(t *testing.T) {
 	assertStatus(t, w, http.StatusCreated)
 	m = parseJSON(t, w)
 	adj := m["adjustment"].(map[string]interface{})
-	adjustmentID := int64(adj["id"].(float64))
+	if adj["status"] != "accepted" {
+		t.Fatalf("给分 status = %v, want accepted（建单即生效）", adj["status"])
+	}
 
-	// Accept adjustment (by to_player, which is auth2)
-	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/adjustments/%d/accept", gameID, adjustmentID), auth2, map[string]string{"request_id": "acc1"})
-	assertStatus(t, w, http.StatusOK)
-
-	// Check settlement reflects adjustment
+	// Check settlement reflects adjustment（无需任何人确认即已计入）
 	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/settlement", gameID), auth1, nil)
 	m = parseJSON(t, w)
 	if m["adjustment_count"].(float64) != 1 {
 		t.Fatalf("adjustment_count = %v, want 1", m["adjustment_count"])
 	}
 
-	// End game：散台后积分已结算，任何转分（含补退分）一律拒绝
+	// End game：散台后积分已结算，任何转分一律拒绝
 	_ = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auth1, map[string]string{"request_id": "e1"})
 	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/%d/adjustments", gameID, roundID), auth1,
 		map[string]interface{}{

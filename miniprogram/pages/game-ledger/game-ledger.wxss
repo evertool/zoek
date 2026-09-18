@@ -51,13 +51,6 @@
 .gl-sub-name { font-size: 20rpx; color: var(--on-surface-variant); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gl-sub-score { font-size: 26rpx; font-weight: 700; }
 
-/* 合影 */
-.gl-photo { overflow: hidden; height: 320rpx; display: flex; align-items: center; justify-content: center; }
-.gl-photo-img { width: 100%; height: 100%; }
-.gl-photo-empty { display: flex; flex-direction: column; align-items: center; gap: 10rpx; color: var(--outline); }
-.gl-photo-plus { font-size: 56rpx; }
-.gl-photo-tip { font-size: 24rpx; }
-
 /* 底部动作 */
 .gl-actions { display: flex; gap: 16rpx; margin-top: 8rpx; }
 .gl-actions-back { flex: 2; display: flex; align-items: center; justify-content: center; }

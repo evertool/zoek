@@ -348,45 +348,18 @@ func TestSwapRequestAllowedWhenLedgerExists(t *testing.T) {
 	}
 }
 
-// 「待确认」的转分同样算流水账单——账已经在台上了，人就别想走。
-func TestLeaveBlockedByPendingAdjustment(t *testing.T) {
+// 任何一笔转分都算流水账单——账已经在台上了，人就别想走。
+func TestLeaveBlockedByAdjustment(t *testing.T) {
 	r, _, s := testSetup(t)
 	gameID, auths := createGame4P(t, r)
 
 	players, _ := s.GetActiveGamePlayers(gameID)
-	addAdjustment(t, s, gameID, players[0].ID, players[1].ID, "pending", "adj-pending-block")
+	addAdjustment(t, s, gameID, players[0].ID, players[1].ID, "accepted", "adj-block-leave")
 
 	w := doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/leave", gameID), auths[1], map[string]string{})
 	assertStatus(t, w, http.StatusBadRequest)
 	if code := parseJSON(t, w)["code"]; code != "GAME_HAS_LEDGER" {
 		t.Errorf("code = %v, want GAME_HAS_LEDGER", code)
-	}
-}
-
-// 离座会顺手清掉该玩家参与的「待确认」转分。
-// 正常流程走不到这里（上面两条用例证明有流水就不给离座），保留是为了兜住
-// 「count 检查通过之后、离座落库之前」的并发窗口 —— 所以直接在 store 层验证组合行为。
-func TestCancelPendingAdjustmentsOnLeave(t *testing.T) {
-	r, _, s := testSetup(t)
-	gameID, _ := createGame4P(t, r)
-
-	players, _ := s.GetActiveGamePlayers(gameID)
-	from, to := players[0], players[1]
-	adj := addAdjustment(t, s, gameID, from.ID, to.ID, "pending", "adj-race-1")
-
-	if err := s.CancelPendingAdjustmentsForPlayer(gameID, to.ID); err != nil {
-		t.Fatalf("取消待确认失败: %v", err)
-	}
-	if err := s.LeaveGamePlayer(gameID, to.ID); err != nil {
-		t.Fatalf("离座失败: %v", err)
-	}
-
-	got, err := s.GetAdjustment(adj.ID)
-	if err != nil {
-		t.Fatalf("回查转分失败: %v", err)
-	}
-	if got.Status != "cancelled" {
-		t.Errorf("待确认转分 status = %q, want cancelled", got.Status)
 	}
 }
 

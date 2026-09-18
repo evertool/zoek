@@ -447,15 +447,6 @@ func (s *Store) TransferGameOwner(gameID, oldPlayerID, newPlayerID, newOwnerUser
 	})
 }
 
-// CancelPendingAdjustmentsForPlayer 把该玩家参与的「待确认」转分全部置为已取消。
-// 玩家离座后没人能替他确认，留着就是永远处理不掉的僵尸项。
-func (s *Store) CancelPendingAdjustmentsForPlayer(gameID, playerID int64) error {
-	return s.DB.Model(&model.ScoreAdjustment{}).
-		Where("game_id = ? AND status = ? AND (from_player_id = ? OR to_player_id = ?)",
-			gameID, "pending", playerID, playerID).
-		Update("status", "cancelled").Error
-}
-
 // GamePlayerTotal 一位玩家在一场牌局里的总得分（仅统计已锁定局）。
 type GamePlayerTotal struct {
 	GamePlayerID int64
@@ -1561,36 +1552,6 @@ func (s *Store) GetAdjustment(adjustmentID int64) (*model.ScoreAdjustment, error
 	return &adj, nil
 }
 
-// ResolveAdjustment transitions an adjustment to a resolved state (accepted/rejected/cancelled).
-func (s *Store) ResolveAdjustment(adjustmentID int64, expectedStatus, newStatus string, resolvedBy int64) (*model.ScoreAdjustment, error) {
-	var adj model.ScoreAdjustment
-	if err := s.DB.First(&adj, adjustmentID).Error; err != nil {
-		return nil, errs.ErrNotFound
-	}
-	if adj.Status != expectedStatus {
-		return &adj, errs.ErrAdjustResolved
-	}
-	// Check expiry
-	if time.Now().After(adj.ExpiresAt) {
-		return &adj, errs.ErrAdjustExpired
-	}
-	now := time.Now()
-	updates := map[string]interface{}{
-		"status":      newStatus,
-		"resolved_by": resolvedBy,
-		"resolved_at": now,
-	}
-	if err := s.DB.Model(&model.ScoreAdjustment{}).
-		Where("id = ? AND status = ?", adjustmentID, expectedStatus).
-		Updates(updates).Error; err != nil {
-		return nil, err
-	}
-	adj.Status = newStatus
-	adj.ResolvedBy = &resolvedBy
-	adj.ResolvedAt = &now
-	return &adj, nil
-}
-
 // GetAdjustmentsByGameID returns all adjustments for a game.
 func (s *Store) GetAdjustmentsByGameID(gameID int64) ([]model.ScoreAdjustment, error) {
 	var adjs []model.ScoreAdjustment
@@ -1598,14 +1559,6 @@ func (s *Store) GetAdjustmentsByGameID(gameID int64) ([]model.ScoreAdjustment, e
 		return nil, err
 	}
 	return adjs, nil
-}
-
-// GetPendingAdjustmentsForUser returns pending adjustments where the user is the receiver.
-func (s *Store) GetPendingAdjustmentsForUser(userID int64) ([]model.ScoreAdjustment, error) {
-	var adjs []model.ScoreAdjustment
-	err := s.DB.Where("to_player_id IN (SELECT id FROM game_players WHERE user_id = ?) AND status = ?", userID, "pending").
-		Find(&adjs).Error
-	return adjs, err
 }
 
 // GetAcceptedAdjustments returns all accepted adjustments for a game.

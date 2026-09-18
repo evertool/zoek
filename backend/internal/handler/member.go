@@ -41,14 +41,6 @@ func (h *GameHandler) ensureNoLedger(c *gin.Context, gameID int64) bool {
 	return true
 }
 
-// cancelPendingAdjustments 离座前清掉该玩家参与的「待确认」转分。
-// 有了 ensureNoLedger 之后正常路径上这里已经是空操作（有流水就不给离座），
-// 保留是为了兜住「count 检查通过之后、离座落库之前」的并发窗口——
-// 那一瞬间被塞进来的待确认转分，人走了就永远没人能确认。
-func (h *GameHandler) cancelPendingAdjustments(gameID, playerID int64) {
-	_ = h.Store.CancelPendingAdjustmentsForPlayer(gameID, playerID)
-}
-
 // LeaveGame handles POST /api/v1/games/:game_id/leave
 func (h *GameHandler) LeaveGame(c *gin.Context) {
 	gameID, err := strconv.ParseInt(c.Param("game_id"), 10, 64)
@@ -79,8 +71,6 @@ func (h *GameHandler) LeaveGame(c *gin.Context) {
 	if !h.ensureNoLedger(c, gameID) {
 		return
 	}
-
-	h.cancelPendingAdjustments(gameID, me.ID)
 
 	// 台主退出前先交棒，避免剩下的人「没人能结束散台」
 	newOwnerName := ""
@@ -194,8 +184,6 @@ func (h *GameHandler) KickPlayer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errs.ErrKickSelf)
 		return
 	}
-
-	h.cancelPendingAdjustments(gameID, target.ID)
 
 	if err := h.Store.LeaveGamePlayer(gameID, target.ID); err != nil {
 		if be, ok := err.(*errs.BizError); ok {

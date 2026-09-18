@@ -181,11 +181,9 @@ func main() {
 			auth.GET("/games/:game_id/rounds/:round_id", roundHandler.GetRoundDetail)
 
 			// Adjustments
+			// 给分（转分）：一律直接生效，没有「待确认 / 接受 / 驳回 / 取消」这套审核流
 			auth.POST("/games/:game_id/rounds/:round_id/adjustments", adjHandler.CreateAdjustment)
 			auth.GET("/games/:game_id/adjustments", adjHandler.ListAdjustments)
-			auth.POST("/games/:game_id/adjustments/:adjustment_id/accept", adjHandler.AcceptAdjustment)
-			auth.POST("/games/:game_id/adjustments/:adjustment_id/reject", adjHandler.RejectAdjustment)
-			auth.POST("/games/:game_id/adjustments/:adjustment_id/cancel", adjHandler.CancelAdjustment)
 
 			// Settlement and History
 			auth.GET("/games/:game_id/settlement", settlementHandler.GetSettlement)

@@ -356,7 +356,7 @@
           </view>
           <text class="pf-sp-p" wx:for="{{sec.items}}" wx:for-item="line" wx:key="*this">{{line}}</text>
         </view>
-        <text class="pf-sp-updated">本守则更新于 2026年9月15日 · 得闲开台</text>
+        <text class="pf-sp-updated">本守则更新于 2026年9月18日 · 得闲开台</text>
       </scroll-view>
     </view>
   </view>

@@ -61,6 +61,7 @@ type GameDetailResponse struct {
 	PlayerCount        int          `json:"player_count"`
 	MaxPlayers         int          `json:"max_players"`
 	MembersLocked      bool         `json:"members_locked"`
+	HasLedger          bool         `json:"has_ledger"`           // 是否已产生流水账单（逐局提交或任意一笔转分）——「取消开台 / 结束散台」的共同判据
 	CurrentRoundNumber *int         `json:"current_round_number"` // 遗留字段：局概念已移除，新牌局恒为空
 	CompletedRounds    int          `json:"completed_rounds"`     // 遗留字段：仅遗留逐人提交流数据 >0
 	StartedAt          *time.Time   `json:"started_at,omitempty"`
@@ -466,6 +467,9 @@ func (h *GameHandler) GetGame(c *gin.Context) {
 		})
 	}
 
+	// 流水账单：前端「取消开台 / 结束散台」的显示与否直接跟它走（与 CancelGame/EndGame 同一判据）
+	hasLedger, _ := h.Store.GameHasLedger(gameID)
+
 	c.JSON(http.StatusOK, GameDetailResponse{
 		GameID:             game.ID,
 		Name:               game.Name,
@@ -474,6 +478,7 @@ func (h *GameHandler) GetGame(c *gin.Context) {
 		PlayerCount:        activeCount, // 在座人数（不含已离座）
 		MaxPlayers:         4,
 		MembersLocked:      game.MembersLocked,
+		HasLedger:          hasLedger,
 		CurrentRoundNumber: nil, // 局概念已移除
 		CompletedRounds:    completed,
 		StartedAt:          game.StartedAt,

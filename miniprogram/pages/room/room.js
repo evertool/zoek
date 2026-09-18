@@ -372,15 +372,17 @@ Page({
     var seats = []
     for (var i = 0; i < 4; i++) {
       var player = seatMap[i]
-      var isOwner = player && player.isOwner
-      var isSelf = player && player.isSelf
+      // ⚠️ 别用 isOwner 命名：var 是函数级作用域，循环结束会残留最后一轮（第 4 位）的值，
+      // 下面 setData 的 showFooter 曾因此拿到空位的 null → 台主坐在前三位时底栏永远不渲染。
+      var seatIsOwner = player && player.isOwner
+      var seatIsSelf = player && player.isSelf
       var score = player ? (player.total_score || 0) : 0
       seats.push({
         seat: i + 1,
         pos: SEAT_POS[i],
         player: player,
-        isOwner: isOwner,
-        isSelf: isSelf,
+        isOwner: seatIsOwner,
+        isSelf: seatIsSelf,
         score: score
       })
     }
@@ -390,7 +392,15 @@ Page({
       statusText: util.statusText(res.status)
     }
 
-    var hasScores = (res.completed_rounds || 0) > 0 || this.data.ledger.length > 0
+    // 有没有「流水账单」一律以服务端为准（has_ledger，与「取消开台 / 结束散台」是同一份判据）：
+    // 逐局提交或任意一笔转分（含待确认）都算一笔账。老后端没这个字段时才退回端上估算，
+    // 端上估算漏了「有提交但未锁定」，会出现「按钮能点但后端 400」。
+    var hasScores = (typeof res.has_ledger === 'boolean')
+      ? res.has_ledger
+      : ((res.completed_rounds || 0) > 0 || this.data.ledger.length > 0)
+
+    // 台主判定以 games.creator_id 为准（不要用席位循环里 var 残留的 isOwner——见上）
+    var isTableOwner = Number(res.creator_id) === myID
 
     this.setData({
       game: game,
@@ -399,11 +409,13 @@ Page({
       // 已散台（ended/cancelled/expired）：给分 / 道具 / 换位等写操作统一拦下，
       // 席位卡上的「给分」按钮也随之隐藏（wxml 用 !dissolved 判断）
       dissolved: res.status === 'ended' || res.status === 'cancelled' || res.status === 'expired',
-      isOwner: Number(res.creator_id) === myID,
+      isOwner: isTableOwner,
       hasScores: hasScores,
-      // 底栏只在还有底栏动作时渲染：取消开台（组桌/开局未记分的台主）或睇翻记录（已散台）；
-      // 结束散台已上收到头部台码旁，记分中的台主不再渲染空底栏
-      showFooter: (isOwner && (res.status === 'forming' || (res.status === 'active' && !hasScores))) || res.status === 'ended',
+      // 底栏只在还有底栏动作时渲染：
+      //   「取消开台」= 台主 + 台还在进行中（组桌中 / 已开局）+ **没有流水账单**（与后端 CancelGame 同一判据）
+      //   「睇翻记录」= 已散台
+      // 结束散台已上收到头部台码旁，只有有流水账单的台主才看得到
+      showFooter: (isTableOwner && (res.status === 'forming' || (res.status === 'active' && !hasScores))) || res.status === 'ended',
       // 台码（拉人入台）出示条件，与后端 GetGameQRCode / JoinGame 的守卫保持一致：
       //   牌局还在进行（forming=组桌中 / active=已开局）+ 成员没锁 + 还没满 4 人。
       // 注意**不能用 hasScores**：那是「本局有没有流水账单」。房间页的「给分」走转分接口，

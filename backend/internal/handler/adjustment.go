@@ -37,7 +37,7 @@ type CreateAdjustmentRequest struct {
 	RequestID      string `json:"request_id"`
 	// Tags：可多选的给分标签 code（自摸/明杠/暗杠/杠爆/抢杠），见 allowedAdjustmentTags
 	Tags []string `json:"tags"`
-	// AutoAccept: 台间记分（比分）场景无需对方确认，建单即生效
+	// AutoAccept：给分早就一律直接生效，这个字段只为兼容老版本小程序保留，服务端不再读取。
 	AutoAccept bool `json:"auto_accept"`
 }
 
@@ -189,6 +189,9 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 	}
 
 	now := time.Now()
+	resolvedAt := now
+	// 给分（转分）一律直接生效：没有「待确认 → 对方接受/驳回」这套审核流了，
+	// 也没有补分申请，落库就是 accepted。（DTO 里的 auto_accept 只为兼容老版本小程序，服务端忽略。）
 	adj := &model.ScoreAdjustment{
 		GameID:         gameID,
 		RoundID:        req.RoundID,
@@ -199,16 +202,11 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 		Reason:         req.Reason,
 		Tags:           joinAdjustmentTags(tags),
 		ProposedBy:     fromPlayer.ID,
-		Status:         "pending",
+		Status:         "accepted",
+		ResolvedAt:     &resolvedAt,
+		ResolvedBy:     &userID,
 		RequestID:      requestID,
 		ExpiresAt:      now.Add(24 * time.Hour),
-	}
-	// 台间记分：无需对方确认，直接生效
-	if req.AutoAccept {
-		adj.Status = "accepted"
-		resolvedAt := now
-		adj.ResolvedAt = &resolvedAt
-		adj.ResolvedBy = &userID
 	}
 
 	if err := h.Store.CreateAdjustment(adj); err != nil {
@@ -216,17 +214,15 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 		return
 	}
 
-	// 给分动画广播：转分直接生效时推给全台玩家（含发起人），前端各自播放筹码飞行动画。
+	// 给分动画广播：推给全台玩家（含发起人），前端各自播放筹码飞行动画。
 	// 注意 middleware.RoomSyncBroadcast 的 "game" 信号只带全量刷新不带明细，这里需要携带
 	// from/to/amount 才能让每台手机知道筹码从谁飞向谁。
-	if req.AutoAccept {
-		ws.Emit(gameID, "give", gin.H{
-			"id":             adj.ID,
-			"from_player_id": adj.FromPlayerID,
-			"to_player_id":   adj.ToPlayerID,
-			"amount":         req.Amount,
-		})
-	}
+	ws.Emit(gameID, "give", gin.H{
+		"id":             adj.ID,
+		"from_player_id": adj.FromPlayerID,
+		"to_player_id":   adj.ToPlayerID,
+		"amount":         req.Amount,
+	})
 
 	// Find target player nickname for message
 	var toNickname string
@@ -237,14 +233,7 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 		}
 	}
 
-	var message string
-	if req.AutoAccept {
-		message = fmt.Sprintf("已转记 %d 分给 %s", req.Amount, toNickname)
-	} else if req.AdjustmentType == "supplement" {
-		message = fmt.Sprintf("补分请求已发送，等待%s确认", toNickname)
-	} else {
-		message = fmt.Sprintf("退分请求已发送，等待%s确认", toNickname)
-	}
+	message := fmt.Sprintf("已转记 %d 分给 %s", req.Amount, toNickname)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"adjustment": AdjustmentResponse{
@@ -304,170 +293,4 @@ func (h *AdjustmentHandler) ListAdjustments(c *gin.Context) {
 		})
 	}
 	c.JSON(http.StatusOK, gin.H{"adjustments": result})
-}
-
-// AcceptAdjustment handles POST /api/v1/games/:game_id/adjustments/:adjustment_id/accept
-// PRD §3.2 rule 5: only receiver can accept
-func (h *AdjustmentHandler) AcceptAdjustment(c *gin.Context) {
-	gameID, err := strconv.ParseInt(c.Param("game_id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
-		return
-	}
-	adjustmentID, err := strconv.ParseInt(c.Param("adjustment_id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
-		return
-	}
-	userID := middleware.GetUserID(c)
-
-	adj, err := h.Store.GetAdjustment(adjustmentID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, errs.ErrNotFound)
-		return
-	}
-	if adj.GameID != gameID {
-		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
-		return
-	}
-
-	// 散台后积分已结算：不再接受任何转分生效（含散台前发起、散台后才确认的补退分）
-	game, gErr := h.Store.GetGame(gameID)
-	if gErr != nil || game == nil {
-		c.JSON(http.StatusNotFound, errs.ErrNotFound)
-		return
-	}
-	if game.Status != "active" {
-		c.JSON(http.StatusBadRequest, errs.ErrGameEnded)
-		return
-	}
-
-	// Only the to_player's user can accept (PRD §3.2 rule 5)
-	toPlayer, err := h.Store.GetGamePlayer(gameID, userID)
-	if err != nil || toPlayer.ID != adj.ToPlayerID {
-		c.JSON(http.StatusForbidden, errs.ErrForbidden)
-		return
-	}
-
-	_, err = h.Store.ResolveAdjustment(adjustmentID, "pending", "accepted", userID)
-	if err != nil {
-		if be, ok := err.(*errs.BizError); ok {
-			c.JSON(http.StatusBadRequest, be)
-			return
-		}
-		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
-		return
-	}
-
-	// Find from player nickname for message
-	players, _ := h.Store.GetGamePlayers(gameID)
-	fromNickname := ""
-	for _, p := range players {
-		if p.ID == adj.FromPlayerID {
-			fromNickname = p.NicknameSnapshot
-			break
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"adjustment_id": adj.ID,
-		"status":        "accepted",
-		"message":       fmt.Sprintf("积分调整已生效：%s -%d 分，你 +%d 分", fromNickname, adj.Amount, adj.Amount),
-	})
-}
-
-// RejectAdjustment handles POST /api/v1/games/:game_id/adjustments/:adjustment_id/reject
-func (h *AdjustmentHandler) RejectAdjustment(c *gin.Context) {
-	gameID, err := strconv.ParseInt(c.Param("game_id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
-		return
-	}
-	adjustmentID, err := strconv.ParseInt(c.Param("adjustment_id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
-		return
-	}
-	userID := middleware.GetUserID(c)
-
-	adj, err := h.Store.GetAdjustment(adjustmentID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, errs.ErrNotFound)
-		return
-	}
-	if adj.GameID != gameID {
-		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
-		return
-	}
-
-	toPlayer, err := h.Store.GetGamePlayer(gameID, userID)
-	if err != nil || toPlayer.ID != adj.ToPlayerID {
-		c.JSON(http.StatusForbidden, errs.ErrForbidden)
-		return
-	}
-
-	_, err = h.Store.ResolveAdjustment(adjustmentID, "pending", "rejected", userID)
-	if err != nil {
-		if be, ok := err.(*errs.BizError); ok {
-			c.JSON(http.StatusBadRequest, be)
-			return
-		}
-		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"adjustment_id": adj.ID,
-		"status":        "rejected",
-		"message":       "积分调整未生效，原积分不变",
-	})
-}
-
-// CancelAdjustment handles POST /api/v1/games/:game_id/adjustments/:adjustment_id/cancel
-// PRD §3.2: only the proposer can cancel
-func (h *AdjustmentHandler) CancelAdjustment(c *gin.Context) {
-	gameID, err := strconv.ParseInt(c.Param("game_id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
-		return
-	}
-	adjustmentID, err := strconv.ParseInt(c.Param("adjustment_id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
-		return
-	}
-	userID := middleware.GetUserID(c)
-
-	adj, err := h.Store.GetAdjustment(adjustmentID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, errs.ErrNotFound)
-		return
-	}
-	if adj.GameID != gameID {
-		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
-		return
-	}
-
-	// Only proposer can cancel
-	fromPlayer, err := h.Store.GetGamePlayer(gameID, userID)
-	if err != nil || fromPlayer.ID != adj.FromPlayerID {
-		c.JSON(http.StatusForbidden, errs.ErrForbidden)
-		return
-	}
-
-	_, err = h.Store.ResolveAdjustment(adjustmentID, "pending", "cancelled", userID)
-	if err != nil {
-		if be, ok := err.(*errs.BizError); ok {
-			c.JSON(http.StatusBadRequest, be)
-			return
-		}
-		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"adjustment_id": adj.ID,
-		"status":        "cancelled",
-		"message":       "积分调整已取消，原积分不变",
-	})
 }
