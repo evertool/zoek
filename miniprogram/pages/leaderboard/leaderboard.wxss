@@ -98,7 +98,7 @@
 
 .rank-right { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 10rpx; }
 .rank-score { font-size: 48rpx; font-weight: 700; line-height: 1.05; letter-spacing: -1rpx; }
-.rank-action { position: relative; display: flex; align-items: center; gap: 6rpx; background: var(--primary); color: var(--on-primary); padding: 8rpx 24rpx; border-radius: var(--radius-full); font-size: 20rpx; font-weight: 500; box-shadow: var(--shadow-card); overflow: hidden; }
+.rank-action { position: relative; display: flex; align-items: center; gap: 6rpx; background: var(--primary-fixed); color: var(--on-primary-fixed-variant); padding: 8rpx 24rpx; border-radius: var(--radius-full); font-size: 20rpx; font-weight: 500; box-shadow: var(--shadow-card); overflow: hidden; }
 .rank-action-icon { width: 26rpx; height: 26rpx; }
 .rank-action-text { font-size: 20rpx; }
 .rank-action-hit { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; margin: 0; padding: 0; border: none; background: transparent; }

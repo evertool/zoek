@@ -68,7 +68,8 @@
           </view>
           <view class="my-score-col">
             <text class="my-score-label">净胜分</text>
-            <text class="my-score-val">{{stats.scoreText || (stats.total_score >= 0 ? '+' : '') + stats.total_score}}</text>
+            <!-- 净胜分为负显示红色（.text-negative 在 app.wxss 里带 !important，压得住 .my-score-val 的颜色） -->
+            <text class="my-score-val {{stats.total_score >= 0 ? 'text-positive' : 'text-negative'}}">{{stats.scoreText || (stats.total_score >= 0 ? '+' : '') + stats.total_score}}</text>
           </view>
         </view>
 

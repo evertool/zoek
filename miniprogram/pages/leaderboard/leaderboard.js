@@ -27,6 +27,12 @@ Page({
   },
 
   onShow() {
+    // 从「可约台」的分享面板返回：进自己的台房间
+    // （微信对 open-type="share" 没有分享成功回调，只能在面板关闭、页面重新 onShow 时兜底跳转）
+    if (this._pendingEnterRoom) {
+      this._pendingEnterRoom = false
+      this.enterRoom()
+    }
     // 等待 app onLaunch 异步校验完成
     guard.ensureAsync().then(ok => {
       if (!ok) return
@@ -60,8 +66,7 @@ Page({
     this.loadAll()
   },
 
-  // 积分榜 / 段位榜切换：列表从原始榜单重建；我的卡片切换统计口径
-  // （两个榜的列表口径一致：仅计满 4 人排位局；积分榜卡片取榜单内自己条目，段位榜卡片走 /rank/me）
+  // 积分榜 / 段位榜切换：列表从原始榜单重建；卡片只换名次（战绩数字与积分两榜一致）
   switchBoard(e) {
     const tab = e.currentTarget.dataset.tab
     if (tab === this.data.boardTab) return
@@ -80,30 +85,23 @@ Page({
     entries = entries.map(function(e, idx) {
       return { ...e, displayRank: idx + 1 }
     })
+    // 名次必须跟着「当前榜」的排序数出来，再交给卡片——卡片里不能自己按原始顺序再算一次
     var myRank = 0
     entries.forEach(function(e) { if (e.is_self) myRank = e.displayRank })
-    var stats = this.data.stats ? { ...this.data.stats, my_rank: myRank } : this.data.stats
-    this.setData({ entries: entries, stats: stats })
-
-    if (tab === 'rank') {
-      this.applyRankedCard()
-    } else {
-      this.applyScoreCard()
-    }
+    this.setData({ entries: entries })
+    this.applyCard(myRank)
   },
 
   /**
-   * 卡片战绩数字：两个榜统一取榜单内「我」的条目（同窗口、满4人口径），
-   * 保证积分榜/段位榜切换时场次/胜场/胜率/连胜/单场最高完全一致；
+   * 卡片战绩：两个榜完全一致（场次/胜场/胜率/连胜/单场最高/净胜分），
+   * 只有「我的名次」随榜单排序变（积分榜按净胜分 / 段位榜按排位星级）。
    * 未入榜（窗口内无满4人同台局）显示 0，不回退 /user/stats 全量统计。
    */
-  buildCardStats() {
+  buildCardStats(myRank) {
     var mine = (this._rawEntries || []).find(function(e) { return e.is_self })
-    var myRank = 0
-    ;(this._rawEntries || []).forEach(function(e, i) { if (e.is_self) myRank = i + 1 })
     var has = !!mine
     return {
-      my_rank: myRank,
+      my_rank: myRank || 0,
       games: has ? (mine.games || 0) : 0,
       wins: has ? (mine.wins || 0) : 0,
       draws: has ? (mine.draws || 0) : 0,
@@ -115,10 +113,10 @@ Page({
     }
   },
 
-  /** 积分榜卡片：净胜分为主体，段位 chip 用榜单条目自带的段位 */
-  applyScoreCard() {
+  /** 卡片：主体数字固定为「净胜分」（窗口内），段位 chip 用榜单条目自带的段位 */
+  applyCard(myRank) {
     var mine = (this._rawEntries || []).find(function(e) { return e.is_self }) || {}
-    var st = this.buildCardStats()
+    var st = this.buildCardStats(myRank)
     this.setData({
       stats: {
         ...this.data.stats,
@@ -129,34 +127,6 @@ Page({
         scoreText: util.formatWan(st.total_score)
       }
     })
-  },
-
-  /** 段位榜卡片：战绩数字与积分榜完全一致；仅段位图标/星级/排位积分来自 /rank/me */
-  applyRankedCard() {
-    var mine = (this._rawEntries || []).find(function(e) { return e.is_self }) || {}
-    var st = this.buildCardStats()
-    this.setData({
-      stats: {
-        ...this.data.stats,
-        ...st,
-        tier_short: mine.tier_short || '',
-        tier_icon: mine.tier_icon || '',
-        stars: mine.stars || 0,
-        scoreText: util.formatWan(st.total_score)
-      }
-    })
-    api.get('/rank/me').then(res => {
-      if (this.data.boardTab !== 'rank') return // 用户已切回积分榜，丢弃
-      this.setData({
-        stats: {
-          ...this.data.stats,
-          tier_short: (res.tier && res.tier.tier_short) || '',
-          tier_icon: res.tier ? util.tierIcon(res.tier.tier_index, res.tier.is_peak) : '',
-          stars: (res.tier && res.tier.stars_in_tier) || 0,
-          scoreText: util.formatWan(res.points || 0) // 主体数字换成排位积分
-        }
-      })
-    }).catch(function() {})
   },
 
   loadAll() {
@@ -191,10 +161,11 @@ Page({
     })
   },
 
-  // ===== 约开台（任务7）：点击先确保有一张自己的台，再分享邀请链接 =====
+  // ===== 约开台：点击先确保有一张自己的台 → 拉起分享邀请 → 分享面板关闭后进房间（onShow 兜底） =====
   onInviteTap() {
-    this._inviteReady = null
-    if (this._preparing) return
+    // 标记「这次点击是为了约台」：分享面板关闭、页面 onShow 时据此跳进房间
+    this._pendingEnterRoom = true
+    if (this._preparing) return // 连点：沿用上一次的 _inviteReady，别把它清空
     this._preparing = true
     this._inviteReady = api.get('/games/active').then(res => {
       const games = res.games || []
@@ -229,6 +200,16 @@ Page({
       }
       return { title: '得闲开台 — 粤式麻雀记分助手', path: '/pages/index/index' }
     })
+  },
+
+  // 进自己的台房间：台可能还在创建中，等 _inviteReady 就绪再跳
+  enterRoom() {
+    const ready = this._inviteReady || Promise.resolve(null)
+    Promise.resolve(ready).then(game => {
+      if (game && game.gameId) {
+        wx.navigateTo({ url: '/pages/room/room?game_id=' + game.gameId })
+      }
+    }).catch(function() {})
   },
 
   goRankPage() {
