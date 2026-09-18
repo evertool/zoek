@@ -251,10 +251,11 @@ Page({
     if (this._creating) return
     this._creating = true
     wx.showLoading({ title: '开台中...' })
+    // silent：ALREADY_IN_GAME 时页面自己弹「去看看」的 modal，api 层别再叠一个 toast（会双提示）
     api.post('/games', {
       name: '',
       request_id: api.genRequestID()
-    }).then(res => {
+    }, { silent: true }).then(res => {
       wx.hideLoading()
       this._creating = false
       wx.navigateTo({

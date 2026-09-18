@@ -211,8 +211,12 @@ page {
 
 /* ========== 文字 ========== */
 .text-secondary { color: var(--on-surface-variant); font-size: 24rpx; }
-.text-positive { color: var(--primary); font-weight: 700; }
-.text-negative { color: var(--tertiary); font-weight: 700; }
+/* 正负色工具类：页面 wxss 在 app.wxss 之后加载，同优先级时页面里的
+   `.xxx-val { color: ... }` 会盖掉这两个类（历史上 leaderboard 卡片、rank 页、
+   history 页都踩过这个坑，条件类写了却不生效），所以这里给颜色加 !important，
+   保证「正分绿 / 负分红」在任何元素上都压得住普通类。 */
+.text-positive { color: var(--primary) !important; font-weight: 700; }
+.text-negative { color: var(--tertiary) !important; font-weight: 700; }
 .text-zero { color: var(--on-surface-variant); font-weight: 600; }
 
 /* ========== 空状态 ========== */

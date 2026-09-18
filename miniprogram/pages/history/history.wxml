@@ -56,7 +56,7 @@
           <view class="hs-overview-cell hs-overview-cell-highlight">
             <text class="hs-cell-label text-primary">总净积分</text>
             <view class="hs-cell-val-row">
-              <text class="hs-cell-val text-positive">{{overview.score >= 0 ? '+' : ''}}{{overview.score}}</text>
+              <text class="hs-cell-val {{overview.score >= 0 ? 'text-positive' : 'text-negative'}}">{{overview.score >= 0 ? '+' : ''}}{{overview.score}}</text>
               <text class="hs-cell-unit text-primary">分</text>
             </view>
           </view>
