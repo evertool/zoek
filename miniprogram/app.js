@@ -11,7 +11,7 @@ const util = require('./utils/util')
 // 本地完全测不出来）→ 首页整页「网络开小差」→ 审核以「可用性/完整性」被拒。
 // 唯一可靠的判据是「跑在开发者工具还是真机」：真机（开发版/审核版、体验版、正式版）一律正式域名。
 const PROD_BASE_URL = 'https://zoek.246891.xyz/api/v1'
-const DEV_BASE_URL = 'http://192.168.1.15:8080/api/v1'
+const DEV_BASE_URL = 'https://zoek.246891.xyz/api/v1'
 
 const envVersion = (() => {
   try {
