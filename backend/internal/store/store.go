@@ -515,8 +515,12 @@ func (s *Store) SettleGameRank(gameID int64) error {
 			return nil
 		}
 
+		// 排位规定：只有在座满 4 人才结算。⚠️ 必须带 status 条件——离座玩家的行是软删除、
+		// 永久留在 game_players 里，只看行数会让「凑到 4 人后有人离座、剩 3 人打完」的台照样
+		// 结算排位（离座者白拿 ±星），也会让「离座后又补了新脚」的 5 行台算不进。
 		var players []model.GamePlayer
-		if err := tx.Where("game_id = ?", gameID).Order("seat ASC").Find(&players).Error; err != nil {
+		if err := tx.Where("game_id = ? AND status = ?", gameID, model.PlayerStatusActive).
+			Order("seat ASC").Find(&players).Error; err != nil {
 			return err
 		}
 		if len(players) != 4 {
@@ -623,8 +627,11 @@ func (s *Store) RecalculateGameRank(gameID int64) error {
 			return nil // 并发下已被重排
 		}
 
+		// 与 SettleGameRank 同口径：只有在座满 4 人的台才谈得上重算
+		// （离座行是软删除，只看行数会把 5 行 4 在座的台误判成非排位局而静默跳过）
 		var players []model.GamePlayer
-		if err := tx.Where("game_id = ?", gameID).Order("seat ASC").Find(&players).Error; err != nil {
+		if err := tx.Where("game_id = ? AND status = ?", gameID, model.PlayerStatusActive).
+			Order("seat ASC").Find(&players).Error; err != nil {
 			return err
 		}
 		if len(players) != 4 {
@@ -1150,8 +1157,9 @@ func (s *Store) HideGame(userID, gameID int64) error {
 	return s.DB.Create(&model.GameHidden{GameID: gameID, UserID: userID}).Error
 }
 
-// DeleteGame physically removes a game and all associated data (players, rounds,
-// submissions, adjustments). Only safe for games with no locked rounds (no scores).
+// DeleteGame physically removes a game and every trace of it (players, rounds,
+// submissions, adjustments, props, swap requests, rank settlements, hidden rows).
+// Only safe for games with no ledger —— 「无流水才能删房间」，有流水的台要走散台结算。
 func (s *Store) DeleteGame(gameID int64) error {
 	return s.Transaction(func(tx *gorm.DB) error {
 		// Delete round submissions (via rounds)
@@ -1165,6 +1173,16 @@ func (s *Store) DeleteGame(gameID int64) error {
 		}
 		// Delete rounds
 		if err := tx.Where("game_id = ?", gameID).Delete(&model.Round{}).Error; err != nil {
+			return err
+		}
+		// 道具事件 / 换位申请 / 排位结算：不删会留下指向已消失台子的孤儿行
+		if err := tx.Where("game_id = ?", gameID).Delete(&model.PropEvent{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("game_id = ?", gameID).Delete(&model.SeatSwapRequest{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("game_id = ?", gameID).Delete(&model.RankSettlement{}).Error; err != nil {
 			return err
 		}
 		// Delete game players
@@ -1181,6 +1199,60 @@ func (s *Store) DeleteGame(gameID int64) error {
 		}
 		return nil
 	})
+}
+
+// GameHasLedger 判断牌局是否已经产生过流水：逐局记分提交（round_submissions）
+// 或任何一笔转分/补退分（score_adjustments，含待确认）都算一笔账。
+//
+// 这是全项目「这个台有没有账」的唯一判据——取消开台、结束散台、离座、超时清理
+// 都按它决定「能不能删房间」，口径必须一致，否则会出现「账还在房间没了」。
+func (s *Store) GameHasLedger(gameID int64) (bool, error) {
+	var adjCount int64
+	if err := s.DB.Model(&model.ScoreAdjustment{}).Where("game_id = ?", gameID).Count(&adjCount).Error; err != nil {
+		return false, err
+	}
+	if adjCount > 0 {
+		return true, nil
+	}
+	var subCount int64
+	if err := s.DB.Raw("SELECT COUNT(*) FROM round_submissions rs JOIN rounds r ON rs.round_id = r.id WHERE r.game_id = ?", gameID).
+		Row().Scan(&subCount); err != nil {
+		return false, err
+	}
+	return subCount > 0, nil
+}
+
+// DeleteGameIfNoLedger 无任何流水的牌局直接物理删除（不留僵尸台）。
+// 返回是否真的删掉了：有流水时保持原样，由调用方走自己的兜底逻辑。
+func (s *Store) DeleteGameIfNoLedger(gameID int64) (bool, error) {
+	has, err := s.GameHasLedger(gameID)
+	if err != nil || has {
+		return false, err
+	}
+	return true, s.DeleteGame(gameID)
+}
+
+// PurgeLedgerlessTerminalGames 清理历史遗留：已取消 / 已散台 / 已失效但**没有任何流水**
+// 的牌局一律物理删除。新路径已经「即时删」，这里只兜住改动前留下的僵尸台
+// （启动扫一次 + 定时扫一次）。
+func (s *Store) PurgeLedgerlessTerminalGames() (int, error) {
+	var ids []int64
+	if err := s.DB.Model(&model.Game{}).
+		Where("status IN ?", []string{"cancelled", "expired", "ended"}).
+		Pluck("id", &ids).Error; err != nil {
+		return 0, err
+	}
+	purged := 0
+	for _, id := range ids {
+		deleted, err := s.DeleteGameIfNoLedger(id)
+		if err != nil {
+			return purged, err
+		}
+		if deleted {
+			purged++
+		}
+	}
+	return purged, nil
 }
 
 // LockMembers marks a game's members as locked (PRD §2.1 rule 4).
@@ -1283,16 +1355,12 @@ func (s *Store) AutoExpireStaleGame(gameID int64) (bool, bool, error) {
 		lastEntry = lastSub.UpdatedAt
 	}
 
-	var adjCount, subCount int64
-	if err := s.DB.Model(&model.ScoreAdjustment{}).Where("game_id = ?", game.ID).Count(&adjCount).Error; err != nil {
-		return false, false, err
-	}
-	if err := s.DB.Raw("SELECT COUNT(*) FROM round_submissions rs JOIN rounds r ON rs.round_id = r.id WHERE r.game_id = ?", game.ID).
-		Row().Scan(&subCount); err != nil {
+	hasLedger, err := s.GameHasLedger(game.ID)
+	if err != nil {
 		return false, false, err
 	}
 
-	if adjCount == 0 && subCount == 0 {
+	if !hasLedger {
 		// 情况 1：废弃空台 → 物理删除（同取消开台语义），以开局/创建时间起算
 		last := game.CreatedAt
 		if game.StartedAt != nil && game.StartedAt.After(last) {
@@ -2272,12 +2340,34 @@ func (s *Store) GetPropMaxID(gameID int64) (int64, error) {
 	return maxID, err
 }
 
-// ExpireOldFormingGames marks forming games older than 24h as expired.
-func (s *Store) ExpireOldFormingGames() error {
+// ExpireOldFormingGames 组桌超过 24 小时仍未开打（PRD §2.1 rule 6）：
+// 没有任何流水 → 直接物理删除，不留「僵尸台」（首页/记录都不该看到它）；
+// 万一挂了账（正常路径不可能）则退回原语义，只把状态置为 expired。
+// 返回物理删除的房间数。
+func (s *Store) ExpireOldFormingGames() (int, error) {
 	cutoff := time.Now().Add(-24 * time.Hour)
-	return s.DB.Model(&model.Game{}).
+	var ids []int64
+	if err := s.DB.Model(&model.Game{}).
 		Where("status = ? AND created_at < ?", "forming", cutoff).
-		Update("status", "expired").Error
+		Pluck("id", &ids).Error; err != nil {
+		return 0, err
+	}
+	removed := 0
+	for _, id := range ids {
+		deleted, err := s.DeleteGameIfNoLedger(id)
+		if err != nil {
+			return removed, err
+		}
+		if deleted {
+			removed++
+			continue
+		}
+		if err := s.DB.Model(&model.Game{}).Where("id = ? AND status = ?", id, "forming").
+			Update("status", "expired").Error; err != nil {
+			return removed, err
+		}
+	}
+	return removed, nil
 }
 
 // ExpireOldAdjustments marks pending adjustments past their expiry as expired.

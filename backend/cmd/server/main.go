@@ -60,11 +60,19 @@ func main() {
 	}
 
 	// Expire old forming games and adjustments on startup
-	if err := s.ExpireOldFormingGames(); err != nil {
+	if removed, err := s.ExpireOldFormingGames(); err != nil {
 		log.Warn("清理过期牌桌失败", logger.ErrorField(err))
+	} else if removed > 0 {
+		log.Info("清理过期牌桌完成", logger.String("removed", fmt.Sprintf("%d", removed)))
 	}
 	if err := s.ExpireOldAdjustments(); err != nil {
 		log.Warn("清理过期调整失败", logger.ErrorField(err))
+	}
+	// 无流水的终态僵尸台（旧数据：已取消/已散台/已失效但一笔账都没有）启动即清
+	if purged, err := s.PurgeLedgerlessTerminalGames(); err != nil {
+		log.Warn("清理无流水牌局失败", logger.ErrorField(err))
+	} else if purged > 0 {
+		log.Info("清理无流水牌局完成", logger.String("purged", fmt.Sprintf("%d", purged)))
 	}
 
 	// 5 小时超时处理：每 10 分钟扫描一次（废弃空台删除 / 有记账的自动散台结算）
@@ -77,6 +85,12 @@ func main() {
 				log.Warn("5 小时超时扫描失败", logger.ErrorField(err))
 			} else if settled > 0 || cleaned > 0 {
 				log.Info("5 小时超时处理完成", logger.String("settled", fmt.Sprintf("%d", settled)), logger.String("cleaned", fmt.Sprintf("%d", cleaned)))
+			}
+			// 兜底：无流水的终态僵尸台（正常路径已即时删除，这里防漏网）
+			if purged, pErr := s.PurgeLedgerlessTerminalGames(); pErr != nil {
+				log.Warn("清理无流水牌局失败", logger.ErrorField(pErr))
+			} else if purged > 0 {
+				log.Info("清理无流水牌局完成", logger.String("purged", fmt.Sprintf("%d", purged)))
 			}
 		}
 	}()

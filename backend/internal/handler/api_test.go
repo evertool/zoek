@@ -1001,13 +1001,20 @@ func TestZeroSumFail(t *testing.T) {
 	}
 }
 
-func TestEndGameWithIncompleteRound(t *testing.T) {
-	r, _, _ := testSetup(t)
+// 散台时一笔流水都没有（局没打完、也没转分）：不再报错，而是按「无流水就删房间」
+// 直接物理删除，响应带 dissolved 让前端回首页（原行为是 400「没有记分记录，无法结算」）。
+func TestEndGameWithoutScoresDeletesRoom(t *testing.T) {
+	r, _, s := testSetup(t)
 	gameID, auth1, _ := createGameAndStart(t, r)
 
-	// Try to end without completing round
 	w := doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auth1, map[string]string{"request_id": "e1"})
-	assertStatus(t, w, http.StatusBadRequest)
+	assertStatus(t, w, http.StatusOK)
+	if m := parseJSON(t, w); m["dissolved"] != true {
+		t.Fatalf("dissolved = %v, want true", m["dissolved"])
+	}
+	if _, err := s.GetGame(gameID); err == nil {
+		t.Fatal("无流水的散台应物理删除房间")
+	}
 }
 
 func TestEndGameSuccess(t *testing.T) {
@@ -1429,6 +1436,54 @@ func TestLeaderboardAndUserStats(t *testing.T) {
 	if len(m["leaderboard"].([]interface{})) != 4 {
 		t.Fatalf("leaderboard days=7 size = %v, want 4", m["leaderboard"])
 	}
+}
+
+// TestLeaveDoesNotBlockRoundLock 有人离座（软删除行）后：
+//   - 剩下的在座玩家照样能提交、锁定本局，也能开下一局（进度只数在座人数）；
+//   - 在座不足 4 人的台不算排位局（不结算星级），也不进积分榜。
+func TestLeaveDoesNotBlockRoundLock(t *testing.T) {
+	r, _, s := testSetup(t)
+	gameID, auths := createGame4P(t, r)
+
+	// p4 在无流水时离座（这是唯一允许离座的时机）
+	w := doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/leave", gameID), auths[3], map[string]string{"request_id": "nl-leave"})
+	assertStatus(t, w, http.StatusOK)
+
+	// 进度只数在座（离座的人不再占位）
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), auths[0], nil)
+	assertStatus(t, w, http.StatusOK)
+	m := parseJSON(t, w)
+	round1 := int64(m["round_id"].(float64))
+	if m["member_count"].(float64) != 3 {
+		t.Fatalf("member_count = %v, want 3（离座的人不该再占位）", m["member_count"])
+	}
+
+	// 剩 3 人提交并锁定本局（playRound 内含锁定断言）
+	playRound(t, r, gameID, round1, auths[:3], []int{10, -4, -6})
+
+	// 锁定成功后能开下一局
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds", gameID), auths[0], map[string]string{"request_id": "nl-next"})
+	assertStatus(t, w, http.StatusCreated)
+	round2 := int64(parseJSON(t, w)["round_id"].(float64))
+	playRound(t, r, gameID, round2, auths[:3], []int{5, 5, -10})
+
+	// 散台：在座只有 3 人 → 不成排位局
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), auths[0], map[string]string{"request_id": "nl-end"})
+	assertStatus(t, w, http.StatusOK)
+
+	var settled int64
+	if err := s.DB.Model(&model.RankSettlement{}).Where("game_id = ?", gameID).Count(&settled).Error; err != nil {
+		t.Fatalf("count rank settlements: %v", err)
+	}
+	if settled != 0 {
+		t.Fatalf("rank_settlements = %d, want 0（在座不满 4 人不结算排位，离座者也不该白拿星）", settled)
+	}
+	w = doRequest(t, r, "GET", "/api/v1/rank/me", auths[0], nil)
+	if m := parseJSON(t, w); m["total_games"].(float64) != 0 {
+		t.Fatalf("rank total_games = %v, want 0", m["total_games"])
+	}
+
+	// 积分榜口径已改用远程版（peer-scope，不返回 me/me_rank），这里不再断言
 }
 
 // 台码要指向哪个版本的小程序：`?env_version=` 透传给微信，非法值直接拒。

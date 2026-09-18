@@ -296,8 +296,9 @@ Page({
       // 已有弹窗时不打断用户操作
       if (!this.data.showIncomingSwap && !this.data.showSwapModal) this.checkIncomingSwap()
     }).catch(err => {
-      // 轮询中失去读权限（被移出/散台清理等）：跳回首页，不再周期性弹 403 toast
-      if (err && err.code === 'FORBIDDEN') this.leaveToHome()
+      // 轮询中牌台没了：失去读权限（被移出）或被物理删除（取消开台 / 无流水散台 / 超时清理）
+      // —— 统一回首页，不再周期性弹 toast 或空转
+      if (err && (err.code === 'FORBIDDEN' || err.code === 'NOT_FOUND')) this.leaveToHome()
     })
   },
 
@@ -307,8 +308,9 @@ Page({
     api.get('/games/' + this.data.gameID).then(res => {
       this.applyGame(res, false)
     }).catch(err => {
-      // 非局内玩家（403）：停掉轮询/长连接，跳回首页，不在本页反复弹「没有权限」
-      if (err && err.code === 'FORBIDDEN') {
+      // 非局内玩家（403）或牌台已被删掉（404，无流水的台取消/散台即物理删除）：
+      // 停掉轮询/长连接，跳回首页，不在本页反复弹「没有权限」或停在死掉的房间页
+      if (err && (err.code === 'FORBIDDEN' || err.code === 'NOT_FOUND')) {
         this.leaveToHome()
         return
       }

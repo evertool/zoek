@@ -112,7 +112,18 @@ func (h *GameHandler) LeaveGame(c *gin.Context) {
 	message := "已退出牌台"
 	switch {
 	case remaining == 0:
-		// 最后一个人走了：自动散台（不带 expectedStatus 限制，避免状态刚变过就失败）
+		// 最后一个人走了：这台已经没人了。没有流水（上面 ensureNoLedger 已保证）
+		// → 直接物理删除，不留「僵尸台」；真有流水（并发窗口塞进来的）才退回置 cancelled。
+		deleted, dErr := h.Store.DeleteGameIfNoLedger(gameID)
+		if dErr != nil {
+			c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+			return
+		}
+		if deleted {
+			message = "最后一位已退出，牌台已散"
+			break
+		}
+		// 不带 expectedStatus 限制，避免状态刚变过就失败
 		if _, sErr := h.Store.UpdateGameStatus(gameID, game.Status, "cancelled"); sErr == nil {
 			message = "最后一位已退出，牌台已散"
 		}

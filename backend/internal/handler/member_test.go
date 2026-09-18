@@ -171,20 +171,19 @@ func TestLeaveGameTransfersOwnership(t *testing.T) {
 }
 
 func TestLeaveGameLastPlayerDissolves(t *testing.T) {
-	r, _, _ := testSetup(t)
+	r, _, s := testSetup(t)
 	gameID, auths := createGame4P(t, r)
 
 	for _, auth := range auths {
 		assertStatus(t, doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/leave", gameID), auth, map[string]string{}), http.StatusOK)
 	}
 
-	detail := gameDetail(t, r, auths[0], gameID)
-	if st := detail["status"]; st != "cancelled" {
-		t.Errorf("最后一人退出后 status = %v, want cancelled（不留僵尸台）", st)
+	// 最后一人退出：这台一笔账都没有 —— 整个房间物理删除，不留僵尸台
+	if _, err := s.GetGame(gameID); err == nil {
+		t.Errorf("最后一人退出后房间仍存在，应被物理删除（不留僵尸台）")
 	}
-	if detail["player_count"].(float64) != 0 {
-		t.Errorf("player_count = %v, want 0", detail["player_count"])
-	}
+	w := doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auths[0], nil)
+	assertStatus(t, w, http.StatusNotFound)
 }
 
 // ---------------------------------------------------------------------------

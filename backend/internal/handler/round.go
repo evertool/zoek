@@ -190,7 +190,7 @@ func (h *RoundHandler) GetCurrentRound(c *gin.Context) {
 		return
 	}
 
-	players, _ := h.Store.GetGamePlayers(gameID)
+	players, _ := h.Store.GetActiveGamePlayers(gameID)
 	subs, _ := h.Store.GetSubmissions(round.ID)
 	completed, _ := h.Store.CountLockedRounds(gameID)
 
@@ -314,7 +314,9 @@ func (h *RoundHandler) SubmitScore(c *gin.Context) {
 	}
 
 	// Check if all submitted
-	players, _ := h.Store.GetGamePlayers(gameID)
+	// ⚠️ 按「在座」玩家数判定：已离座玩家的行是软删除、永久留在 game_players 里，
+	// 用全行数会让本局永远等不到「全员提交」→ 永远进不了 review，这一台就锁不了局。
+	players, _ := h.Store.GetActiveGamePlayers(gameID)
 	subs, _ := h.Store.GetSubmissions(roundID)
 
 	allSubmitted := len(subs) >= len(players)
@@ -418,13 +420,13 @@ func (h *RoundHandler) LockRound(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 		return
 	}
-	players, err := h.Store.GetGamePlayers(gameID)
+	players, err := h.Store.GetActiveGamePlayers(gameID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 		return
 	}
 
-	// Check all submitted
+	// Check all submitted（同样只数在座：离座的人不该再挡住本局的锁定）
 	if len(subs) < len(players) {
 		c.JSON(http.StatusBadRequest, errs.ErrRoundNotReady)
 		return
@@ -490,7 +492,7 @@ func (h *RoundHandler) GetRoundDetail(c *gin.Context) {
 		return
 	}
 
-	players, _ := h.Store.GetGamePlayers(gameID)
+	players, _ := h.Store.GetActiveGamePlayers(gameID)
 	subs, _ := h.Store.GetSubmissions(roundID)
 	completed, _ := h.Store.CountLockedRounds(gameID)
 

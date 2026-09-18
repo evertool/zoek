@@ -773,14 +773,18 @@ func (h *GameHandler) CancelGame(c *gin.Context) {
 		return
 	}
 
-	// 允许取消：组桌中，或已开局但还没有入账的局（有记分记录须走散台结算）
-	completed, _ := h.Store.CountLockedRounds(gameID)
-	if (game.Status != "forming" && game.Status != "active") || completed > 0 {
+	// 允许取消：组桌中，或已开局但还没有入账的局（有流水记录须走散台结算）
+	hasLedger, lErr := h.Store.GameHasLedger(gameID)
+	if lErr != nil {
+		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+		return
+	}
+	if (game.Status != "forming" && game.Status != "active") || hasLedger {
 		c.JSON(http.StatusBadRequest, errs.ErrGameHasScores)
 		return
 	}
 
-	// 无积分记录：直接物理删除，不保留历史
+	// 无流水记录：直接物理删除，不保留历史
 	if err := h.Store.DeleteGame(gameID); err != nil {
 		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 		return
@@ -811,6 +815,25 @@ func (h *GameHandler) EndGame(c *gin.Context) {
 
 	if game.Status != "active" {
 		c.JSON(http.StatusBadRequest, errs.ErrGameNotActive)
+		return
+	}
+
+	// 没有任何流水：这台根本没开打（无逐局记分、无转分），与「取消开台」同语义
+	// —— 直接物理删除，不留空记录（dissolved=true 提示前端回首页，别跳记录详情）。
+	hasLedger, lErr := h.Store.GameHasLedger(gameID)
+	if lErr != nil {
+		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+		return
+	}
+	if !hasLedger {
+		if err := h.Store.DeleteGame(gameID); err != nil {
+			c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"message":   "没有记分记录，牌桌已散",
+			"dissolved": true,
+		})
 		return
 	}
 
