@@ -24,7 +24,10 @@ const API = path.join(ROOT, 'miniprogram/utils/api.js')
 const UTIL = path.join(ROOT, 'miniprogram/utils/util.js')
 
 const PROD = 'https://zoek.246891.xyz/api/v1'
-const DEV = 'http://192.168.1.15:8080/api/v1'
+// develop/devtools 地址直接从 app.js 解析：本检查锁的是「真机必须走正式域名」这条铁律，
+// devtools 的默认地址以 app.js 的 DEV_BASE_URL 为准（开发机/连线上策略调整不应导致本回归误报）
+const APP_SRC = require('fs').readFileSync(APP, 'utf8')
+const DEV = (APP_SRC.match(/DEV_BASE_URL\s*=\s*'([^']+)'/) || [])[1]
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 let fail = 0
@@ -61,6 +64,7 @@ function loadApp(opts) {
 
 function testBaseURL() {
   console.log('\n[1/2] baseURL 环境判定（真机必须走正式域名）')
+  check('DEV_BASE_URL 可从 app.js 解析', !!DEV, { DEV })
   const cases = [
     // 审核端：真机 + envVersion=develop —— 本次拒审的场景，必须走正式域名
     { name: '审核端 android + envVersion=develop', platform: 'android', envVersion: 'develop', want: PROD },

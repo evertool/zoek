@@ -70,6 +70,7 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 		{
 			auth.GET("/user/profile", authH.GetProfile)
 			auth.PUT("/user/profile", authH.UpdateProfile)
+			auth.GET("/user/badges", lbH.GetUserBadges)
 
 			auth.POST("/games", gameH.CreateGame)
 			auth.GET("/games/active", gameH.GetActiveGames)
@@ -1746,5 +1747,85 @@ func TestLeaderboardPeersScope(t *testing.T) {
 		if gamesBy[check.nick] != check.want {
 			t.Fatalf("%s games = %v, want %v（统计应为所有4人局而非仅与我同台）", check.nick, gamesBy[check.nick], check.want)
 		}
+	}
+}
+
+// TestHiddenGameExcludedFromStats 删除（软隐藏）记录后：
+//   - /user/stats 与 /user/badges 不再把该局计入本人战绩/徽章；
+//   - 雀友榜中本人不再因该局上榜/统计，其他人不受影响。
+func TestHiddenGameExcludedFromStats(t *testing.T) {
+	r, _, _ := testSetup(t)
+
+	// A,B,C,D 打一场 4 人局，A 赢
+	authA := loginAndAuth(t, r, "hg-a")
+	auths := []string{authA}
+	w := doRequest(t, r, "POST", "/api/v1/games", authA, map[string]string{"request_id": "hg-create"})
+	assertStatus(t, w, http.StatusCreated)
+	m := parseJSON(t, w)
+	gameID := int64(m["game_id"].(float64))
+	inviteToken := m["invite_token"].(string)
+	for i, code := range []string{"hg-b", "hg-c", "hg-d"} {
+		ja := loginAndAuth(t, r, code)
+		w = doRequest(t, r, "POST", "/api/v1/games/join", ja,
+			map[string]string{"invite_token": inviteToken, "request_id": fmt.Sprintf("hg-join-%d", i)})
+		assertStatus(t, w, http.StatusCreated)
+		auths = append(auths, ja)
+	}
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d/rounds/current", gameID), authA, nil)
+	assertStatus(t, w, http.StatusOK)
+	roundID := int64(parseJSON(t, w)["round_id"].(float64))
+	playRound(t, r, gameID, roundID, auths, []int{16, 5, -8, -13})
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/end", gameID), authA,
+		map[string]string{"request_id": "hg-end"})
+	assertStatus(t, w, http.StatusOK)
+
+	statsGames := func(auth string) float64 {
+		w := doRequest(t, r, "GET", "/api/v1/user/stats", auth, nil)
+		assertStatus(t, w, http.StatusOK)
+		return parseJSON(t, w)["games"].(float64)
+	}
+	if statsGames(authA) != 1 {
+		t.Fatalf("删除前 A games 应为 1")
+	}
+
+	// A 删除这场记录
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/hide", gameID), authA, nil)
+	assertStatus(t, w, http.StatusOK)
+
+	if g := statsGames(authA); g != 0 {
+		t.Fatalf("删除后 A games = %v, want 0（我的页面不应再显示战绩）", g)
+	}
+	// 徽章同步排除：常客徽章要求 ≥20 场，删除后进度应为 0
+	w = doRequest(t, r, "GET", "/api/v1/user/badges", authA, nil)
+	assertStatus(t, w, http.StatusOK)
+	badges := parseJSON(t, w)["badges"].([]interface{})
+	for _, it := range badges {
+		b := it.(map[string]interface{})
+		if b["code"] == "regular" && b["current"].(float64) != 0 {
+			t.Fatalf("删除后常客徽章进度 = %v, want 0", b["current"])
+		}
+	}
+	// B 没删：战绩不受影响
+	authB := loginAndAuth(t, r, "hg-b")
+	if g := statsGames(authB); g != 1 {
+		t.Fatalf("B 未删除，games = %v, want 1", g)
+	}
+
+	// 雀友榜：A 视角（唯一一场被自己删除）→ 空榜；B 视角 → B/C/D 仍在，A 不计该局
+	w = doRequest(t, r, "GET", "/api/v1/leaderboard", authA, nil)
+	assertStatus(t, w, http.StatusOK)
+	if lb := parseJSON(t, w)["leaderboard"].([]interface{}); len(lb) != 0 {
+		t.Fatalf("A 删除唯一一场后 leaderboard 应为空, got %v", lb)
+	}
+	w = doRequest(t, r, "GET", "/api/v1/leaderboard", authB, nil)
+	assertStatus(t, w, http.StatusOK)
+	lb := parseJSON(t, w)["leaderboard"].([]interface{})
+	gamesBy := map[string]float64{}
+	for _, it := range lb {
+		e := it.(map[string]interface{})
+		gamesBy[e["nickname"].(string)] = e["games"].(float64)
+	}
+	if gamesBy["玩家hg-a"] != 0 || len(lb) != 3 {
+		t.Fatalf("B 视角榜单应只有 B/C/D（A 已删该局不计），got %v", gamesBy)
 	}
 }

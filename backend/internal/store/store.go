@@ -1756,10 +1756,11 @@ type UserStats struct {
 func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardEntry, error) {
 	const fourPlayerGames = "id IN (SELECT game_id FROM game_players GROUP BY game_id HAVING COUNT(*) = 4)"
 
-	// 第一步：窗口内我参与过的 4 人局 → 同台雀友集合（含自己）
+	// 第一步：窗口内我参与过的 4 人局（排除我已删除的）→ 同台雀友集合（含自己）
 	myGamesQuery := s.DB.Model(&model.Game{}).
 		Where("status = 'ended' AND ended_at IS NOT NULL AND "+fourPlayerGames+
-			" AND id IN (SELECT game_id FROM game_players WHERE user_id = ?)", userID)
+			" AND id IN (SELECT game_id FROM game_players WHERE user_id = ?)"+
+			" AND id NOT IN (SELECT game_id FROM game_hiddens WHERE user_id = ?)", userID, userID)
 	if days > 0 {
 		myGamesQuery = myGamesQuery.Where("ended_at >= ?", time.Now().AddDate(0, 0, -days))
 	}
@@ -1793,6 +1794,25 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 		return nil, err
 	}
 
+	// 删除（软隐藏）的局 per-user 排除：A 删的场不计入 A 的战绩，不影响 B
+	type hiddenPairRow struct {
+		GameID int64
+		UserID int64
+	}
+	var hiddenRows []hiddenPairRow
+	if err := s.DB.Table("game_hiddens").
+		Where("user_id IN ?", peerIDs).
+		Scan(&hiddenRows).Error; err != nil {
+		return nil, err
+	}
+	hiddenPair := map[int64]map[int64]bool{} // user_id -> game_id set
+	for _, h := range hiddenRows {
+		if hiddenPair[h.UserID] == nil {
+			hiddenPair[h.UserID] = map[int64]bool{}
+		}
+		hiddenPair[h.UserID][h.GameID] = true
+	}
+
 	type acc struct {
 		games, wins, draws, top3, rankSum int
 		netSum                            int64
@@ -1812,6 +1832,9 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 			continue
 		}
 		for _, pt := range totals {
+			if hiddenPair[pt.UserID] != nil && hiddenPair[pt.UserID][g.ID] {
+				continue // 该玩家删除了这场：不计入其个人战绩
+			}
 			a := accs[pt.UserID]
 			if a == nil {
 				a = &acc{}
@@ -1851,7 +1874,13 @@ func (s *Store) GetLeaderboard(userID int64, days, minGames int) ([]LeaderboardE
 				if !ok || len(seq) == 0 {
 					continue
 				}
+				if hiddenPair[uid] != nil && hiddenPair[uid][g.ID] {
+					continue // 已删除的局不计标签（此时 accs[uid] 可能不存在，必须跳过）
+				}
 				a := accs[uid]
+				if a == nil {
+					continue
+				}
 				finalV := seq[len(seq)-1]
 				neg, maxV := 0, seq[0]
 				for _, v := range seq {
@@ -2040,7 +2069,9 @@ func (s *Store) GetUserBadges(userID int64) (*UserBadges, error) {
 	var games []model.Game
 	err := s.DB.Where(
 		"status = 'ended' AND ended_at IS NOT NULL AND id IN "+
-			"(SELECT game_id FROM game_players WHERE user_id = ?)", userID).
+			"(SELECT game_id FROM game_players WHERE user_id = ?) "+
+			// 排除用户已删除（软隐藏）的牌局：删了记录就不该再计入战绩/徽章
+			"AND id NOT IN (SELECT game_id FROM game_hiddens WHERE user_id = ?)", userID, userID).
 		Order("ended_at ASC").Find(&games).Error
 	if err != nil {
 		return nil, err
@@ -2134,7 +2165,9 @@ func (s *Store) GetUserStats(userID int64, maxTrend int) (*UserStats, error) {
 	var games []model.Game
 	err := s.DB.Where(
 		"status = 'ended' AND ended_at IS NOT NULL AND id IN "+
-			"(SELECT game_id FROM game_players WHERE user_id = ?)", userID).
+			"(SELECT game_id FROM game_players WHERE user_id = ?) "+
+			// 排除用户已删除（软隐藏）的牌局：删了记录就不该再计入战绩/徽章
+			"AND id NOT IN (SELECT game_id FROM game_hiddens WHERE user_id = ?)", userID, userID).
 		Order("ended_at ASC").Find(&games).Error
 	if err != nil {
 		return nil, err
