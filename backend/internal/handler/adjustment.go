@@ -77,7 +77,7 @@ var adjustmentTagConfig = []AdjustmentTagConfig{
 }
 
 // adjustmentPresets 给分抽屉的快捷预设分值（端上「连点两下直接转出」那排按钮）。
-var adjustmentPresets = []int{5, 10, 20}
+var adjustmentPresets = []int{4, 5, 7}
 
 // allowedAdjustmentTags 从 adjustmentTagConfig 派生的提交白名单：
 // 遇到配置外的 code 直接报错，避免脏标签进库。

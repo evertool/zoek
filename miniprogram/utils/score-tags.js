@@ -15,7 +15,7 @@ const DEFAULT_TAGS = [
   { code: 'qianggang', label: '抢杠' }
 ]
 
-const DEFAULT_PRESETS = [5, 10, 20]
+const DEFAULT_PRESETS = [4, 5, 7]
 
 const CACHE_KEY = 'score_config_v1'
 const CACHE_TTL = 24 * 60 * 60 * 1000
