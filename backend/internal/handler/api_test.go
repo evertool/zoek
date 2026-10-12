@@ -104,6 +104,7 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 
 			auth.POST("/games/:game_id/rounds/:round_id/adjustments", adjH.CreateAdjustment)
 			auth.GET("/games/:game_id/adjustments", adjH.ListAdjustments)
+			auth.GET("/adjustments/config", adjH.GetAdjustmentConfig)
 
 			auth.GET("/games/:game_id/settlement", settleH.GetSettlement)
 			auth.GET("/games/:game_id/history", settleH.GetHistoryDetail)

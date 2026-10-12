@@ -8,13 +8,14 @@
  * 于是审核端拿到局域网地址 http://192.168.1.15:8080，所有请求必然失败，
  * 首页整页「网络开小差」。
  *
- * 本脚本用 stub 跑真实源码，锁住三条铁律：
+ * 本脚本用 stub 跑真实源码，锁住四条铁律：
  *   1. 真机（含审核环境）的 baseURL 必须是 https 正式域名 —— 任何 envVersion 都不能改变它；
  *   2. 静默登录失败时首页先自动重试，不立刻渲染报错兜底条；
  *   3. project.config.json 开着 enhance（增强编译）时，@babel/runtime 必须已构建进
  *      miniprogram_npm —— 2026-09 新版开发者工具不再内联 helper，缺失时页面 JS
  *      一加载就抛 "module '@babel/runtime/helpers/defineProperty.js' is not defined"，
- *      上传包同样带病，正式版/审核版直接白屏。
+ *      上传包同样带病，正式版/审核版直接白屏；
+ *   4. 给分配置（标签+预设）24h 缓存内不发请求；过期重拉；拉取失败静默回退内置默认。
  *
  * 用法：node scripts/check-mp-client.js
  */
@@ -207,10 +208,89 @@ function testEnhanceDeps() {
     !!(pkg.dependencies && pkg.dependencies['@babel/runtime']), pkg.dependencies)
 }
 
+// ---------------------------------------------------------------------------
+// 4) 给分配置缓存：24h 内不发请求 / 过期重拉 / 失败回退默认
+// ---------------------------------------------------------------------------
+async function testScoreTagsConfig() {
+  console.log('\n[4/4] 给分配置缓存（24h 内不发请求）')
+  const TAGS = path.join(ROOT, 'miniprogram/utils/score-tags.js')
+  const store = {}
+  let configRequests = 0
+  let failNext = false
+
+  global.wx = {
+    getStorageSync: (k) => store[k] || '',
+    setStorageSync: (k, v) => { store[k] = v },
+    removeStorageSync: () => {},
+    showToast: () => {},
+    showLoading: () => {},
+    hideLoading: () => {},
+    request: (o) => {
+      if (String(o.url).indexOf('/adjustments/config') >= 0) {
+        configRequests++
+        if (failNext) { o.fail({ errMsg: 'request:fail' }); return }
+        o.success({
+          statusCode: 200,
+          data: { tags: [{ code: 'zimo', label: '自摸' }, { code: 'newtag', label: '新标签' }], presets: [2, 4, 6] },
+        })
+        return
+      }
+      o.success({ statusCode: 200, data: {} })
+    },
+  }
+  global.getApp = () => ({ globalData: { token: 'tok', baseURL: PROD } })
+
+  delete require.cache[require.resolve(TAGS)]
+  const scoreTags = require(TAGS)
+  const tagsRef = scoreTags.SCORE_TAGS // 引用必须稳定：消费方拿到的是同一数组
+
+  // 首次：无缓存 → 发请求 → 应用配置 + 写缓存
+  let updated = await scoreTags.ensureConfig()
+  check('无缓存时发出配置请求', configRequests === 1, { configRequests })
+  check('配置已应用（新标签可见）', scoreTags.SCORE_TAGS.some((t) => t.code === 'newtag'), scoreTags.SCORE_TAGS)
+  check('SCORE_TAGS 引用原地更新（消费方不失效）', scoreTags.SCORE_TAGS === tagsRef)
+  check('预设分值已应用', JSON.stringify(scoreTags.PRESETS) === '[2,4,6]', scoreTags.PRESETS)
+  check('配置已写缓存', !!(store.score_config_v1 && store.score_config_v1.ts), store.score_config_v1)
+
+  // 缓存有效期内：不发请求
+  updated = await scoreTags.ensureConfig()
+  check('24h 内再次调用不发请求', updated === false && configRequests === 1, { updated, configRequests })
+
+  // 缓存过期：重新拉
+  store.score_config_v1.ts = Date.now() - 25 * 3600 * 1000
+  updated = await scoreTags.ensureConfig()
+  check('缓存过期后重新请求', configRequests === 2, { configRequests })
+
+  // 请求失败：静默回退，保留当前配置，不写坏缓存
+  store.score_config_v1.ts = Date.now() - 25 * 3600 * 1000
+  failNext = true
+  updated = await scoreTags.ensureConfig()
+  check('请求失败不抛错', updated === false, { updated })
+  check('失败后保留当前配置（新标签仍在）', scoreTags.SCORE_TAGS.some((t) => t.code === 'newtag'), scoreTags.SCORE_TAGS)
+  check('失败后不写缓存', store.score_config_v1.ts < Date.now() - 24 * 3600 * 1000)
+
+  // 脏数据防护：接口返回空/畸形标签时不应用也不缓存
+  store.score_config_v1 = { ts: Date.now() - 25 * 3600 * 1000, tags: scoreTags.SCORE_TAGS.slice(), presets: [] }
+  configRequests = 0
+  failNext = false
+  global.wx.request = (o) => {
+    if (String(o.url).indexOf('/adjustments/config') >= 0) {
+      configRequests++
+      o.success({ statusCode: 200, data: { tags: [{ code: '', label: '' }], presets: [] } })
+      return
+    }
+    o.success({ statusCode: 200, data: {} })
+  }
+  updated = await scoreTags.ensureConfig()
+  check('脏配置不应用（标签保持不变）', scoreTags.SCORE_TAGS.some((t) => t.code === 'newtag'), scoreTags.SCORE_TAGS)
+  check('脏配置不写缓存', !store.score_config_v1 || store.score_config_v1.ts < Date.now() - 24 * 3600 * 1000)
+}
+
 ;(async () => {
   testBaseURL()
   await testIndexRetry()
   testEnhanceDeps()
+  await testScoreTagsConfig()
   console.log(fail === 0 ? '\n小程序端回归：ALL PASS' : `\n小程序端回归：${fail} FAILED`)
   process.exit(fail === 0 ? 0 : 1)
 })()

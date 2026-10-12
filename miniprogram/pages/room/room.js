@@ -80,6 +80,10 @@ Page({
     scoreText: '0',
     // 已「上膛」的预设分值：点一下填入，再点同一下直接转出（0 = 没上膛）
     presetArmed: 0,
+    // 快捷预设分值：默认与后端 /adjustments/config 一致，onLoad 后可能被配置刷新
+    presetAmounts: [5, 10, 20],
+    // 给分标签网格列数（跟随配置的标签数，最多 6 列防挤）
+    tagCols: 6,
     // 给分标签（多选）：scoreTags 是已选 code（提交用），tagOptions 带 on 标志给 WXML 渲染
     // （WXML 表达式不能调 indexOf，所以选中态必须落到数据里）
     scoreTags: [],
@@ -132,6 +136,7 @@ Page({
       return
     }
     wx.showShareMenu({ menus: ['shareAppMessage'] })
+    this.applyScoreConfig()
     if (this.data.inviteToken) {
       // 邀请链接进入：先入台再加载。GET /games/:id 仅局内玩家可读，
       // 受邀者未入台直接加载会 403「没有权限执行此操作」（join 幂等，已在局内直接返回成功）
@@ -139,6 +144,17 @@ Page({
     } else {
       this.loadGame()
     }
+  },
+
+  // 给分抽屉配置（标签+预设分值）：后端下发，端上缓存 24h，有效期内不发请求。
+  // 配置晚到也没关系——tagOptions 在每次打开抽屉时才从 scoreTags.SCORE_TAGS 重建，
+  // 这里只需要把预设分值和标签列数刷进 data。
+  applyScoreConfig() {
+    scoreTags.ensureConfig().then(function (updated) {
+      if (!updated) return
+      var cols = Math.min(scoreTags.SCORE_TAGS.length, 6)
+      this.setData({ presetAmounts: scoreTags.PRESETS.slice(), tagCols: cols })
+    }.bind(this))
   },
 
   // 邀请链接进入的入台流程

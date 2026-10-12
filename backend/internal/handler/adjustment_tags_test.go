@@ -107,6 +107,44 @@ func TestAdjustmentTagsRejectsUnknown(t *testing.T) {
 	}
 }
 
+// 给分抽屉配置接口：返回有序标签（code+label）+ 预设分值，与提交白名单同源。
+func TestAdjustmentConfigEndpoint(t *testing.T) {
+	r, _, _ := testSetup(t)
+	auth := loginAndAuth(t, r, "cfg-user")
+
+	w := doRequest(t, r, "GET", "/api/v1/adjustments/config", auth, nil)
+	assertStatus(t, w, http.StatusOK)
+	cfg := parseJSON(t, w)
+
+	tagArr, ok := cfg["tags"].([]interface{})
+	if !ok || len(tagArr) == 0 {
+		t.Fatalf("config tags = %v, want non-empty array", cfg["tags"])
+	}
+	wantCodes := []string{"zimo", "fanggang", "minggang", "angang", "gangbao", "qianggang"}
+	if len(tagArr) != len(wantCodes) {
+		t.Fatalf("config tags len = %d, want %d", len(tagArr), len(wantCodes))
+	}
+	for i, it := range tagArr {
+		m := it.(map[string]interface{})
+		if m["code"] != wantCodes[i] {
+			t.Fatalf("tag[%d].code = %v, want %s", i, m["code"], wantCodes[i])
+		}
+		if m["label"] == "" {
+			t.Fatalf("tag[%d].label empty", i)
+		}
+	}
+
+	presets, ok := cfg["presets"].([]interface{})
+	if !ok || len(presets) != 3 {
+		t.Fatalf("config presets = %v, want [5 10 20]", cfg["presets"])
+	}
+	for i, want := range []float64{5, 10, 20} {
+		if presets[i].(float64) != want {
+			t.Fatalf("presets[%d] = %v, want %v", i, presets[i], want)
+		}
+	}
+}
+
 // toStrings 把接口返回的 []interface{} 拉平成 []string。
 func toStrings(t *testing.T, v interface{}) []string {
 	t.Helper()

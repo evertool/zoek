@@ -313,16 +313,18 @@
         <view class="score-step-btn" bindtap="adjustScore" data-delta="1"><text>＋</text></view>
       </view>
 
-      <!-- 预设：点一下填入，再点同一下直接转出（已在 js 侧上膛），文案跟着状态走 -->
+      <!-- 预设：点一下填入，再点同一下直接转出（已在 js 侧上膛），文案跟着状态走。
+           分值来自后端配置（room.js applyScoreConfig，端上缓存 24h），默认 [5,10,20] -->
       <text class="score-preset-label {{presetArmed ? 'score-preset-label-on' : ''}}">{{presetArmed ? '再点一下「' + presetArmed + ' 分」即刻转出' : '快捷预设分值 · 连点两下直接转出'}}</text>
       <view class="score-preset-row">
-        <view class="score-preset-btn {{presetArmed === item ? 'score-preset-on' : ''}}" wx:for="{{[5, 10, 20]}}" wx:key="*this" data-val="{{item}}" bindtap="setScoreValue"><text>{{item}} 分</text></view>
+        <view class="score-preset-btn {{presetArmed === item ? 'score-preset-on' : ''}}" wx:for="{{presetAmounts}}" wx:key="*this" data-val="{{item}}" bindtap="setScoreValue"><text>{{item}} 分</text></view>
       </view>
 
-      <!-- 给分标签（可多选）：自摸/明杠/暗杠/放杠/杠爆/抢杠，落库存 code（utils/score-tags.js 映射文案），
-           选中的会跟着这笔转分一起进流水账单 -->
+      <!-- 给分标签（可多选）：顺序与文案来自后端 /adjustments/config，落库存 code
+           （utils/score-tags.js 映射文案），选中的会跟着这笔转分一起进流水账单。
+           列数跟随标签数（上限 6，防止一行挤爆/换行顶高抽屉） -->
       <text class="score-tag-label">给分标签 <text class="score-tag-hint">可多选</text></text>
-      <view class="score-tag-row">
+      <view class="score-tag-row" style="grid-template-columns: repeat({{tagCols}}, 1fr)">
         <view class="score-tag {{item.on ? 'score-tag-on' : ''}}" wx:for="{{tagOptions}}" wx:key="code"
           data-code="{{item.code}}" bindtap="toggleScoreTag"><text>{{item.label}}</text></view>
       </view>

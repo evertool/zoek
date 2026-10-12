@@ -184,6 +184,8 @@ func main() {
 			// 给分（转分）：一律直接生效，没有「待确认 / 接受 / 驳回 / 取消」这套审核流
 			auth.POST("/games/:game_id/rounds/:round_id/adjustments", adjHandler.CreateAdjustment)
 			auth.GET("/games/:game_id/adjustments", adjHandler.ListAdjustments)
+			// 给分抽屉配置（标签+预设分值），端上缓存 24h
+			auth.GET("/adjustments/config", adjHandler.GetAdjustmentConfig)
 
 			// Settlement and History
 			auth.GET("/games/:game_id/settlement", settlementHandler.GetSettlement)

@@ -56,17 +56,38 @@ type AdjustmentResponse struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
-// allowedAdjustmentTags 给分标签白名单。code 与小程序 utils/score-tags.js 的 SCORE_TAGS
-// 一一对应：自摸 zimo / 明杠 minggang / 暗杠 angang / 放杠 fanggang / 杠爆 gangbao / 抢杠 qianggang。
-// 落到 score_adjustments.tags 的是 code 的逗号串，展示文案由端上映射（后端不碰中文）。
-var allowedAdjustmentTags = map[string]bool{
-	"zimo":      true,
-	"minggang":  true,
-	"angang":    true,
-	"fanggang":  true,
-	"gangbao":   true,
-	"qianggang": true,
+// AdjustmentTagConfig 给分标签配置项：code 落库（score_adjustments.tags 逗号串），
+// label 只给端上展示（后端不拿它做校验）。顺序 = 端上抽屉排列顺序 = 提交时 tags 顺序。
+type AdjustmentTagConfig struct {
+	Code  string `json:"code"`
+	Label string `json:"label"`
 }
+
+// adjustmentTagConfig 给分标签配置 —— 标签的唯一事实来源。
+// 白名单 allowedAdjustmentTags 从这里派生；端上抽屉经 GET /adjustments/config 拉同一份。
+// 以前改标签要同时动端上 score-tags.js + 这里白名单 + wxss 列数三处，
+// 现在只改这里，端上一天内自动跟上（缓存 24h）。
+var adjustmentTagConfig = []AdjustmentTagConfig{
+	{"zimo", "自摸"},
+	{"fanggang", "放杠"},
+	{"minggang", "明杠"},
+	{"angang", "暗杠"},
+	{"gangbao", "杠爆"},
+	{"qianggang", "抢杠"},
+}
+
+// adjustmentPresets 给分抽屉的快捷预设分值（端上「连点两下直接转出」那排按钮）。
+var adjustmentPresets = []int{5, 10, 20}
+
+// allowedAdjustmentTags 从 adjustmentTagConfig 派生的提交白名单：
+// 遇到配置外的 code 直接报错，避免脏标签进库。
+var allowedAdjustmentTags = func() map[string]bool {
+	m := make(map[string]bool, len(adjustmentTagConfig))
+	for _, t := range adjustmentTagConfig {
+		m[t.Code] = true
+	}
+	return m
+}()
 
 // normalizeAdjustmentTags 去空、去重、白名单校验；遇到不认识的 code 直接报错，
 // 避免脏标签进库（端上加了新标签忘了同步这里时，接口会明确失败而不是静默吞掉）。
@@ -105,6 +126,17 @@ func splitAdjustmentTags(s string) []string {
 // ---------------------------------------------------------------------------
 // Handlers
 // ---------------------------------------------------------------------------
+
+// GetAdjustmentConfig handles GET /api/v1/adjustments/config
+// 给分抽屉配置：标签（code+label，有序）+ 快捷预设分值。
+// 端上缓存 24h，有效期内不再请求本接口；拉取失败用端上内置默认兜底。
+func (h *AdjustmentHandler) GetAdjustmentConfig(c *gin.Context) {
+	tags := make([]AdjustmentTagConfig, len(adjustmentTagConfig))
+	copy(tags, adjustmentTagConfig)
+	presets := make([]int, len(adjustmentPresets))
+	copy(presets, adjustmentPresets)
+	c.JSON(http.StatusOK, gin.H{"tags": tags, "presets": presets})
+}
 
 // CreateAdjustment handles POST /api/v1/games/:game_id/rounds/:round_id/adjustments
 // PRD §3.2: 补分/退分

@@ -55,7 +55,10 @@ Page({
   },
 
   onReady() {
-    if (this.data.gameID) this.loadDetail()
+    if (!this.data.gameID) return
+    // 先把给分标签配置就绪（24h 缓存 / 后端拉取 / 失败用内置默认）再渲染，
+    // 新加标签的文案才不会落后一拍
+    scoreTags.ensureConfig().then(() => this.loadDetail())
   },
 
   loadDetail() {
