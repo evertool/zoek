@@ -60,6 +60,7 @@ var (
 	ErrSeatEmpty      = New("SEAT_EMPTY", "目标座位为空，可直接换座", ActionRetry)
 	ErrInvalidInput   = New("INVALID_INPUT", "输入参数有误", ActionRetry)
 	ErrInternal       = New("INTERNAL", "服务器内部错误", ActionRetry)
+	ErrNoRoundScores  = New("NO_ROUND_SCORES", "今局仲未有积分记录，锁唔到局", ActionRetry)
 
 	// 离座相关（自己退出 / 台主移除雀友）
 	ErrNotInGame       = New("NOT_IN_GAME", "你已经不在牌台上了", ActionBackToRoom)

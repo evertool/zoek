@@ -52,6 +52,10 @@ type Game struct {
 	ID                  int64          `gorm:"primaryKey;autoIncrement" json:"id"`
 	CreatorID           int64          `gorm:"not null" json:"creator_id"`
 	Name                string         `gorm:"type:varchar(64);not null;default:未命名牌局" json:"name"`
+	Mode                string         `gorm:"type:varchar(16);not null;default:round" json:"mode"` // round=锁局模式 | free=自由模式
+	RakeTarget          int            `gorm:"not null;default:0" json:"rake_target"`               // 抽水目标总分数（0=不抽水）
+	RakePerRound        int            `gorm:"not null;default:2" json:"rake_per_round"`            // 每局抽水分数（默认2分）
+	RakeCollected       int            `gorm:"not null;default:0" json:"rake_collected"`            // 累计已抽水分数
 	Status              string         `gorm:"type:varchar(16);not null;default:forming" json:"status"`
 	InviteTokenHash     string         `gorm:"type:varchar(128);uniqueIndex;not null" json:"-"`
 	JoinExpiresAt       *time.Time     `json:"join_expires_at,omitempty"`
@@ -67,6 +71,12 @@ type Game struct {
 }
 
 func (Game) TableName() string { return "games" }
+
+// 开台模式（Game.Mode）
+const (
+	GameModeRound = "round" // 锁局模式（默认推荐：带局号、拍钟锁局、逐局收支卡片）
+	GameModeFree  = "free"  // 自由模式（随开随记、自由转分流水）
+)
 
 // GamePlayer maps to the game_players table (PRD §7.2).
 type GamePlayer struct {
@@ -97,6 +107,7 @@ type Round struct {
 	GameID          int64      `gorm:"not null;uniqueIndex:uk_game_round" json:"game_id"`
 	RoundNumber     int        `gorm:"not null;uniqueIndex:uk_game_round" json:"round_number"`
 	Status          string     `gorm:"type:varchar(16);not null;default:open" json:"status"`
+	RakeAmount      int        `gorm:"not null;default:0" json:"rake_amount"` // 本局实际抽取的分数
 	ReviewStartedAt *time.Time `json:"review_started_at,omitempty"`
 	LockedAt        *time.Time `json:"locked_at,omitempty"`
 	CreatedAt       time.Time  `json:"created_at"`

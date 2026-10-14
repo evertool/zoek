@@ -219,11 +219,29 @@ func hashToken(token string) string {
 }
 
 // CreateGame creates a new forming game with the creator as first player.
-func (s *Store) CreateGame(creatorID int64, name, inviteToken string) (*model.Game, error) {
+func (s *Store) CreateGame(creatorID int64, name, inviteToken, mode string, rakeTarget, rakePerRound int) (*model.Game, error) {
+	if mode == "" || (mode != model.GameModeFree && mode != model.GameModeRound) {
+		mode = model.GameModeRound // 默认推荐锁局模式
+	}
+	if mode != model.GameModeRound || rakeTarget <= 0 {
+		rakeTarget = 0
+		rakePerRound = 0
+	} else {
+		if rakePerRound <= 0 {
+			rakePerRound = 2 // 默认每局抽 2 分
+		}
+		if rakePerRound > rakeTarget {
+			rakePerRound = rakeTarget
+		}
+	}
 	joinExpires := time.Now().Add(24 * time.Hour)
 	game := model.Game{
 		CreatorID:       creatorID,
 		Name:            name,
+		Mode:            mode,
+		RakeTarget:      rakeTarget,
+		RakePerRound:    rakePerRound,
+		RakeCollected:   0,
 		Status:          "forming",
 		InviteTokenHash: hashToken(inviteToken),
 		JoinExpiresAt:   &joinExpires,
@@ -476,7 +494,9 @@ func (s *Store) GetGamePlayerTotals(gameID int64) (map[int64]int, error) {
 	}
 	for _, adj := range adjs {
 		totals[adj.FromPlayerID] -= adj.Amount
-		totals[adj.ToPlayerID] += adj.Amount
+		if adj.AdjustmentType != "rake" {
+			totals[adj.ToPlayerID] += adj.Amount
+		}
 	}
 	return totals, nil
 }
@@ -817,7 +837,9 @@ func (s *Store) GetTotalsByGameIDs(gameIDs []int64) (map[int64]map[int64]int, er
 			out[adj.GameID] = m
 		}
 		m[adj.FromPlayerID] -= adj.Amount
-		m[adj.ToPlayerID] += adj.Amount
+		if adj.AdjustmentType != "rake" {
+			m[adj.ToPlayerID] += adj.Amount
+		}
 	}
 	return out, nil
 }
@@ -1311,6 +1333,281 @@ func (s *Store) GetCurrentRound(gameID int64) (*model.Round, error) {
 	return &round, nil
 }
 
+// GetRoundScoreSummary 汇总指定局中各玩家的转分收支 net (game_player_id -> net score)。
+func (s *Store) GetRoundScoreSummary(gameID, roundID int64) (map[int64]int, error) {
+	summary := make(map[int64]int)
+	if roundID <= 0 {
+		return summary, nil
+	}
+	var adjs []model.ScoreAdjustment
+	if err := s.DB.Where("game_id = ? AND round_id = ? AND status = 'accepted'", gameID, roundID).Find(&adjs).Error; err != nil {
+		return nil, err
+	}
+	for _, adj := range adjs {
+		summary[adj.FromPlayerID] -= adj.Amount
+		if adj.AdjustmentType != "rake" {
+			summary[adj.ToPlayerID] += adj.Amount
+		}
+	}
+	return summary, nil
+}
+
+// GetOrCreateOpenRound 获取当前进行中（open）的局；若当前最新局已锁定或尚无局，自动创建并返回下一局 open
+func (s *Store) GetOrCreateOpenRound(gameID int64) (*model.Round, error) {
+	var round model.Round
+	err := s.Transaction(func(tx *gorm.DB) error {
+		var latest model.Round
+		err := tx.Where("game_id = ?", gameID).Order("round_number DESC").First(&latest).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				r1 := model.Round{
+					GameID:      gameID,
+					RoundNumber: 1,
+					Status:      "open",
+				}
+				if cErr := tx.Create(&r1).Error; cErr != nil {
+					return cErr
+				}
+				round = r1
+				return nil
+			}
+			return err
+		}
+
+		if latest.Status == "open" {
+			round = latest
+			return nil
+		}
+
+		// 最新局已锁定，创建下一局
+		next := model.Round{
+			GameID:      gameID,
+			RoundNumber: latest.RoundNumber + 1,
+			Status:      "open",
+		}
+		if cErr := tx.Create(&next).Error; cErr != nil {
+			return cErr
+		}
+		round = next
+		return nil
+	})
+	return &round, err
+}
+
+// DingLockRound 幂等拍钟锁局：
+// 若传入的 roundNumber 小于当前最新局号，说明已由其他玩家抢先锁局，幂等返回 (roundNumber, latestRound.RoundNumber, true, nil)；
+// 若相等且为 open，将本局置为 locked，返回 (roundNumber, roundNumber, false, nil)；
+// ⚠️ 锁局后本局保持 locked 状态并保留本局收支展示，下一局在下一次转分给分时自动开启。
+func (s *Store) DingLockRound(gameID int64, roundNumber int, userID int64) (int, int, bool, error) {
+	var lockedRoundNum int
+	var nextRoundNum int
+	var alreadyLocked bool
+
+	err := s.Transaction(func(tx *gorm.DB) error {
+		// 验证用户是在座玩家
+		var player model.GamePlayer
+		if err := tx.Where("game_id = ? AND user_id = ? AND status = ?", gameID, userID, model.PlayerStatusActive).
+			First(&player).Error; err != nil {
+			return errs.ErrForbidden
+		}
+
+		var game model.Game
+		if err := tx.Where("id = ?", gameID).First(&game).Error; err != nil {
+			return errs.ErrNotFound
+		}
+		if game.Status != "active" {
+			return errs.ErrGameNotActive
+		}
+
+		// 获取当前局
+		var latestRound model.Round
+		err := tx.Where("game_id = ?", gameID).Order("round_number DESC").First(&latestRound).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// 兜底：若局不存在，创建第 1 局
+				r1 := model.Round{GameID: gameID, RoundNumber: 1, Status: "open"}
+				if cErr := tx.Create(&r1).Error; cErr != nil {
+					return cErr
+				}
+				latestRound = r1
+			} else {
+				return err
+			}
+		}
+
+		// 幂等判断：若当前最新局已经大于客户端传入的局号，说明该局已被其他玩家抢先锁定
+		if latestRound.RoundNumber > roundNumber {
+			lockedRoundNum = roundNumber
+			nextRoundNum = latestRound.RoundNumber
+			alreadyLocked = true
+			return nil
+		}
+
+		// 若当前局等于传入局号
+		if latestRound.RoundNumber == roundNumber {
+			if latestRound.Status == "locked" || latestRound.Status == "ready_for_next" {
+				// 本局已经处于锁定状态
+				lockedRoundNum = roundNumber
+				nextRoundNum = roundNumber
+				alreadyLocked = true
+				return nil
+			}
+
+			// 规则：不考虑流局，无积分记录不能锁局
+			var adjCount int64
+			if err := tx.Model(&model.ScoreAdjustment{}).
+				Where("game_id = ? AND round_id = ? AND status = 'accepted'", gameID, latestRound.ID).
+				Count(&adjCount).Error; err != nil {
+				return err
+			}
+			var subCount int64
+			if err := tx.Model(&model.RoundSubmission{}).
+				Where("round_id = ?", latestRound.ID).
+				Count(&subCount).Error; err != nil {
+				return err
+			}
+			if adjCount == 0 && subCount == 0 {
+				return errs.ErrNoRoundScores
+			}
+
+			// 锁定当前局
+			now := time.Now()
+			res := tx.Model(&model.Round{}).
+				Where("id = ? AND status = ?", latestRound.ID, "open").
+				Updates(map[string]interface{}{
+					"status":    "locked",
+					"locked_at": &now,
+				})
+			if res.Error != nil {
+				return res.Error
+			}
+			if res.RowsAffected == 0 {
+				// 并发竞争：已被另一请求锁定
+				alreadyLocked = true
+				lockedRoundNum = roundNumber
+				nextRoundNum = roundNumber
+				return nil
+			}
+
+			// 锁局抽水规则：若开启了抽水且尚未抽满，找出本局净赢最高分（>0）的玩家进行抽水
+			if game.Mode == model.GameModeRound && game.RakeTarget > 0 && game.RakeCollected < game.RakeTarget {
+				roundScores := make(map[int64]int)
+				var roundSubs []model.RoundSubmission
+				if err := tx.Where("round_id = ?", latestRound.ID).Find(&roundSubs).Error; err != nil {
+					return err
+				}
+				for _, sub := range roundSubs {
+					roundScores[sub.GamePlayerID] += sub.Score
+				}
+				var roundAdjs []model.ScoreAdjustment
+				if err := tx.Where("game_id = ? AND round_id = ? AND status = 'accepted'", gameID, latestRound.ID).Find(&roundAdjs).Error; err != nil {
+					return err
+				}
+				for _, adj := range roundAdjs {
+					if adj.AdjustmentType == "rake" {
+						continue
+					}
+					roundScores[adj.FromPlayerID] -= adj.Amount
+					roundScores[adj.ToPlayerID] += adj.Amount
+				}
+
+				maxScore := 0
+				for _, sc := range roundScores {
+					if sc > maxScore {
+						maxScore = sc
+					}
+				}
+				if maxScore > 0 {
+					var winners []int64
+					for pid, sc := range roundScores {
+						if sc == maxScore {
+							winners = append(winners, pid)
+						}
+					}
+					sort.Slice(winners, func(i, j int) bool { return winners[i] < winners[j] })
+
+					remaining := game.RakeTarget - game.RakeCollected
+					rakePerRound := game.RakePerRound
+					if rakePerRound <= 0 {
+						rakePerRound = 2
+					}
+					effectiveBase := rakePerRound
+					if effectiveBase > remaining {
+						effectiveBase = remaining
+					}
+					k := len(winners)
+					perWinner := (effectiveBase + k - 1) / k
+					// 若处于尾局且多人并列向上取整会超出剩余额度，且 remaining >= k，则按 remaining / k 取整保证每人抽分一致且不超额
+					if perWinner*k > remaining && remaining >= k {
+						perWinner = remaining / k
+					}
+
+					roundRakeTotal := 0
+					rID := latestRound.ID
+					reason := fmt.Sprintf("第%d局抽水", roundNumber)
+					for _, wid := range winners {
+						amt := perWinner
+						if roundRakeTotal+amt > remaining {
+							amt = remaining - roundRakeTotal
+						}
+						if amt <= 0 {
+							break
+						}
+						rakeAdj := model.ScoreAdjustment{
+							GameID:         gameID,
+							RoundID:        rID,
+							AdjustmentType: "rake",
+							FromPlayerID:   wid,
+							ToPlayerID:     wid, // 自指以满足外键约束，聚合时仅扣减 FromPlayerID
+							Amount:         amt,
+							Reason:         reason,
+							ProposedBy:     wid,
+							RequestID:      fmt.Sprintf("rake-r%d-p%d", roundNumber, wid),
+							Status:         "accepted",
+							ExpiresAt:      now,
+							ResolvedAt:     &now,
+						}
+						if err := tx.Create(&rakeAdj).Error; err != nil {
+							return err
+						}
+						roundRakeTotal += amt
+					}
+
+					if roundRakeTotal > 0 {
+						if err := tx.Model(&model.Round{}).Where("id = ?", latestRound.ID).Update("rake_amount", roundRakeTotal).Error; err != nil {
+							return err
+						}
+						newCollected := game.RakeCollected + roundRakeTotal
+						if newCollected > game.RakeTarget {
+							newCollected = game.RakeTarget
+						}
+						if err := tx.Model(&model.Game{}).Where("id = ?", gameID).Update("rake_collected", newCollected).Error; err != nil {
+							return err
+						}
+					}
+				}
+			}
+
+			// 首局锁局后锁定成员快照
+			if roundNumber == 1 && !game.MembersLocked {
+				_ = tx.Model(&model.Game{}).Where("id = ?", gameID).Update("members_locked", true).Error
+			}
+
+			lockedRoundNum = roundNumber
+			nextRoundNum = roundNumber
+			alreadyLocked = false
+			return nil
+		}
+
+		lockedRoundNum = latestRound.RoundNumber
+		nextRoundNum = latestRound.RoundNumber
+		alreadyLocked = true
+		return nil
+	})
+
+	return lockedRoundNum, nextRoundNum, alreadyLocked, err
+}
+
 // roundManualSplit：局边界由玩家手动「开下一局」标记，不做时间/总和自动推断
 // （转分恒为 0 和、延迟补记都属同一局，数据无法还原意图）。
 
@@ -1460,10 +1757,10 @@ func (s *Store) UpdateRoundStatus(roundID int64, expectedStatus, newStatus strin
 	return &round, nil
 }
 
-// CountLockedRounds returns the number of completed (ready_for_next) rounds.
+// CountLockedRounds returns the number of completed (ready_for_next / locked) rounds.
 func (s *Store) CountLockedRounds(gameID int64) (int, error) {
 	var count int64
-	err := s.DB.Model(&model.Round{}).Where("game_id = ? AND status = ?", gameID, "ready_for_next").
+	err := s.DB.Model(&model.Round{}).Where("game_id = ? AND status IN ('ready_for_next', 'locked')", gameID).
 		Count(&count).Error
 	return int(count), err
 }
@@ -1636,9 +1933,11 @@ func (s *Store) AggregateSettlement(gameID int64) ([]PlayerTotal, int, error) {
 	adjCounts := make(map[int64]int)
 	for _, adj := range adjs {
 		totals[adj.FromPlayerID] -= int64(adj.Amount)
-		totals[adj.ToPlayerID] += int64(adj.Amount)
 		adjCounts[adj.FromPlayerID]++
-		adjCounts[adj.ToPlayerID]++
+		if adj.AdjustmentType != "rake" {
+			totals[adj.ToPlayerID] += int64(adj.Amount)
+			adjCounts[adj.ToPlayerID]++
+		}
 	}
 
 	// Build result

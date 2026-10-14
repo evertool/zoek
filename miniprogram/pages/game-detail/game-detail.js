@@ -81,32 +81,34 @@ Page({
         return tb - ta
       })
       var flow = list.map(function(a) {
+        var isRake = a.adjustment_type === 'rake'
         var fromId = Number(a.from_player_id)
         var toId = Number(a.to_player_id)
         var from = infoByPlayer[fromId] || { nickname: '雀友', avatarColor: '' }
         var to = infoByPlayer[toId] || { nickname: '雀友' }
         var outgoing = fromId === myPlayerID // 我出分
-        var incoming = toId === myPlayerID   // 我得分的
+        var incoming = !isRake && (toId === myPlayerID) // 我得分的
         var mine = outgoing || incoming
         var amount = Number(a.amount) || 0
         var delta = mine ? (outgoing ? -amount : amount) : amount
-        // 「转分」占位文案已下线：没写原因就只显示时间，这笔的语义交给右边的标签
-        // （自摸/明杠/…；没标签的就只剩时间）
-        var reason = a.reason || ''
+        // 流水账单不显示 reason，语义交给右边的标签（抽水/自摸/明杠/…）
         var time = this.formatHM(a.created_at)
+        var baseTags = scoreTags.labelsOf(a.tags)
+        if (isRake) {
+          baseTags = ['抽水'].concat(baseTags)
+        }
         return {
           id: a.id,
           fromLabel: outgoing ? ('我 (' + myNick + ')') : from.nickname,
-          toLabel: incoming ? ('我 (' + myNick + ')') : to.nickname,
+          toLabel: isRake ? '抽水' : (incoming ? ('我 (' + myNick + ')') : to.nickname),
           fromIsMe: outgoing,
           toIsMe: incoming,
           dirClass: incoming ? 'in' : (outgoing ? 'out' : 'neutral'),
           fromInitial: (from.nickname || '雀')[0],
-          reasonText: reason,
           timeText: time,
-          subText: reason ? (time + ' · ' + reason) : time,
-          // 给分标签（自摸/明杠/暗杠/杠爆/抢杠）：code → 中文，空数组就不渲染
-          tags: scoreTags.labelsOf(a.tags),
+          subText: time,
+          // 给分标签（抽水/自摸/明杠/暗杠/杠爆/抢杠）：code → 中文，空数组就不渲染
+          tags: baseTags,
           score: delta,
           scoreText: mine ? ((delta > 0 ? '+' : '') + delta) : String(amount),
           scoreClass: mine

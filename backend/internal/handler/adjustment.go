@@ -45,6 +45,7 @@ type AdjustmentResponse struct {
 	ID             int64     `json:"id"`
 	GameID         int64     `json:"game_id"`
 	RoundID        int64     `json:"round_id"`
+	RoundNumber    int       `json:"round_number"`
 	FromPlayerID   int64     `json:"from_player_id"`
 	ToPlayerID     int64     `json:"to_player_id"`
 	AdjustmentType string    `json:"adjustment_type"`
@@ -174,8 +175,14 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 		return
 	}
 
-	// 局概念已移除：转分不再关联局（RoundID 落 0，兼容旧数据列）
-	req.RoundID = 0
+	// 若牌局处于锁局模式或存在当前局，转分关联当前进行中的局 ID（若上局已锁，自动开启新局），以便计算本局动态收支
+	var roundNum int
+	if openRound, err := h.Store.GetOrCreateOpenRound(gameID); err == nil && openRound != nil {
+		req.RoundID = openRound.ID
+		roundNum = openRound.RoundNumber
+	} else {
+		req.RoundID = 0
+	}
 
 	// Validate adjustment type
 	if req.AdjustmentType != "supplement" && req.AdjustmentType != "refund" {
@@ -272,6 +279,7 @@ func (h *AdjustmentHandler) CreateAdjustment(c *gin.Context) {
 			ID:             adj.ID,
 			GameID:         adj.GameID,
 			RoundID:        adj.RoundID,
+			RoundNumber:    roundNum,
 			FromPlayerID:   adj.FromPlayerID,
 			ToPlayerID:     adj.ToPlayerID,
 			AdjustmentType: adj.AdjustmentType,
@@ -307,12 +315,21 @@ func (h *AdjustmentHandler) ListAdjustments(c *gin.Context) {
 		return
 	}
 
+	// 建立 round_id -> round_number 映射，便于锁局模式流水账单展示「第N局」
+	var rounds []model.Round
+	_ = h.Store.DB.Where("game_id = ?", gameID).Find(&rounds).Error
+	roundNumByID := make(map[int64]int, len(rounds))
+	for _, r := range rounds {
+		roundNumByID[r.ID] = r.RoundNumber
+	}
+
 	result := make([]AdjustmentResponse, 0, len(adjs))
 	for _, a := range adjs {
 		result = append(result, AdjustmentResponse{
 			ID:             a.ID,
 			GameID:         a.GameID,
 			RoundID:        a.RoundID,
+			RoundNumber:    roundNumByID[a.RoundID],
 			FromPlayerID:   a.FromPlayerID,
 			ToPlayerID:     a.ToPlayerID,
 			AdjustmentType: a.AdjustmentType,

@@ -50,6 +50,13 @@ Page({
   data: {
     gameID: 0,
     game: null,
+    currentRoundNumber: 1,
+    currentRoundStatus: 'open',
+    isRoundLocked: false,
+    roundScoreList: [],
+    hasRoundScores: false,
+    dingPressing: false,
+    dingRippling: false,
     players: [],
     seats: [],
     ledger: [],
@@ -284,6 +291,23 @@ Page({
     if (msg.type === 'swap') {
       // 换位申请/结果即时推送：秒弹确认框 / 秒看结果
       this.checkIncomingSwapGuarded()
+      return
+    }
+    if (msg.type === 'round_locked') {
+      var d = msg.data || {}
+      if (d) {
+        if (Number(d.locked_by_user_id) !== Number(app.globalData.userID)) {
+          this.playDingSound()
+          wx.showToast({
+            title: (d.locked_by_nickname || '雀友') + ' 拍钟锁局！第' + (d.locked_round_number || 1) + '局已锁定',
+            icon: 'none'
+          })
+        }
+        this.setData({ isRoundLocked: true })
+        this.loadGame()
+        this.loadLedger()
+      }
+      return
     }
   },
 
@@ -418,10 +442,44 @@ Page({
     // 台主判定以 games.creator_id 为准（不要用席位循环里 var 残留的 isOwner——见上）
     var isTableOwner = Number(res.creator_id) === myID
 
+    var roundScoresMap = {}
+    if (res.current_round_scores && res.current_round_scores.length > 0) {
+      res.current_round_scores.forEach(function(rs) {
+        roundScoresMap[rs.player_id] = rs.score
+      })
+    }
+    var roundScoreList = [0, 1, 2, 3].map(function(idx) {
+      var seatNum = idx + 1
+      var sp = seatMap[idx]
+      var score = sp ? (roundScoresMap[sp.player_id] || 0) : 0
+      var scoreText = score > 0 ? ('+' + score) : ('' + score)
+      return {
+        seat: seatNum,
+        wind: WINDS[idx],
+        nickname: sp ? sp.nickname : '等脚',
+        player: sp,
+        avatarInitial: sp && sp.nickname ? sp.nickname.slice(0, 1) : '',
+        avatarColor: sp ? sp.avatarColor : '',
+        score: score,
+        scoreText: scoreText
+      }
+    })
+
+    var currentRoundStatus = res.current_round_status || (res.current_round_number ? 'open' : '')
+    var isRoundLocked = currentRoundStatus === 'locked' || currentRoundStatus === 'ready_for_next'
+    var hasRoundScores = roundScoreList.some(function(item) {
+      return item.score !== 0
+    })
+
     this.setData({
       game: game,
       players: players,
       seats: seats,
+      currentRoundNumber: res.current_round_number || 1,
+      currentRoundStatus: currentRoundStatus,
+      isRoundLocked: isRoundLocked,
+      roundScoreList: roundScoreList,
+      hasRoundScores: hasRoundScores,
       // 已散台（ended/cancelled/expired）：给分 / 道具 / 换位等写操作统一拦下，
       // 席位卡上的「给分」按钮也随之隐藏（wxml 用 !dissolved 判断）
       dissolved: res.status === 'ended' || res.status === 'cancelled' || res.status === 'expired',
@@ -489,27 +547,35 @@ Page({
         var tb = new Date(b.created_at || 0).getTime() || b.id || 0
         return tb - ta
       })
+      var isRoundMode = this.data.game && this.data.game.mode !== 'free'
       var ledger = list.map(function(a, idx) {
+        var isRake = a.adjustment_type === 'rake'
         var fromId = Number(a.from_player_id)
         var toId = Number(a.to_player_id)
         var from = infoByPlayer[fromId] || { name: '雀友', avatar: '' }
         var to = infoByPlayer[toId] || { name: '雀友', avatar: '' }
         var outgoing = fromId === myPlayerID
-        var incoming = toId === myPlayerID
+        var incoming = !isRake && (toId === myPlayerID)
         var mine = outgoing || incoming
         // 头像取「→ 左边的人」（出分方）：如「我 → B」显示我的头像
         var peer = from
-        // 文案统一「A → B」，自己显示为「我」
+        // 文案统一「A → B」，自己显示为「我」；抽水记录显示为「A → 抽水」
         var fromName = outgoing ? '我' : from.name
-        var toName = incoming ? '我' : to.name
+        var toName = isRake ? '抽水' : (incoming ? '我' : to.name)
+        var roundNum = Number(a.round_number) || 0
+        var baseTags = scoreTags.labelsOf(a.tags)
+        if (isRake) {
+          baseTags = ['抽水'].concat(baseTags)
+        }
         return {
           id: a.id || idx,
           avatar: peer.avatar || '',
           peerInitial: (peer.name || '雀')[0],
           desc: fromName + ' → ' + toName,
-          sub: (a.reason ? a.reason + ' · ' : '') + util.formatTime(a.created_at),
-          // 给分标签（自摸/明杠/…）：code → 中文，仅有值时才渲染（见 wxml 的 ledger-tag）
-          tags: scoreTags.labelsOf(a.tags),
+          roundText: (isRoundMode && roundNum > 0) ? ('第' + roundNum + '局') : '',
+          sub: util.formatTime(a.created_at),
+          // 给分标签（抽水/自摸/明杠/…）：code → 中文，仅有值时才渲染（见 wxml 的 ledger-tag）
+          tags: baseTags,
           score: mine ? (outgoing ? -a.amount : a.amount) : 0,
           amount: a.amount,
           mine: mine
@@ -525,10 +591,10 @@ Page({
         hasScores: this.data.hasScores || ledger.length > 0
       })
 
-      // 得分提示：只对「收到分」（转入我的新入账）触发，转出去的不提示
+      // 得分提示：只对「收到分」（转入我的新入账，不含抽水自指记录）触发，转出去的不提示
       // 首次打开只记录水位不提示（避免进场把整段历史念一遍/震一遍）
       var mineAccepted = list.filter(function(a) {
-        if (a.status !== 'accepted') return false
+        if (a.status !== 'accepted' || a.adjustment_type === 'rake') return false
         return Number(a.to_player_id) === myPlayerID
       }).sort(function(a, b) { return (a.id || 0) - (b.id || 0) })
       var maxMineId = mineAccepted.length ? mineAccepted[mineAccepted.length - 1].id : 0
@@ -647,6 +713,97 @@ Page({
     if (this._qrCached) delete this._qrCached[this.data.gameID]
     this.setData({ qrPath: '', qrError: false })
     this.loadQRCode()
+  },
+
+  // 围棋对局钟 / 前台拍铃叮叮声音合成（双频正弦波金属泛音衰减，纯本地离线无网络延迟）
+  playDingSound() {
+    try {
+      if (wx.createWebAudioContext) {
+        var ctx = wx.createWebAudioContext()
+        var now = ctx.currentTime
+
+        // 基频 1760Hz (A6音高)
+        var osc1 = ctx.createOscillator()
+        var gain1 = ctx.createGain()
+        osc1.type = 'sine'
+        osc1.frequency.setValueAtTime(1760, now)
+        gain1.gain.setValueAtTime(0.001, now)
+        gain1.gain.linearRampToValueAtTime(0.65, now + 0.01)
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.2)
+        osc1.connect(gain1)
+        gain1.connect(ctx.destination)
+        osc1.start(now)
+        osc1.stop(now + 1.2)
+
+        // 泛频 3520Hz (A7音高，增强金属清脆撞击质感)
+        var osc2 = ctx.createOscillator()
+        var gain2 = ctx.createGain()
+        osc2.type = 'sine'
+        osc2.frequency.setValueAtTime(3520, now)
+        gain2.gain.setValueAtTime(0.001, now)
+        gain2.gain.linearRampToValueAtTime(0.28, now + 0.008)
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.5)
+        osc2.connect(gain2)
+        gain2.connect(ctx.destination)
+        osc2.start(now)
+        osc2.stop(now + 0.5)
+      }
+    } catch (e) {}
+
+    // 实体触感短震动
+    try {
+      wx.vibrateShort({ type: 'medium' })
+    } catch (e) {}
+  },
+
+  // 拍钟锁局按钮点击（任意玩家均可触发，严格幂等）
+  onDingBellTap() {
+    if (this.data.dissolved) {
+      this.showToast('牌局已结束')
+      return
+    }
+
+    // 若已经处于锁局状态：播放叮声与轻震动，提示已锁局，给分后自动开启下一局
+    if (this.data.isRoundLocked) {
+      this.playDingSound()
+      this.showToast('第' + (this.data.currentRoundNumber || 1) + '局已锁定，给分后自动开启下局')
+      return
+    }
+
+    // 规则约束：不考虑流局，无积分记录不可锁局
+    if (!this.data.hasRoundScores) {
+      this.showToast('今局仲未有流水')
+      try {
+        wx.vibrateShort({ type: 'light' })
+      } catch (e) {}
+      return
+    }
+
+    // 即刻播放本地金属叮声与按压回弹动效（不论是否有人抢先，即时满足敲钟手感）
+    this.playDingSound()
+    this.setData({ dingPressing: true, dingRippling: true })
+    var that = this
+    setTimeout(function() { that.setData({ dingPressing: false }) }, 180)
+    setTimeout(function() { that.setData({ dingRippling: false }) }, 600)
+
+    // 本地防连击节流
+    if (this._dingLocking) return
+    this._dingLocking = true
+
+    var currentNum = this.data.currentRoundNumber || 1
+    api.post('/games/' + this.data.gameID + '/rounds/ding_lock', {
+      round_number: currentNum,
+      request_id: api.genRequestID()
+    }, { silent: true }).then(function(res) {
+      that._dingLocking = false
+      that.showToast('第' + (res.locked_round_number || currentNum) + '局已锁定')
+      that.setData({ isRoundLocked: true })
+      that.loadGame()
+      that.loadLedger()
+    }).catch(function(err) {
+      that._dingLocking = false
+      that.showToast((err && err.message) || '锁局失败，请重试')
+    })
   },
 
   openScoringModal(e) {
@@ -1238,7 +1395,7 @@ Page({
     var pid = Number(ds.pid) || 0
     if (!ds.pos || !pid) return
     if (pid === this.myPlayerID()) {
-      this.showToast('道具要送畀其他雀友')
+      this.showToast('道具只能送俾其他人')
       return
     }
     this.setData({

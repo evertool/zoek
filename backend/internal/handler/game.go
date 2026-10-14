@@ -33,17 +33,24 @@ func NewGameHandler(s *store.Store, jwt *middleware.JWTManager, wx *wechat.Clien
 // ---------------------------------------------------------------------------
 
 type CreateGameRequest struct {
-	Name      string `json:"name"`
-	RequestID string `json:"request_id"`
+	Name         string `json:"name"`
+	Mode         string `json:"mode"` // round=锁局模式 | free=自由模式
+	RakeTarget   int    `json:"rake_target"`
+	RakePerRound int    `json:"rake_per_round"`
+	RequestID    string `json:"request_id"`
 }
 
 type CreateGameResponse struct {
-	GameID      int64  `json:"game_id"`
-	Name        string `json:"name"`
-	Status      string `json:"status"`
-	InviteToken string `json:"invite_token"`
-	PlayerCount int    `json:"player_count"`
-	CreatedAt   string `json:"created_at"`
+	GameID        int64  `json:"game_id"`
+	Name          string `json:"name"`
+	Mode          string `json:"mode"`
+	RakeTarget    int    `json:"rake_target"`
+	RakePerRound  int    `json:"rake_per_round"`
+	RakeCollected int    `json:"rake_collected"`
+	Status        string `json:"status"`
+	InviteToken   string `json:"invite_token"`
+	PlayerCount   int    `json:"player_count"`
+	CreatedAt     string `json:"created_at"`
 }
 
 type JoinGameRequest struct {
@@ -56,18 +63,34 @@ type JoinGameRequest struct {
 type GameDetailResponse struct {
 	GameID             int64        `json:"game_id"`
 	Name               string       `json:"name"`
+	Mode               string       `json:"mode"`
+	RakeTarget         int          `json:"rake_target"`
+	RakePerRound       int          `json:"rake_per_round"`
+	RakeCollected      int          `json:"rake_collected"`
+	RakeCompleted      bool         `json:"rake_completed"`
+	CurrentRoundRake   int          `json:"current_round_rake"`
 	Status             string       `json:"status"`
 	CreatorID          int64        `json:"creator_id"`
 	PlayerCount        int          `json:"player_count"`
 	MaxPlayers         int          `json:"max_players"`
 	MembersLocked      bool         `json:"members_locked"`
 	HasLedger          bool         `json:"has_ledger"`           // 是否已产生流水账单（逐局提交或任意一笔转分）——「取消开台 / 结束散台」的共同判据
-	CurrentRoundNumber *int         `json:"current_round_number"` // 遗留字段：局概念已移除，新牌局恒为空
-	CompletedRounds    int          `json:"completed_rounds"`     // 遗留字段：仅遗留逐人提交流数据 >0
+	CurrentRoundNumber *int         `json:"current_round_number"` // 当前局号
+	CurrentRoundID     *int64       `json:"current_round_id"`     // 当前局ID
+	CurrentRoundStatus *string      `json:"current_round_status"` // 当前局状态：open / locked
+	CurrentRoundScores []RoundScore `json:"current_round_scores"` // 本局各在座玩家动态收支（正负净分）
+	CompletedRounds    int          `json:"completed_rounds"`
 	StartedAt          *time.Time   `json:"started_at,omitempty"`
 	EndedAt            *time.Time   `json:"ended_at,omitempty"`
 	CreatedAt          time.Time    `json:"created_at"`
 	Players            []PlayerInfo `json:"players"`
+}
+
+type RoundScore struct {
+	PlayerID int64 `json:"player_id"`
+	UserID   int64 `json:"user_id"`
+	Seat     int   `json:"seat"`
+	Score    int   `json:"score"` // 本局净分（正/负/0）
 }
 
 type PlayerInfo struct {
@@ -131,19 +154,23 @@ func (h *GameHandler) CreateGame(c *gin.Context) {
 	}
 
 	inviteToken := uuid.New().String()
-	game, err := h.Store.CreateGame(userID, name, inviteToken)
+	game, err := h.Store.CreateGame(userID, name, inviteToken, req.Mode, req.RakeTarget, req.RakePerRound)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 		return
 	}
 
 	c.JSON(http.StatusCreated, CreateGameResponse{
-		GameID:      game.ID,
-		Name:        game.Name,
-		Status:      game.Status,
-		InviteToken: inviteToken,
-		PlayerCount: 1,
-		CreatedAt:   game.CreatedAt.Format(time.RFC3339),
+		GameID:        game.ID,
+		Name:          game.Name,
+		Mode:          game.Mode,
+		RakeTarget:    game.RakeTarget,
+		RakePerRound:  game.RakePerRound,
+		RakeCollected: game.RakeCollected,
+		Status:        game.Status,
+		InviteToken:   inviteToken,
+		PlayerCount:   1,
+		CreatedAt:     game.CreatedAt.Format(time.RFC3339),
 	})
 }
 
@@ -168,6 +195,13 @@ func (h *GameHandler) GetActiveGames(c *gin.Context) {
 		}
 		completed, _ := h.Store.CountLockedRounds(g.ID)
 
+		totalByPlayer := map[int64]int{}
+		if totals, _, aggErr := h.Store.AggregateSettlement(g.ID); aggErr == nil {
+			for _, t := range totals {
+				totalByPlayer[t.PlayerID] = int(t.TotalScore)
+			}
+		}
+
 		// 只列在座玩家：离座的人不该继续占着座位显示
 		players, _ := h.Store.GetActiveGamePlayers(g.ID)
 		playerItems := make([]gin.H, 0, len(players))
@@ -181,13 +215,14 @@ func (h *GameHandler) GetActiveGames(c *gin.Context) {
 				avatar = u.AvatarURL
 			}
 			playerItems = append(playerItems, gin.H{
-				"player_id":  p.ID,
-				"user_id":    p.UserID,
-				"nickname":   p.NicknameSnapshot,
-				"avatar_url": avatar,
-				"seat":       p.Seat,
-				"wind":       wind,
-				"is_me":      p.UserID == userID,
+				"player_id":   p.ID,
+				"user_id":     p.UserID,
+				"nickname":    p.NicknameSnapshot,
+				"avatar_url":  avatar,
+				"seat":        p.Seat,
+				"wind":        wind,
+				"total_score": totalByPlayer[p.ID],
+				"is_me":       p.UserID == userID,
 			})
 		}
 
@@ -470,16 +505,63 @@ func (h *GameHandler) GetGame(c *gin.Context) {
 	// 流水账单：前端「取消开台 / 结束散台」的显示与否直接跟它走（与 CancelGame/EndGame 同一判据）
 	hasLedger, _ := h.Store.GameHasLedger(gameID)
 
+	// 计算当前局号及本局在座玩家动态收支（每局的正负净分）
+	round, _ := h.Store.GetCurrentRound(gameID)
+	var currentRoundNum *int
+	var currentRoundID *int64
+	var currentRoundStatus *string
+	var currentRoundRake int
+	roundScoresMap := map[int64]int{}
+	if round != nil {
+		n := round.RoundNumber
+		currentRoundNum = &n
+		currentRoundID = &round.ID
+		st := round.Status
+		currentRoundStatus = &st
+		currentRoundRake = round.RakeAmount
+		if summary, err := h.Store.GetRoundScoreSummary(gameID, round.ID); err == nil {
+			roundScoresMap = summary
+		}
+	} else if game.Mode == model.GameModeRound {
+		n := 1
+		currentRoundNum = &n
+		st := "open"
+		currentRoundStatus = &st
+	}
+
+	currentRoundScores := make([]RoundScore, 0, activeCount)
+	for _, p := range players {
+		if p.Status == model.PlayerStatusActive {
+			currentRoundScores = append(currentRoundScores, RoundScore{
+				PlayerID: p.ID,
+				UserID:   p.UserID,
+				Seat:     p.Seat,
+				Score:    roundScoresMap[p.ID],
+			})
+		}
+	}
+
+	rakeCompleted := game.RakeTarget > 0 && game.RakeCollected >= game.RakeTarget
+
 	c.JSON(http.StatusOK, GameDetailResponse{
 		GameID:             game.ID,
 		Name:               game.Name,
+		Mode:               game.Mode,
+		RakeTarget:         game.RakeTarget,
+		RakePerRound:       game.RakePerRound,
+		RakeCollected:      game.RakeCollected,
+		RakeCompleted:      rakeCompleted,
+		CurrentRoundRake:   currentRoundRake,
 		Status:             game.Status,
 		CreatorID:          game.CreatorID,
 		PlayerCount:        activeCount, // 在座人数（不含已离座）
 		MaxPlayers:         4,
 		MembersLocked:      game.MembersLocked,
 		HasLedger:          hasLedger,
-		CurrentRoundNumber: nil, // 局概念已移除
+		CurrentRoundNumber: currentRoundNum,
+		CurrentRoundID:     currentRoundID,
+		CurrentRoundStatus: currentRoundStatus,
+		CurrentRoundScores: currentRoundScores,
 		CompletedRounds:    completed,
 		StartedAt:          game.StartedAt,
 		EndedAt:            game.EndedAt,

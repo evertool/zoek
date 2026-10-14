@@ -59,36 +59,43 @@
             <!-- 给分：我出分、对方得分（自己那一席不给分；已散台的台不给分） -->
             <view class="give-btn" wx:if="{{!item.isSelf && !dissolved}}" catchtap="openScoringModal"
               data-seat="{{item.seat}}" data-name="{{item.player.nickname}}" data-player-id="{{item.player.player_id}}">
-              <text class="give-btn-plus">＋</text><text>给分</text>
+              <text class="give-btn-plus">＋</text><text>俾分</text>
             </view>
-            <view class="give-btn give-btn-self" wx:elif="{{item.isSelf}}"><text>我</text></view>
+            <!-- <view class="give-btn give-btn-self" wx:elif="{{item.isSelf}}"><text>我</text></view> -->
           </block>
           <block wx:else>
-            <image class="seat-empty-ring" src="/assets/icons/table-seat-empty-add.svg" mode="aspectFit" />
-            <text class="seat-empty-text">虚位以待</text>
+            <image class="seat-empty-ring" src="/assets/icons/table-seat-empty-user.svg" mode="aspectFit" />
+            <text class="seat-empty-text">差只脚</text>
             <view class="invite-btn" hover-class="invite-btn-active">
-              <image class="invite-icon" src="/assets/icons/table-seat-empty-add.svg" mode="aspectFit" />
-              <text>呼叫</text>
+              <image class="invite-icon" src="/assets/icons/share-wechat.svg" mode="aspectFit" />
+              <text>吹鸡</text>
               <button class="invite-hit" open-type="share" data-seat="{{item.seat}}" bindtap="onSeatInviteTap"></button>
             </view>
           </block>
         </view>
       </view>
 
-      <!-- 中心圆：麻將牌面 + 東南西北 SVG 风位章（南上、東左、西右、北下） -->
-      <view class="table-center">
-        <view class="table-center-ring"></view>
-        <text class="table-center-tile">發</text>
-        <image class="wind-badge wind-badge-top" src="/assets/icons/seat-wind-south.svg" mode="aspectFit" />
-        <image class="wind-badge wind-badge-left" src="/assets/icons/seat-wind-east.svg" mode="aspectFit" />
-        <image class="wind-badge wind-badge-right" src="/assets/icons/seat-wind-west.svg" mode="aspectFit" />
-        <image class="wind-badge wind-badge-bottom" src="/assets/icons/seat-wind-north.svg" mode="aspectFit" />
+      <!-- 经典罗盘中心盘（设计图同款：金属车削罗盘 + 内嵌刻度四风 + 翡翠玉盘 + 立体「發」牌） -->
+      <view class="table-center-dial">
+        <view class="dial-bezel"></view>
+        <view class="dial-face">
+          <text class="dial-wind dial-wind-top">东</text>
+          <text class="dial-wind dial-wind-bottom">南</text>
+          <text class="dial-wind dial-wind-left">西</text>
+          <text class="dial-wind dial-wind-right">北</text>
+          <view class="dial-ring-groove"></view>
+          <view class="dial-jade-ring">
+            <view class="dial-mahjong-tile">
+              <text class="dial-mahjong-char">發</text>
+            </view>
+          </view>
+        </view>
       </view>
 
       <!-- 长按换座提示 -->
       <view class="stage-hint">
         <image class="stage-hint-icon" src="/assets/icons/sys-info-circle.svg" mode="aspectFit" />
-        <text>点头像可送道具 · 长按席位可对调座次</text>
+        <text>点头像可送道具 · 长按可申请换位</text>
       </view>
 
       <!-- 席位互动道具 fx 层：只做动画（pointer-events:none，不挡任何操作） -->
@@ -196,6 +203,52 @@
       </view>
     </view>
 
+    <!-- 锁局模式：独立下放中控卡片（局号 + 四家动态收支 + 拟物黄铜拍钟） -->
+    <view class="round-lock-card" wx:if="{{game.mode !== 'free'}}">
+      <view class="round-lock-left">
+        <!-- 局号纯净胶囊 + 抽水进度与完成标记 -->
+        <view class="round-lock-header">
+          <view class="round-lock-badge">
+            <text class="round-lock-num">第{{currentRoundNumber || 1}}局</text>
+          </view>
+          <view class="round-rake-pill {{game.rake_completed ? 'round-rake-pill-done' : ''}}" wx:if="{{game.rake_target > 0}}">
+            <text class="round-rake-total">抽水 {{game.rake_collected || 0}}/{{game.rake_target}}分</text>
+            <text class="round-rake-dot">·</text>
+            <text class="round-rake-per">{{isRoundLocked && game.current_round_rake > 0 ? ('本局抽' + game.current_round_rake + '分') : ('每局' + (game.rake_per_round || 2) + '分')}}</text>
+            <text class="round-rake-done-tag" wx:if="{{game.rake_completed}}">✓ 已完成</text>
+          </view>
+        </view>
+        <!-- 2x2 四家本局动态收支网格 -->
+        <view class="round-lock-grid">
+          <view class="round-lock-item" wx:for="{{roundScoreList}}" wx:key="seat">
+            <image class="round-lock-avatar" src="{{item.player.avatar_url}}" mode="aspectFill" wx:if="{{item.player && item.player.avatar_url}}" />
+            <image class="round-lock-avatar" src="/assets/icons/table-seat-empty-user.svg" mode="aspectFit" wx:elif="{{!item.player}}" />
+            <view class="round-lock-avatar round-lock-avatar-ph" wx:else style="{{item.avatarColor ? 'background:' + item.avatarColor : ''}}"><text>{{item.avatarInitial}}</text></view>
+            <text class="round-lock-name">{{item.nickname}}</text>
+            <text class="round-lock-val {{item.score > 0 ? 'text-positive' : (item.score < 0 ? 'text-negative' : 'text-zero')}}">{{item.scoreText}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 右侧：拟物化黄铜拍钟锁局按钮 -->
+      <view class="round-lock-right">
+        <view class="ding-bell-wrap {{dingPressing ? 'ding-bell-pressed' : ''}}" catchtap="onDingBellTap">
+          <!-- 3D 拟物金属铜铃钟体 -->
+          <view class="ding-bell-dome {{isRoundLocked ? 'is-locked' : (hasRoundScores ? 'is-ready' : 'is-idle')}}">
+            <view class="ding-bell-knob"></view>
+          </view>
+          <!-- 拍钟锁局底座按钮 -->
+          <view class="ding-bell-btn {{isRoundLocked ? 'is-locked' : (!hasRoundScores ? 'is-disabled' : '')}}" hover-class="{{(!isRoundLocked && hasRoundScores) ? 'ding-bell-active' : ''}}">
+            <view class="ding-bell-cap">
+              <text class="ding-bell-icon">{{isRoundLocked ? '🔒' : '🔔'}}</text>
+              <text class="ding-bell-text">{{isRoundLocked ? '已锁局' : (hasRoundScores ? '拍钟锁局' : '待记分')}}</text>
+            </view>
+          </view>
+          <view class="ding-bell-ripple {{dingRippling ? 'ding-bell-ripple-active' : ''}}"></view>
+        </view>
+      </view>
+    </view>
+
     <!-- 流水账单：上滑翻下一页，下滑收回（手势在 room.js onLedgerTouch*） -->
     <view class="ledger-card" bindtouchstart="onLedgerTouchStart" bindtouchend="onLedgerTouchEnd">
       <view class="ledger-header">
@@ -211,11 +264,12 @@
           <view class="ledger-avatar ledger-avatar-ph" wx:else>{{item.peerInitial}}</view>
           <view class="ledger-info">
             <text class="ledger-item-title">{{item.desc}}</text>
-            <!-- 次行：时间（含原因）与给分标签同行，标签跟在时间右边 -->
+            <!-- 次行：局号标签（锁局模式）+ 时间与给分标签同行 -->
             <view class="ledger-item-subline">
+              <view class="ledger-round-tag" wx:if="{{item.roundText}}"><text>{{item.roundText}}</text></view>
               <text class="ledger-item-sub">{{item.sub}}</text>
               <block wx:if="{{item.tags.length}}">
-                <view class="ledger-tag" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this"><text>{{tag}}</text></view>
+                <view class="ledger-tag {{tag === '抽水' ? 'ledger-tag-rake' : ''}}" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this"><text>{{tag}}</text></view>
               </block>
             </view>
           </view>
@@ -274,7 +328,7 @@
       <!-- 呼叫雀友：透明 button 命中层拉起微信分享（与座位「呼叫」同款实现） -->
       <view class="qr-modal-btn" hover-class="qr-modal-btn-active">
         <image class="qr-modal-btn-icon" src="/assets/icons/share-wechat.svg" mode="aspectFit" />
-        <text>呼叫雀友</text>
+        <text>吹鸡</text>
         <button class="qr-modal-btn-hit" open-type="share"></button>
       </view>
     </view>

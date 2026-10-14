@@ -11,6 +11,7 @@ import (
 	"github.com/lk/zoek/backend/internal/middleware"
 	"github.com/lk/zoek/backend/internal/model"
 	"github.com/lk/zoek/backend/internal/store"
+	"github.com/lk/zoek/backend/internal/ws"
 )
 
 // RoundHandler handles round and submission operations.
@@ -538,5 +539,88 @@ func (h *RoundHandler) GetRoundDetail(c *gin.Context) {
 		CompletedRounds:    completed,
 		CurrentRoundNumber: roundNum,
 		Submissions:        submissionDetails,
+	})
+}
+
+// ---------------------------------------------------------------------------
+// 叮叮拍钟锁局
+// ---------------------------------------------------------------------------
+
+type DingLockRequest struct {
+	RoundNumber int    `json:"round_number"`
+	RequestID   string `json:"request_id"`
+}
+
+type DingLockResponse struct {
+	GameID             int64  `json:"game_id"`
+	AlreadyLocked      bool   `json:"already_locked"`
+	LockedRoundNumber  int    `json:"locked_round_number"`
+	CurrentRoundNumber int    `json:"current_round_number"`
+	CompletedRounds    int    `json:"completed_rounds"`
+	Message            string `json:"message"`
+}
+
+// DingLockRound 类似棋钟/前台铃叮叮按钮一键拍钟锁局，任意在座玩家均可触发，严格幂等
+func (h *RoundHandler) DingLockRound(c *gin.Context) {
+	gameID, err := strconv.ParseInt(c.Param("game_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
+		return
+	}
+	userID := middleware.GetUserID(c)
+
+	player, pErr := h.requireGamePlayer(gameID, userID)
+	if pErr != nil {
+		c.JSON(http.StatusForbidden, pErr)
+		return
+	}
+
+	var req DingLockRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, errs.ErrInvalidInput)
+		return
+	}
+	if req.RoundNumber <= 0 {
+		req.RoundNumber = 1
+	}
+
+	lockedRoundNum, nextRoundNum, alreadyLocked, err := h.Store.DingLockRound(gameID, req.RoundNumber, userID)
+	if err != nil {
+		if be, ok := err.(*errs.BizError); ok {
+			c.JSON(http.StatusBadRequest, be)
+			return
+		}
+		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
+		return
+	}
+
+	completed, _ := h.Store.CountLockedRounds(gameID)
+
+	// 如果成功执行了新锁局（非重复请求），通过 WebSocket 广播给全桌所有玩家
+	if !alreadyLocked {
+		ws.Emit(gameID, "round_locked", gin.H{
+			"game_id":             gameID,
+			"locked_round_number": lockedRoundNum,
+			"next_round_number":   nextRoundNum,
+			"locked_by_user_id":   userID,
+			"locked_by_nickname":  player.NicknameSnapshot,
+			"round_status":        "locked",
+		})
+		ws.Dirty(gameID, "game")
+		ws.Dirty(gameID, "ledger")
+	}
+
+	msg := fmt.Sprintf("第%d局已锁定", lockedRoundNum)
+	if alreadyLocked {
+		msg = fmt.Sprintf("第%d局已锁定", lockedRoundNum)
+	}
+
+	c.JSON(http.StatusOK, DingLockResponse{
+		GameID:             gameID,
+		AlreadyLocked:      alreadyLocked,
+		LockedRoundNumber:  lockedRoundNum,
+		CurrentRoundNumber: nextRoundNum,
+		CompletedRounds:    completed,
+		Message:            msg,
 	})
 }

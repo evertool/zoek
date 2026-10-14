@@ -179,6 +179,7 @@ func main() {
 			auth.POST("/games/:game_id/rounds/:round_id/lock", roundHandler.LockRound)
 			auth.POST("/games/:game_id/rounds/:round_id/next", roundHandler.CreateNextRound)
 			auth.GET("/games/:game_id/rounds/:round_id", roundHandler.GetRoundDetail)
+			auth.POST("/games/:game_id/rounds/ding_lock", roundHandler.DingLockRound)
 
 			// Adjustments
 			// 给分（转分）：一律直接生效，没有「待确认 / 接受 / 驳回 / 取消」这套审核流

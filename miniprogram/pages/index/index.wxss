@@ -83,11 +83,41 @@
 /* 绿底整个去掉：牌本身是白底绿框，直接裸放在白卡上（靠绿框 + 红中区分） */
 .create-icon { width: 96rpx; height: 96rpx; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .create-icon-img { width: 100%; height: 100%; }
+
+/* 开台模式选择（锁局模式 vs 自由模式） */
+.create-mode-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 16rpx; margin-bottom: var(--space-md); }
+.mode-tab { position: relative; padding: 20rpx 22rpx; border-radius: 20rpx; background: #ffffff; border: 2rpx solid #ced5cf; display: flex; flex-direction: column; gap: 8rpx; transition: all 0.2s ease; box-sizing: border-box; }
+.mode-tab-active { background: var(--primary); border-color: var(--primary); box-shadow: 0 6rpx 18rpx rgba(0, 82, 53, 0.18); }
+.mode-tab-badge { position: absolute; top: -14rpx; right: 16rpx; padding: 3rpx 14rpx; border-radius: var(--radius-full); background: linear-gradient(135deg, #d84b37, #e65c44); color: #ffffff; font-size: 18rpx; font-weight: 700; line-height: 1.3; box-shadow: 0 2rpx 8rpx rgba(216, 75, 55, 0.32); }
+.mode-tab-header { display: flex; align-items: center; gap: 8rpx; }
+.mode-tab-icon { font-size: 26rpx; line-height: 1; }
+.mode-tab-title { font-size: 28rpx; font-weight: 700; color: var(--on-surface); }
+.mode-tab-active .mode-tab-title { color: #ffffff; }
+.mode-tab-desc { font-size: 22rpx; color: var(--on-surface-variant); line-height: 1.25; }
+.mode-tab-active .mode-tab-desc { color: rgba(255, 255, 255, 0.88); font-weight: 500; }
+
+/* 锁局模式：单行一体式抽水胶囊栏 */
+.create-rake-box { background: #eaeeeb; border-radius: 20rpx; padding: 14rpx 20rpx; margin-bottom: var(--space-md); display: flex; flex-direction: column; gap: 10rpx; }
+.create-rake-row { display: flex; align-items: center; gap: 14rpx; }
+.create-rake-title { font-size: 26rpx; font-weight: 600; color: var(--on-surface); white-space: nowrap; flex-shrink: 0; margin-right: 4rpx; }
+.create-rake-pill { height: 60rpx; border-radius: 999rpx; display: flex; align-items: center; padding: 0 22rpx; box-sizing: border-box; gap: 6rpx; }
+.create-rake-pill-target { flex: 1.15; background: #ffffff; justify-content: space-between; min-width: 0; }
+.create-rake-pill-per { flex: 0.95; background: #f5f7f5; border: 2rpx solid #cdd5cf; box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.04); justify-content: center; min-width: 0; }
+.create-rake-per-label { font-size: 24rpx; font-weight: 600; color: var(--on-surface); white-space: nowrap; flex-shrink: 0; }
+.create-rake-input { flex: 1; text-align: center; font-size: 26rpx; font-weight: 700; color: var(--primary); height: 44rpx; min-height: 44rpx; min-width: 0; }
+.create-rake-input-per { width: 56rpx; flex: 0 1 64rpx; }
+.create-rake-placeholder { font-size: 23rpx; font-weight: 400; color: #9aa39d; }
+.create-rake-unit { font-size: 24rpx; font-weight: 500; color: var(--on-surface-variant); flex-shrink: 0; }
+.create-rake-preview { display: flex; align-items: center; gap: 10rpx; padding: 2rpx 4rpx 0; }
+.create-rake-preview-badge { font-size: 18rpx; font-weight: 700; color: #005235; background: rgba(166, 243, 201, 0.75); padding: 2rpx 10rpx; border-radius: 999rpx; flex-shrink: 0; }
+.create-rake-preview-text { font-size: 21rpx; color: var(--on-surface-variant); line-height: 1.3; }
+.create-rake-preview-num { font-weight: 800; color: var(--primary); }
+
 .create-btn-wrap { display: flex; gap: var(--space-xs); }
-.create-btn { flex: 1; height: 96rpx; border-radius: var(--radius-md); background: var(--primary); color: var(--on-primary); display: flex; align-items: center; justify-content: center; gap: var(--space-xs); font-size: 28rpx; font-weight: 600; box-shadow: var(--shadow-card); }
+.create-btn { flex: 1; height: 96rpx; border-radius: 20rpx; background: var(--primary); color: var(--on-primary); display: flex; align-items: center; justify-content: center; gap: var(--space-xs); font-size: 28rpx; font-weight: 600; box-shadow: var(--shadow-card); }
 .create-btn:active { opacity: 0.9; }
 .create-btn-icon { width: 32rpx; height: 32rpx; }
-.create-btn-text { font-size: 28rpx; }
+.create-btn-text { font-size: 30rpx; font-weight: 700; }
 
 /* ========== 区块头 ========== */
 .section-header { display: flex; align-items: center; justify-content: space-between; padding: 0 8rpx; }
@@ -108,28 +138,28 @@
 
 /* ========== 座位 ========== */
 .seat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: var(--gutter-grid); }
-.seat-cell { display: flex; flex-direction: column; align-items: center; gap: 8rpx; }
-.seat-avatar-wrap { position: relative; width: 96rpx; height: 96rpx; }
-.seat-avatar { width: 96rpx; height: 96rpx; border-radius: 50%; background: var(--surface-container); box-shadow: var(--shadow-card); }
+.seat-cell { display: flex; flex-direction: column; align-items: center; gap: 10rpx; }
+.seat-avatar-wrap { position: relative; width: 104rpx; height: 104rpx; }
+.seat-avatar { width: 104rpx; height: 104rpx; border-radius: 50%; background: var(--surface-container); box-shadow: var(--shadow-card); }
 .seat-avatar-placeholder { display: flex; align-items: center; justify-content: center; font-size: 32rpx; font-weight: 600; color: var(--on-surface); }
-.seat-wind-svg { width: 32rpx; height: 32rpx; position: absolute; bottom: 0; right: 0; }
+.seat-wind-svg { width: 34rpx; height: 34rpx; position: absolute; bottom: 0; right: 0; }
 .seat-wind-east { background: var(--primary); color: var(--on-primary); }
 .seat-wind-south, .seat-wind-west, .seat-wind-north { background: var(--surface-container-highest); color: var(--on-surface-variant); }
-.seat-name { font-size: 24rpx; font-weight: 500; color: var(--on-surface); text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.seat-score { font-size: 24rpx; font-weight: 700; padding: 4rpx 16rpx; border-radius: var(--radius-full); background: var(--primary-fixed); color: var(--on-primary-fixed-variant); }
-.seat-score-positive { background: rgba(166,243,201,0.5); color: var(--primary); }
-.seat-score-negative { background: rgba(255,218,214,0.6); color: var(--tertiary); }
-.seat-score-pending { background: var(--surface-container); color: var(--on-surface-variant); font-weight: 500; }
-.seat-empty .seat-avatar-empty { background: var(--surface-container-low); display: flex; align-items: center; justify-content: center; }
-.seat-empty-icon { width: 44rpx; height: 44rpx; }
+.seat-name { font-size: 25rpx; font-weight: 600; color: var(--on-surface); text-align: center; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seat-score { min-width: 88rpx; height: 42rpx; padding: 0 18rpx; border-radius: var(--radius-full); display: inline-flex; align-items: center; justify-content: center; font-size: 24rpx; font-weight: 700; box-sizing: border-box; background: #eef1ef; color: #5a665f; }
+.seat-score-positive { background: #d6f0e1; color: #005235; }
+.seat-score-negative { background: #faddda; color: #b33a3a; }
+.seat-score-zero { background: #eef1ef; color: #5a665f; }
+.seat-score-pending { background: #e3eaf2; color: #475569; font-weight: 600; }
+.seat-avatar-empty { background: transparent; box-shadow: none; display: block; opacity: 0.85; }
 
 /* ========== 游戏卡操作 ========== */
-.game-card-actions { display: flex; gap: var(--space-sm); padding-top: var(--space-xs); }
-.game-action-btn { flex: 1; height: 88rpx; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; gap: 8rpx; font-size: 28rpx; font-weight: 600; }
-.game-action-secondary { background: var(--surface-container); color: var(--on-surface); }
+.game-card-actions { display: flex; gap: var(--space-sm); padding-top: 6rpx; }
+.game-action-btn { flex: 1; height: 84rpx; border-radius: 20rpx; display: flex; align-items: center; justify-content: center; gap: 10rpx; font-size: 28rpx; font-weight: 700; }
+.game-action-secondary { background: #d6ede0; color: var(--primary); }
 .game-action-primary { background: var(--primary); color: var(--on-primary); box-shadow: var(--shadow-card); }
 .game-action-btn:active { opacity: 0.9; transform: scale(0.98); }
-.game-action-icon { width: 28rpx; height: 28rpx; }
+.game-action-icon { width: 32rpx; height: 32rpx; }
 
 /* ========== 空状态 ========== */
 .empty-card { background: var(--surface-container-lowest); border-radius: var(--radius-lg); padding: 80rpx 40rpx; text-align: center; box-shadow: var(--shadow-card); }
@@ -154,6 +184,6 @@
 .recent-score-rank { font-size: 24rpx; color: var(--on-surface-variant); }
 .recent-divider { height: 2rpx; background: var(--surface-container-high); margin: 0 var(--space-md); }
 
-/* 邀请雀友分享按钮（重置 button 默认样式） */
-.game-action-share { margin: 0; background: inherit; line-height: inherit; }
+/* 邀请雀友分享按钮（重置 button 默认样式并保留背景色） */
+.game-action-share { margin: 0; background: #d6ede0; color: var(--primary); line-height: inherit; }
 .game-action-share::after { border: none; }

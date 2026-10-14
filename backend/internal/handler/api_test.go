@@ -101,6 +101,7 @@ func testSetup(t *testing.T) (*gin.Engine, *middleware.JWTManager, *store.Store)
 			auth.POST("/games/:game_id/rounds/:round_id/lock", roundH.LockRound)
 			auth.POST("/games/:game_id/rounds/:round_id/next", roundH.CreateNextRound)
 			auth.GET("/games/:game_id/rounds/:round_id", roundH.GetRoundDetail)
+			auth.POST("/games/:game_id/rounds/ding_lock", roundH.DingLockRound)
 
 			auth.POST("/games/:game_id/rounds/:round_id/adjustments", adjH.CreateAdjustment)
 			auth.GET("/games/:game_id/adjustments", adjH.ListAdjustments)
@@ -1830,3 +1831,359 @@ func TestHiddenGameExcludedFromStats(t *testing.T) {
 		t.Fatalf("B 视角榜单应只有 B/C/D（A 已删该局不计），got %v", gamesBy)
 	}
 }
+
+func TestCreateGameModesAndDingLockRound(t *testing.T) {
+	r, _, _ := testSetup(t)
+	auth1 := loginAndAuth(t, r, "ding-a")
+	auth2 := loginAndAuth(t, r, "ding-b")
+
+	// 1. 默认开台：未传 mode 时默认推荐 "round" 锁局模式
+	w := doRequest(t, r, "POST", "/api/v1/games", auth1, map[string]string{"name": "默认锁局台", "request_id": "r-def"})
+	assertStatus(t, w, http.StatusCreated)
+	m := parseJSON(t, w)
+	if m["mode"] != "round" {
+		t.Fatalf("default mode = %v, want round", m["mode"])
+	}
+
+	// 2. 自由模式开台
+	authFree := loginAndAuth(t, r, "free-user")
+	w = doRequest(t, r, "POST", "/api/v1/games", authFree, map[string]string{"name": "自由转分台", "mode": "free", "request_id": "r-free"})
+	assertStatus(t, w, http.StatusCreated)
+	mFree := parseJSON(t, w)
+	if mFree["mode"] != "free" {
+		t.Fatalf("free mode = %v, want free", mFree["mode"])
+	}
+
+	// 3. 锁局模式对局测试
+	gameID := int64(m["game_id"].(float64))
+	inviteToken := m["invite_token"].(string)
+
+	// player 2 加入
+	w = doRequest(t, r, "POST", "/api/v1/games/join", auth2, map[string]string{"invite_token": inviteToken, "request_id": "r-join"})
+	assertStatus(t, w, http.StatusCreated)
+
+	// 获取当前牌局详情：当前局应为第 1 局，收支全 0
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	gDetail := parseJSON(t, w)
+	if gDetail["mode"] != "round" {
+		t.Fatalf("game detail mode = %v, want round", gDetail["mode"])
+	}
+	if gDetail["current_round_number"].(float64) != 1 {
+		t.Fatalf("current_round_number = %v, want 1", gDetail["current_round_number"])
+	}
+	roundScores := gDetail["current_round_scores"].([]interface{})
+	if len(roundScores) != 2 {
+		t.Fatalf("current_round_scores count = %d, want 2", len(roundScores))
+	}
+	for _, rs := range roundScores {
+		if rs.(map[string]interface{})["score"].(float64) != 0 {
+			t.Fatalf("initial round score should be 0, got %v", rs)
+		}
+	}
+
+	// 3.1 规则验证：不考虑流局，无积分记录时不能锁局 (NO_ROUND_SCORES)
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/ding_lock", gameID), auth1,
+		map[string]interface{}{"round_number": 1, "request_id": "ding-empty-1"})
+	assertStatus(t, w, http.StatusBadRequest)
+	errResp := parseJSON(t, w)
+	if errResp["code"] != "NO_ROUND_SCORES" {
+		t.Fatalf("expected NO_ROUND_SCORES when locking round without scores, got %v", errResp)
+	}
+
+	// 在第 1 局中，player 1 给 player 2 转分 8 分
+	players := gDetail["players"].([]interface{})
+	var p2ID int64
+	for _, p := range players {
+		pm := p.(map[string]interface{})
+		if pm["nickname"] == "玩家ding-b" {
+			p2ID = int64(pm["player_id"].(float64))
+		}
+	}
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/1/adjustments", gameID), auth1,
+		map[string]interface{}{
+			"to_player_id":    p2ID,
+			"adjustment_type": "supplement",
+			"amount":          8,
+			"request_id":      "adj-r1",
+		})
+	assertStatus(t, w, http.StatusCreated)
+
+	// 重新获取牌局：本局动态收支卡片反映 net 分值（p1: -8, p2: +8）
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	gDetail = parseJSON(t, w)
+	roundScores = gDetail["current_round_scores"].([]interface{})
+	for _, rs := range roundScores {
+		rsm := rs.(map[string]interface{})
+		if int64(rsm["player_id"].(float64)) == p2ID {
+			if rsm["score"].(float64) != 8 {
+				t.Fatalf("p2 net score = %v, want +8", rsm["score"])
+			}
+		} else {
+			if rsm["score"].(float64) != -8 {
+				t.Fatalf("p1 net score = %v, want -8", rsm["score"])
+			}
+		}
+	}
+
+	// 4. 叮叮拍钟锁局测试与幂等性验证
+	// player 1 拍钟锁定第 1 局
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/ding_lock", gameID), auth1,
+		map[string]interface{}{"round_number": 1, "request_id": "ding-1"})
+	assertStatus(t, w, http.StatusOK)
+	dingRes := parseJSON(t, w)
+	if dingRes["already_locked"] != false {
+		t.Fatalf("first ding lock already_locked = %v, want false", dingRes["already_locked"])
+	}
+	if dingRes["locked_round_number"].(float64) != 1 {
+		t.Fatalf("locked_round_number = %v, want 1", dingRes["locked_round_number"])
+	}
+	if dingRes["current_round_number"].(float64) != 1 {
+		t.Fatalf("current_round_number = %v, want 1", dingRes["current_round_number"])
+	}
+
+	// 几乎同时，player 2 也按了第 1 局的叮叮锁局按钮
+	// 期望：幂等成功返回，already_locked 为 true，当前局保持为第 1 局 locked，不会跳到第 2 局！
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/ding_lock", gameID), auth2,
+		map[string]interface{}{"round_number": 1, "request_id": "ding-1-duplicate"})
+	assertStatus(t, w, http.StatusOK)
+	dingRes2 := parseJSON(t, w)
+	if dingRes2["already_locked"] != true {
+		t.Fatalf("duplicate ding lock already_locked = %v, want true", dingRes2["already_locked"])
+	}
+	if dingRes2["current_round_number"].(float64) != 1 {
+		t.Fatalf("current_round_number should remain 1, got %v", dingRes2["current_round_number"])
+	}
+
+	// 查牌台详情：第 1 局锁定后，状态为 locked，依然显示本局的分数（-8 / +8）
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	gDetail = parseJSON(t, w)
+	if gDetail["current_round_number"].(float64) != 1 {
+		t.Fatalf("current_round_number = %v, want 1", gDetail["current_round_number"])
+	}
+	if gDetail["current_round_status"] != "locked" {
+		t.Fatalf("current_round_status = %v, want locked", gDetail["current_round_status"])
+	}
+	if gDetail["completed_rounds"].(float64) != 1 {
+		t.Fatalf("completed_rounds = %v, want 1", gDetail["completed_rounds"])
+	}
+	roundScoresAfterLock := gDetail["current_round_scores"].([]interface{})
+	for _, rs := range roundScoresAfterLock {
+		rsm := rs.(map[string]interface{})
+		if int64(rsm["player_id"].(float64)) == p2ID {
+			if rsm["score"].(float64) != 8 {
+				t.Fatalf("locked round should still show p2 score = 8, got %v", rsm["score"])
+			}
+		} else {
+			if rsm["score"].(float64) != -8 {
+				t.Fatalf("locked round should still show p1 score = -8, got %v", rsm["score"])
+			}
+		}
+	}
+
+	// 第 2 局：player 1 再次给 player 2 转分 6 分，自动开启第 2 局并关联新局
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/1/adjustments", gameID), auth1,
+		map[string]interface{}{
+			"to_player_id":    p2ID,
+			"adjustment_type": "supplement",
+			"amount":          6,
+			"request_id":      "adj-r2",
+		})
+	assertStatus(t, w, http.StatusCreated)
+
+	// 查牌台详情：自动步进至第 2 局，第 2 局动态收支反映新流水（-6 / +6），状态为 open
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	gDetail2 := parseJSON(t, w)
+	if gDetail2["current_round_number"].(float64) != 2 {
+		t.Fatalf("current_round_number = %v, want 2", gDetail2["current_round_number"])
+	}
+	if gDetail2["current_round_status"] != "open" {
+		t.Fatalf("current_round_status = %v, want open", gDetail2["current_round_status"])
+	}
+	roundScores2 := gDetail2["current_round_scores"].([]interface{})
+	for _, rs := range roundScores2 {
+		rsm := rs.(map[string]interface{})
+		if int64(rsm["player_id"].(float64)) == p2ID {
+			if rsm["score"].(float64) != 6 {
+				t.Fatalf("round 2 p2 score = %v, want 6", rsm["score"])
+			}
+		} else {
+			if rsm["score"].(float64) != -6 {
+				t.Fatalf("round 2 p1 score = %v, want -6", rsm["score"])
+			}
+		}
+	}
+}
+
+func TestRoundModeRake(t *testing.T) {
+	r, _, _ := testSetup(t)
+	auth1 := loginAndAuth(t, r, "rake-p1")
+	auth2 := loginAndAuth(t, r, "rake-p2")
+	auth3 := loginAndAuth(t, r, "rake-p3")
+	auth4 := loginAndAuth(t, r, "rake-p4")
+
+	// 1. 开台：设置抽水总分 6 分，不传 rake_per_round，验证默认每局 2 分
+	w := doRequest(t, r, "POST", "/api/v1/games", auth1, map[string]interface{}{
+		"name":        "抽水测试台",
+		"mode":        "round",
+		"rake_target": 6,
+		"request_id":  "rake-create-1",
+	})
+	assertStatus(t, w, http.StatusCreated)
+	m := parseJSON(t, w)
+	if m["rake_target"].(float64) != 6 {
+		t.Fatalf("rake_target = %v, want 6", m["rake_target"])
+	}
+	if m["rake_per_round"].(float64) != 2 {
+		t.Fatalf("default rake_per_round = %v, want 2", m["rake_per_round"])
+	}
+
+	gameID := int64(m["game_id"].(float64))
+	inviteToken := m["invite_token"].(string)
+
+	// p2, p3, p4 加入
+	for i, auth := range []string{auth2, auth3, auth4} {
+		w = doRequest(t, r, "POST", "/api/v1/games/join", auth, map[string]string{
+			"invite_token": inviteToken,
+			"request_id":   fmt.Sprintf("rake-join-%d", i+2),
+		})
+		assertStatus(t, w, http.StatusCreated)
+	}
+
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	gDetail := parseJSON(t, w)
+	var p1ID, p2ID, p3ID, p4ID int64
+	for _, p := range gDetail["players"].([]interface{}) {
+		pm := p.(map[string]interface{})
+		switch pm["nickname"] {
+		case "玩家rake-p1":
+			p1ID = int64(pm["player_id"].(float64))
+		case "玩家rake-p2":
+			p2ID = int64(pm["player_id"].(float64))
+		case "玩家rake-p3":
+			p3ID = int64(pm["player_id"].(float64))
+		case "玩家rake-p4":
+			p4ID = int64(pm["player_id"].(float64))
+		}
+	}
+	_ = p1ID
+
+	// 第 1 局：单人最高赢家（p2 赢 10 分），锁局后应从 p2 抽 2 分（累计抽水 2/6）
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/1/adjustments", gameID), auth1, map[string]interface{}{
+		"to_player_id":    p2ID,
+		"adjustment_type": "supplement",
+		"amount":          10,
+		"request_id":      "r1-adj-1",
+	})
+	assertStatus(t, w, http.StatusCreated)
+
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/ding_lock", gameID), auth1, map[string]interface{}{
+		"round_number": 1,
+		"request_id":   "r1-ding",
+	})
+	assertStatus(t, w, http.StatusOK)
+
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	g1 := parseJSON(t, w)
+	if g1["rake_collected"].(float64) != 2 {
+		t.Fatalf("after round 1 rake_collected = %v, want 2", g1["rake_collected"])
+	}
+	if g1["current_round_rake"].(float64) != 2 {
+		t.Fatalf("round 1 current_round_rake = %v, want 2", g1["current_round_rake"])
+	}
+	if g1["rake_completed"] != false {
+		t.Fatalf("after round 1 rake_completed = %v, want false", g1["rake_completed"])
+	}
+	// p2 净得应为 10 - 2 = 8
+	for _, rs := range g1["current_round_scores"].([]interface{}) {
+		rsm := rs.(map[string]interface{})
+		if int64(rsm["player_id"].(float64)) == p2ID && rsm["score"].(float64) != 8 {
+			t.Fatalf("round 1 p2 score after rake = %v, want 8", rsm["score"])
+		}
+	}
+
+	// 第 2 局：3 人并列赢最高分（p2, p3, p4 各赢 5 分），每局默认抽 2 分，除以 3 有余数向上取整 = 每人抽 1 分，共抽 3 分（累计抽水 5/6）
+	for i, pid := range []int64{p2ID, p3ID, p4ID} {
+		w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/1/adjustments", gameID), auth1, map[string]interface{}{
+			"to_player_id":    pid,
+			"adjustment_type": "supplement",
+			"amount":          5,
+			"request_id":      fmt.Sprintf("r2-adj-%d", i+1),
+		})
+		assertStatus(t, w, http.StatusCreated)
+	}
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/ding_lock", gameID), auth1, map[string]interface{}{
+		"round_number": 2,
+		"request_id":   "r2-ding",
+	})
+	assertStatus(t, w, http.StatusOK)
+
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	g2 := parseJSON(t, w)
+	if g2["rake_collected"].(float64) != 5 {
+		t.Fatalf("after round 2 (3-way tie) rake_collected = %v, want 5", g2["rake_collected"])
+	}
+	if g2["current_round_rake"].(float64) != 3 {
+		t.Fatalf("round 2 current_round_rake = %v, want 3", g2["current_round_rake"])
+	}
+
+	// 第 3 局（尾局）：剩余未抽额度 remaining = 6 - 5 = 1 分！p3 赢 8 分，最后一局最多只能抽满剩余的 1 分（累计抽水 6/6，标记已完成）
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/2/adjustments", gameID), auth1, map[string]interface{}{
+		"to_player_id":    p3ID,
+		"adjustment_type": "supplement",
+		"amount":          8,
+		"request_id":      "r3-adj-1",
+	})
+	assertStatus(t, w, http.StatusCreated)
+
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/ding_lock", gameID), auth1, map[string]interface{}{
+		"round_number": 3,
+		"request_id":   "r3-ding",
+	})
+	assertStatus(t, w, http.StatusOK)
+
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	g3 := parseJSON(t, w)
+	if g3["rake_collected"].(float64) != 6 {
+		t.Fatalf("after round 3 (capped at remaining) rake_collected = %v, want 6", g3["rake_collected"])
+	}
+	if g3["current_round_rake"].(float64) != 1 {
+		t.Fatalf("round 3 current_round_rake = %v, want 1 (capped at remaining)", g3["current_round_rake"])
+	}
+	if g3["rake_completed"] != true {
+		t.Fatalf("after round 3 rake_completed = %v, want true", g3["rake_completed"])
+	}
+
+	// 第 4 局：已抽满，锁局后不再抽水（current_round_rake = 0, rake_collected 保持 6）
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/3/adjustments", gameID), auth1, map[string]interface{}{
+		"to_player_id":    p4ID,
+		"adjustment_type": "supplement",
+		"amount":          12,
+		"request_id":      "r4-adj-1",
+	})
+	assertStatus(t, w, http.StatusCreated)
+
+	w = doRequest(t, r, "POST", fmt.Sprintf("/api/v1/games/%d/rounds/ding_lock", gameID), auth1, map[string]interface{}{
+		"round_number": 4,
+		"request_id":   "r4-ding",
+	})
+	assertStatus(t, w, http.StatusOK)
+
+	w = doRequest(t, r, "GET", fmt.Sprintf("/api/v1/games/%d", gameID), auth1, nil)
+	assertStatus(t, w, http.StatusOK)
+	g4 := parseJSON(t, w)
+	if g4["rake_collected"].(float64) != 6 {
+		t.Fatalf("after round 4 rake_collected should stay 6, got %v", g4["rake_collected"])
+	}
+	if g4["current_round_rake"].(float64) != 0 {
+		t.Fatalf("round 4 current_round_rake should be 0 after completion, got %v", g4["current_round_rake"])
+	}
+}
+

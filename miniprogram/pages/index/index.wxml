@@ -21,6 +21,43 @@
             <image class="create-icon-img" src="/assets/icons/app-icon-hongzhong.svg" mode="aspectFit" />
           </view>
         </view>
+        <!-- 开台模式选择（默认推荐锁局模式） -->
+        <view class="create-mode-selector" catchtap="stopPropagation">
+          <view class="mode-tab {{selectedMode === 'round' ? 'mode-tab-active' : ''}}" catchtap="onSelectMode" data-mode="round">
+            <view class="mode-tab-badge">推荐</view>
+            <view class="mode-tab-header">
+              <!-- <text class="mode-tab-icon">🀄</text> -->
+              <text class="mode-tab-title">锁局模式</text>
+            </view>
+            <text class="mode-tab-desc">拍钟锁局 · 逐局流水</text>
+          </view>
+          <view class="mode-tab {{selectedMode === 'free' ? 'mode-tab-active' : ''}}" catchtap="onSelectMode" data-mode="free">
+            <view class="mode-tab-header">
+              <!-- <text class="mode-tab-icon">⚡</text> -->
+              <text class="mode-tab-title">自由模式</text>
+            </view>
+            <text class="mode-tab-desc">随开随记 · 自由流水</text>
+          </view>
+        </view>
+        <!-- 锁局模式专属：单行一体式抽水胶囊栏（选填，默认每局2分，输入总分实时显示局数与每局抽分） -->
+        <view class="create-rake-box" wx:if="{{selectedMode === 'round'}}" catchtap="stopPropagation">
+          <view class="create-rake-row">
+            <text class="create-rake-title">抽水</text>
+            <view class="create-rake-pill create-rake-pill-target">
+              <input class="create-rake-input" type="number" maxlength="4" placeholder="不抽可不填" placeholder-class="create-rake-placeholder" value="{{rakeTargetInput}}" bindinput="onRakeTargetInput" />
+              <text class="create-rake-unit">分</text>
+            </view>
+            <view class="create-rake-pill create-rake-pill-per">
+              <text class="create-rake-per-label">每局</text>
+              <input class="create-rake-input create-rake-input-per" type="number" maxlength="3" placeholder="2" placeholder-class="create-rake-placeholder" value="{{rakePerRoundInput}}" bindinput="onRakePerRoundInput" />
+              <text class="create-rake-unit">分</text>
+            </view>
+          </view>
+          <view class="create-rake-preview" wx:if="{{rakeTarget > 0}}">
+            <text class="create-rake-preview-badge">自动计算</text>
+            <text class="create-rake-preview-text">预计抽 <text class="create-rake-preview-num">{{rakeEstRounds}}</text> 局 · 每局抽 <text class="create-rake-preview-num">{{rakeEffectivePerRound}}</text> 分（赢最多被抽，抽满即止）</text>
+          </view>
+        </view>
         <view class="create-btn-wrap">
           <view class="create-btn">
             <image class="create-btn-icon" src="/assets/icons/stepper-plus-on-primary.svg" mode="aspectFit" />
@@ -61,17 +98,17 @@
                 </block>
                 <block wx:else>
                   <view class="seat-avatar-wrap">
-                    <view class="seat-avatar seat-avatar-empty"><image class="seat-empty-icon" src="/assets/icons/table-seat-empty-add.svg" mode="aspectFit" /></view>
+                    <image class="seat-avatar seat-avatar-empty" src="/assets/icons/table-seat-empty-user.svg" mode="aspectFit" />
                     <image class="seat-wind-svg seat-wind-{{player.windClass}}" src="/assets/icons/seat-wind-{{player.windClass}}.svg" mode="aspectFit" wx:if="{{player.windClass}}" />
                   </view>
-                  <text class="seat-name text-secondary">虚位以待</text>
-                  <view class="seat-score seat-score-pending">待加入</view>
+                  <text class="seat-name text-secondary">差只脚</text>
+                  <view class="seat-score seat-score-pending">等紧你</view>
                 </block>
               </view>
             </view>
             <view class="game-card-actions" wx:if="{{item.canInvite}}">
               <button class="game-action-btn game-action-secondary game-action-share" open-type="share" catchtap="onCardInvite" data-id="{{item.game_id}}">
-                <image class="game-action-icon" src="/assets/icons/share-wechat.svg" mode="aspectFit" /><text>邀请雀友</text>
+                <image class="game-action-icon" src="/assets/icons/share-wechat.svg" mode="aspectFit" /><text>吹鸡</text>
               </button>
             </view>
           </view>

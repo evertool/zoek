@@ -136,9 +136,9 @@ func TestAdjustmentConfigEndpoint(t *testing.T) {
 
 	presets, ok := cfg["presets"].([]interface{})
 	if !ok || len(presets) != 3 {
-		t.Fatalf("config presets = %v, want [5 10 20]", cfg["presets"])
+		t.Fatalf("config presets = %v, want [4 5 7]", cfg["presets"])
 	}
-	for i, want := range []float64{5, 10, 20} {
+	for i, want := range []float64{4, 5, 7} {
 		if presets[i].(float64) != want {
 			t.Fatalf("presets[%d] = %v, want %v", i, presets[i], want)
 		}

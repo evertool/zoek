@@ -21,7 +21,13 @@ Page({
     loading: true,
     loginFailed: false,
     profileSheet: false,
-    navPadding: 0
+    navPadding: 0,
+    selectedMode: 'round',
+    rakeTargetInput: '',
+    rakePerRoundInput: '2',
+    rakeTarget: 0,
+    rakeEffectivePerRound: 2,
+    rakeEstRounds: 0
   },
 
   onLoad() {
@@ -144,11 +150,15 @@ Page({
       const players = (g.players || []).map(p => {
         const sIdx = (p.seat || 0) - 1
         const wIdx = (sIdx >= 0 && sIdx < 4) ? sIdx : -1
+        const score = Number(p.total_score) || 0
         return {
           ...p,
           wind: wIdx >= 0 ? WINDS[wIdx] : (p.wind || ''),
           windClass: wIdx >= 0 ? WIND_CLASSES[wIdx] : '',
-          avatar_url: util.resolveAvatarURL(p.avatar_url || '')
+          avatar_url: util.resolveAvatarURL(p.avatar_url || ''),
+          score: score,
+          scoreText: (score > 0 ? '+' : '') + score,
+          scoreClass: score > 0 ? 'positive' : (score < 0 ? 'negative' : 'zero')
         }
       })
       // 按 seat 落位成 4 格，空位留占位，与房间页座位布局一致
@@ -278,6 +288,46 @@ Page({
     this.setData({ profileSheet: false })
   },
 
+  // ===== 开台模式选择（锁局模式 vs 自由模式） =====
+  onSelectMode(e) {
+    const mode = e.currentTarget.dataset.mode
+    if (mode && mode !== this.data.selectedMode) {
+      this.setData({ selectedMode: mode })
+      try {
+        wx.vibrateShort({ type: 'light' })
+      } catch (_) {}
+    }
+  },
+
+  onRakeTargetInput(e) {
+    const val = (e.detail.value || '').replace(/[^\d]/g, '')
+    this.recalcRakePreview(val, this.data.rakePerRoundInput)
+  },
+
+  onRakePerRoundInput(e) {
+    const val = (e.detail.value || '').replace(/[^\d]/g, '')
+    this.recalcRakePreview(this.data.rakeTargetInput, val)
+  },
+
+  recalcRakePreview(targetStr, perRoundStr) {
+    const target = parseInt(targetStr, 10) || 0
+    let perRound = parseInt(perRoundStr, 10) || 2 // 默认每局抽 2 分
+    if (perRound <= 0) perRound = 2
+    if (target > 0 && perRound > target) {
+      perRound = target
+    }
+    const estRounds = target > 0 ? Math.ceil(target / perRound) : 0
+    this.setData({
+      rakeTargetInput: targetStr,
+      rakePerRoundInput: perRoundStr,
+      rakeTarget: target,
+      rakeEffectivePerRound: perRound,
+      rakeEstRounds: estRounds
+    })
+  },
+
+  stopPropagation() {},
+
   // ===== 列表操作 =====
   // PRD v1.0 §4.2-A: 开台零摩擦——点按钮直接创建牌桌并进入房间，不填台名
   // 资料未完善时弹出可关闭的完善弹窗，保存后自动继续开台
@@ -304,9 +354,15 @@ Page({
     if (this._creating) return
     this._creating = true
     wx.showLoading({ title: '开台中...' })
+    const mode = this.data.selectedMode || 'round'
+    const rakeTarget = mode === 'round' ? (this.data.rakeTarget || 0) : 0
+    const rakePerRound = mode === 'round' && rakeTarget > 0 ? (this.data.rakeEffectivePerRound || 2) : 0
     // silent：ALREADY_IN_GAME 时页面自己弹「去看看」的 modal，api 层别再叠一个 toast（会双提示）
     api.post('/games', {
       name: '',
+      mode: mode,
+      rake_target: rakeTarget,
+      rake_per_round: rakePerRound,
       request_id: api.genRequestID()
     }, { silent: true }).then(res => {
       wx.hideLoading()
