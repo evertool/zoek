@@ -74,6 +74,7 @@ Page({
       players.forEach(function(p) { infoByPlayer[Number(p.player_id)] = p })
 
       // 转分流水（新→旧）
+      var isRoundMode = res.mode === 'round'
       var list = (res.adjustments || []).filter(function(a) { return a.status === 'accepted' })
       list.sort(function(a, b) {
         var ta = new Date(a.created_at || 0).getTime()
@@ -93,6 +94,7 @@ Page({
         var delta = mine ? (outgoing ? -amount : amount) : amount
         // 流水账单不显示 reason，语义交给右边的标签（抽水/自摸/明杠/…）
         var time = this.formatHM(a.created_at)
+        var roundNum = Number(a.round_number) || 0
         var baseTags = scoreTags.labelsOf(a.tags)
         if (isRake) {
           baseTags = ['抽水'].concat(baseTags)
@@ -105,6 +107,7 @@ Page({
           toIsMe: incoming,
           dirClass: incoming ? 'in' : (outgoing ? 'out' : 'neutral'),
           fromInitial: (from.nickname || '雀')[0],
+          roundText: (isRoundMode && roundNum > 0) ? ('第' + roundNum + '局') : '',
           timeText: time,
           subText: time,
           // 给分标签（抽水/自摸/明杠/暗杠/杠爆/抢杠）：code → 中文，空数组就不渲染
@@ -116,6 +119,10 @@ Page({
             : 'text-secondary'
         }
       }, this)
+
+      var totalRake = list.reduce(function(s, a) {
+        return s + (a.adjustment_type === 'rake' ? (Number(a.amount) || 0) : 0)
+      }, 0)
 
       var endedAt = util.toDate(res.ended_at)
       var shown = this.data.flowShown || FLOW_PAGE_SIZE
@@ -129,8 +136,8 @@ Page({
           endedText: endedAt
             ? ((endedAt.getMonth() + 1) + '月' + endedAt.getDate() + '日 ' + this.formatHM(res.ended_at) + ' 完结')
             : '',
-          isBalanced: players.length > 0 && sum === 0,
-          sumText: '总和 Σ = ' + (sum > 0 ? '+' : '') + sum + ' 分',
+          isBalanced: players.length > 0 && (sum + totalRake) === 0,
+          sumText: isRoundMode ? ('抽水 ' + totalRake + ' 分') : ('总和 Σ = ' + (sum > 0 ? '+' : '') + sum + ' 分'),
           flowCount: flow.length,
           players: players
         },

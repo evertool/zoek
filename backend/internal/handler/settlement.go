@@ -45,6 +45,7 @@ type SettlementResponse struct {
 type HistoryDetailResponse struct {
 	GameID          int64                `json:"game_id"`
 	GameName        string               `json:"game_name"`
+	Mode            string               `json:"mode"`
 	Status          string               `json:"status"`
 	CompletedRounds int                  `json:"completed_rounds"`
 	CreatedAt       string               `json:"created_at"`
@@ -285,12 +286,29 @@ func (h *SettlementHandler) GetHistoryDetail(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 		return
 	}
+	lockedRoundCount := 0
+	roundNumByID := make(map[int64]int, len(rounds))
+	for _, r := range rounds {
+		roundNumByID[r.ID] = r.RoundNumber
+		if r.Status == "locked" || r.Status == "ready_for_next" {
+			lockedRoundCount++
+		}
+	}
+	effectiveMode := game.Mode
+	if effectiveMode != "round" || (game.Status != "forming" && game.Status != "active" && lockedRoundCount == 0) {
+		effectiveMode = "free"
+	}
 	adjResponses := make([]AdjustmentResponse, 0, len(adjs))
 	for _, a := range adjs {
+		rNum := 0
+		if effectiveMode == "round" {
+			rNum = roundNumByID[a.RoundID]
+		}
 		adjResponses = append(adjResponses, AdjustmentResponse{
 			ID:             a.ID,
 			GameID:         a.GameID,
 			RoundID:        a.RoundID,
+			RoundNumber:    rNum,
 			FromPlayerID:   a.FromPlayerID,
 			ToPlayerID:     a.ToPlayerID,
 			AdjustmentType: a.AdjustmentType,
@@ -312,8 +330,9 @@ func (h *SettlementHandler) GetHistoryDetail(c *gin.Context) {
 	c.JSON(http.StatusOK, HistoryDetailResponse{
 		GameID:          game.ID,
 		GameName:        game.Name,
+		Mode:            effectiveMode,
 		Status:          game.Status,
-		CompletedRounds: len(historyRounds),
+		CompletedRounds: lockedRoundCount,
 		CreatedAt:       game.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		EndedAt:         endedAt,
 		Players:         playerInfos,

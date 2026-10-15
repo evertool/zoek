@@ -33,10 +33,14 @@ Page({
     // 标签分析：统计 chips + 按标签累计走势
     tagStats: [],       // [{code,label,count,myNet,color,show}] 只统计我给分时贴的标签
     hasTagData: false,
-    diffText: '0.00',
+    diffText: '0',
     pressureText: '',
+    isRoundMode: true,
     flowCount: 0,
-    flowBarHeight: 240, // 逐笔条形图 canvas 高度（px，随笔数伸缩）
+    flowBars: [],
+    barShown: 25,
+    barPageSize: 25,
+    flowBarHeight: 240,
     loading: true,
     navPadding: 0,
     // 图例筛选（点击隐藏/显示某玩家折线）
@@ -46,6 +50,9 @@ Page({
   onLoad(options) {
     var cap = util.capsuleBox()
     this.setData({ navPadding: util.navPadding(), capsuleTop: cap.top, capsuleHeight: cap.height })
+    try {
+      wx.showShareMenu({ withShareTicket: true, menus: ['shareAppMessage', 'shareTimeline'] })
+    } catch (_) {}
     if (!guard.ensure(true)) return
     this.setData({ gameID: Number(options.game_id) || 0 })
     if (!this.data.gameID) {
@@ -83,8 +90,9 @@ Page({
       players.forEach(function(p) { cum[Number(p.player_id)] = [0] })
       var flowSteps = []
       entries.forEach(function(a) {
+        var isRake = a.adjustment_type === 'rake'
         var fromP = byPlayerID[Number(a.from_player_id)]
-        var toP = byPlayerID[Number(a.to_player_id)]
+        var toP = isRake ? null : byPlayerID[Number(a.to_player_id)]
         var amount = Number(a.amount) || 0
         // 每个玩家都推进一个点（未参与的保持原值），保证各序列等长、x 轴对齐
         Object.keys(cum).forEach(function(pid) {
@@ -93,7 +101,7 @@ Page({
           if (toP && Number(pid) === Number(toP.player_id)) v += amount
           cum[pid].push(v)
         })
-        flowSteps.push({ fromP: fromP, toP: toP, amount: amount })
+        flowSteps.push({ fromP: fromP, toP: toP, amount: amount, isRake: isRake, roundNum: Number(a.round_number) || 1 })
       })
 
       // ===== 标签分析：自摸/明杠/暗杠/放杠/杠爆/抢杠 =====
@@ -150,8 +158,70 @@ Page({
         p.scoreClass = p.finalScore > 0 ? 'text-positive' : (p.finalScore < 0 ? 'text-negative' : '')
         p.tag = this.playerTag(p, flowSteps)
       }, this)
-      // 条形图绘制时直接取用（不进 data，避免 setData 大对象）
+      // 条形图数据：锁局模式下按「逐局」汇总本局净收支，自由模式下按「逐笔」展示
       this._flowSteps = flowSteps
+      var isRoundMode = res.mode === 'round'
+      var flowBars = []
+      if (isRoundMode) {
+        var roundMap = {} // roundNum -> { myNet: 0, otherMax: 0 }
+        var roundNums = []
+        var ensureRound = function(rNum) {
+          if (!roundMap[rNum]) {
+            roundMap[rNum] = { myNet: 0, otherAmt: 0 }
+            roundNums.push(rNum)
+          }
+          return roundMap[rNum]
+        }
+        entries.forEach(function(a) {
+          var rNum = Number(a.round_number) || 1
+          var rm = ensureRound(rNum)
+          var isRake = a.adjustment_type === 'rake'
+          var fromP = byPlayerID[Number(a.from_player_id)]
+          var toP = isRake ? null : byPlayerID[Number(a.to_player_id)]
+          var amount = Number(a.amount) || 0
+          var outgoing = fromP && Number(fromP.user_id) === myID
+          var incoming = !isRake && toP && Number(toP.user_id) === myID
+          if (outgoing) rm.myNet -= amount
+          else if (incoming) rm.myNet += amount
+          else rm.otherAmt += amount
+        })
+        roundNums.sort(function(a, b) { return a - b })
+        var maxRoundAbs = 1
+        roundNums.forEach(function(rNum) {
+          var rm = roundMap[rNum]
+          var absVal = rm.myNet !== 0 ? Math.abs(rm.myNet) : rm.otherAmt
+          if (absVal > maxRoundAbs) maxRoundAbs = absVal
+        })
+        flowBars = roundNums.map(function(rNum) {
+          var rm = roundMap[rNum]
+          var net = rm.myNet
+          var type = net > 0 ? 'in' : (net < 0 ? 'out' : 'other')
+          var absVal = net !== 0 ? Math.abs(net) : rm.otherAmt
+          var pct = absVal > 0 ? Math.max(4, Math.round((absVal / maxRoundAbs) * 100)) : 4
+          var amountText = net > 0 ? ('+' + net) : (net < 0 ? String(net) : '0')
+          return {
+            idx: '第' + rNum + '局',
+            type: type,
+            pct: pct,
+            amountText: amountText
+          }
+        })
+      } else {
+        var maxBarAmt = Math.max.apply(null, flowSteps.map(function(s) { return s.amount })) || 1
+        flowBars = flowSteps.map(function(s, i) {
+          var outgoing = s.fromP && Number(s.fromP.user_id) === myID
+          var incoming = !s.isRake && s.toP && Number(s.toP.user_id) === myID
+          var type = incoming ? 'in' : (outgoing ? 'out' : 'other')
+          var pct = Math.max(4, Math.round((s.amount / maxBarAmt) * 100))
+          var amountText = incoming ? ('+' + s.amount) : (outgoing ? ('-' + s.amount) : String(s.amount))
+          return {
+            idx: String(i + 1),
+            type: type,
+            pct: pct,
+            amountText: amountText
+          }
+        })
+      }
 
       var totalFinal = players.reduce(function(s, p) { return s + p.finalScore }, 0)
       var winners = players.filter(function(p) { return p.finalScore === Math.max.apply(null, players.map(function(x) { return x.finalScore })) })
@@ -161,21 +231,24 @@ Page({
         pressure = '水上赢面：' + winners[0].nickname + '（全程压制 ' + leadSteps + '/' + flowSteps.length + ' 笔）'
       }
 
+      var barPageSize = this.data.barPageSize || 25
       this.setData({
+        isRoundMode: isRoundMode,
         detail: {
           gameName: res.game_name || '未命名牌局',
           dateText: this.dateText(res.ended_at || res.created_at),
-          flowText: '共 ' + flowSteps.length + ' 笔流水',
+          flowText: isRoundMode ? ('共 ' + flowBars.length + ' 局 · ' + flowSteps.length + ' 笔流水') : ('共 ' + flowSteps.length + ' 笔流水'),
           zeroSum: totalFinal === 0
         },
         players: players,
-        insights: this.buildInsights(players, flowSteps),
+        insights: this.buildInsights(players, flowSteps, isRoundMode),
         tagStats: tagStats,
         hasTagData: tagStats.length > 0,
-        diffText: Math.abs(totalFinal).toFixed(2),
+        diffText: isRoundMode ? String(Math.abs(totalFinal)) : Math.abs(totalFinal).toFixed(2),
         pressureText: pressure,
-        flowCount: flowSteps.length,
-        flowBarHeight: Math.min(640, Math.max(240, flowSteps.length * 30 + 50)),
+        flowCount: flowBars.length,
+        flowBars: flowBars,
+        barShown: Math.min(barPageSize, flowBars.length),
         loading: false
       })
       // 等节点渲染完成后画图
@@ -221,9 +294,84 @@ Page({
     return count
   },
 
-  buildInsights(players, flowSteps) {
+  buildInsights(players, flowSteps, isRoundMode) {
     var insights = []
     if (!flowSteps.length) return insights
+    if (isRoundMode) {
+      // 锁局模式：按「每局」聚合各玩家净收支
+      var roundNums = []
+      var roundNetByPlayer = {} // rNum -> { player_id: net }
+      flowSteps.forEach(function(fs) {
+        var rNum = fs.roundNum || 1
+        if (!roundNetByPlayer[rNum]) {
+          roundNetByPlayer[rNum] = {}
+          players.forEach(function(p) { roundNetByPlayer[rNum][Number(p.player_id)] = 0 })
+          roundNums.push(rNum)
+        }
+        var rm = roundNetByPlayer[rNum]
+        if (fs.fromP) rm[Number(fs.fromP.player_id)] = (rm[Number(fs.fromP.player_id)] || 0) - fs.amount
+        if (!fs.isRake && fs.toP) rm[Number(fs.toP.player_id)] = (rm[Number(fs.toP.player_id)] || 0) + fs.amount
+      })
+      roundNums.sort(function(a, b) { return a - b })
+
+      // 1. 单局最大进账
+      var bestGain = 0, bestRound = 0, bestPlayer = null
+      roundNums.forEach(function(rNum) {
+        var rm = roundNetByPlayer[rNum]
+        players.forEach(function(p) {
+          var sc = rm[Number(p.player_id)] || 0
+          if (sc > bestGain) {
+            bestGain = sc
+            bestRound = rNum
+            bestPlayer = p
+          }
+        })
+      })
+      if (bestPlayer && bestGain > 0) {
+        insights.push({
+          icon: '⚡', title: '单局最大进账',
+          highlight: '第' + bestRound + '局 · ' + bestPlayer.nickname + ' (+' + bestGain + ')',
+          desc: '最大单局净赢进账，账面直接被这一局拉起。'
+        })
+      }
+
+      // 2. 全场控盘王：最终赢家连续正收益局数
+      var champion = players.slice().sort(function(a, b) { return b.finalScore - a.finalScore })[0]
+      if (champion && champion.finalScore > 0) {
+        var streak = 0, best = 0
+        var cid = Number(champion.player_id)
+        roundNums.forEach(function(rNum) {
+          var sc = roundNetByPlayer[rNum][cid] || 0
+          if (sc >= 0) { streak++; if (streak > best) best = streak }
+          else streak = 0
+        })
+        insights.push({
+          icon: '📈', title: '全场控盘王',
+          highlight: champion.nickname + ' (连续' + best + '局正收益)',
+          desc: '全程稳居水面零轴之上，保持绝对优势跑赢全场。'
+        })
+      }
+
+      // 3. 局间振幅极差分析
+      var swings = players.map(function(p) {
+        var pid = Number(p.player_id)
+        var mine = roundNums.map(function(rNum) { return roundNetByPlayer[rNum][pid] || 0 })
+        if (!mine.length) return { p: p, swing: 0 }
+        return { p: p, swing: Math.max.apply(null, mine) - Math.min.apply(null, mine) }
+      })
+      swings.sort(function(a, b) { return a.swing - b.swing })
+      if (swings.length) {
+        var maxSwing = Math.max.apply(null, swings.map(function(x) { return x.swing }))
+        insights.push({
+          icon: '🎴', title: '局间振幅极差分析',
+          highlight: '极差 ' + maxSwing + '分 / 稳健度首位 ' + swings[0].p.nickname,
+          desc: swings[0].p.nickname + '：局间振幅仅 ±' + Math.round(swings[0].swing / 2) + ' 分，打法防守滴水不漏。'
+        })
+      }
+      return insights
+    }
+
+    // 自由模式：按「单笔」统计
     // 1. 单笔最大进账
     var burst = { amount: -1, step: null }
     flowSteps.forEach(function(fs, i) {
@@ -537,6 +685,36 @@ Page({
       node.requestAnimationFrame(tick)
     } else {
       drawStatic(); drawLines()
+    }
+  },
+
+  loadMoreBars() {
+    var shown = (this.data.barShown || 25) + 25
+    if (shown > this.data.flowBars.length) shown = this.data.flowBars.length
+    this.setData({ barShown: shown })
+  },
+
+  collapseBars() {
+    this.setData({ barShown: this.data.barPageSize || 25 })
+  },
+
+  onShareAppMessage() {
+    var title = this.data.detail && this.data.detail.gameName
+      ? '「' + this.data.detail.gameName + '」积分走势与战局复盘'
+      : '得闲开台 — 积分走势与战局复盘'
+    return {
+      title: title,
+      path: '/pages/game-chart/game-chart?game_id=' + this.data.gameID
+    }
+  },
+
+  onShareTimeline() {
+    var title = this.data.detail && this.data.detail.gameName
+      ? '「' + this.data.detail.gameName + '」积分走势与战局复盘'
+      : '得闲开台 — 积分走势与战局复盘'
+    return {
+      title: title,
+      query: 'game_id=' + this.data.gameID
     }
   },
 

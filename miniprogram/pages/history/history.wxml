@@ -108,10 +108,20 @@
                     <view class="hs-card-status">
                       <image class="hs-status-icon" src="/assets/icons/status-check-success.svg" mode="aspectFit" /><text>{{item.statusText}}</text>
                     </view>
+                    <view class="hs-round-badge" wx:if="{{item.roundsText}}">{{item.roundsText}}</view>
                     <view class="hs-rank-badge" wx:if="{{item.is_ranked}}">排位</view>
                   </view>
                   <text class="hs-meta-players">雀友: {{item.playersText}}</text>
-                  <text class="hs-meta-duration"><text class="hs-meta-icon">⏱</text>{{item.duration}}</text>
+                  <view class="hs-meta-bottom-row">
+                    <text class="hs-meta-duration"><text class="hs-meta-icon">⏱</text>{{item.duration}}</text>
+                    <view class="hs-round-wld" wx:if="{{item.hasRoundStats}}">
+                      <text class="hs-wld-win">赢{{item.roundWins}}局</text>
+                      <text class="hs-wld-sep">·</text>
+                      <text class="hs-wld-lose">输{{item.roundLosses}}局</text>
+                      <text class="hs-wld-sep">·</text>
+                      <text class="hs-wld-draw">平{{item.roundDraws}}局</text>
+                    </view>
+                  </view>
                 </view>
                 <view class="hs-card-score">
                   <text class="hs-score-val {{item.my_score >= 0 ? 'text-positive' : 'text-negative'}}">{{item.my_score >= 0 ? '+' : ''}}{{item.my_score}}</text>

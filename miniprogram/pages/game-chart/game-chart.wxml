@@ -24,7 +24,7 @@
             <view class="gc-round-tag">{{detail.flowText}}</view>
           </view>
           <view class="gc-diff">
-            <text class="gc-diff-label">校对差额</text>
+            <text class="gc-diff-label">{{isRoundMode ? '抽水' : '校对差额'}}</text>
             <text class="gc-diff-val">{{diffText}}</text>
           </view>
         </view>
@@ -99,17 +99,40 @@
         </view>
       </view>
 
-      <!-- 逐笔流水条形图 -->
+      <!-- 逐局/逐笔流水条形图（固定行高矢量条形图，再多也绝不重叠） -->
       <view class="gc-section card anim-fade-up delay-2">
         <view class="gc-section-head">
-          <text class="gc-section-title">📊 逐笔流水条形图</text>
-          <text class="gc-section-sub">共 {{flowCount}} 笔 · 单位：分</text>
+          <text class="gc-section-title">{{isRoundMode ? '📊 逐局流水条形图' : '📊 逐笔流水条形图'}}</text>
+          <text class="gc-section-sub">共 {{flowCount}} {{isRoundMode ? '局' : '笔'}} · 单位：分</text>
         </view>
-        <canvas type="2d" id="bar-chart" class="gc-bar-canvas" style="height: {{flowBarHeight}}px;"></canvas>
+        <view class="gc-bar-list" wx:if="{{flowBars.length > 0}}">
+          <view class="gc-bar-row" wx:for="{{flowBars}}" wx:key="idx" wx:if="{{index < barShown}}">
+            <text class="gc-bar-idx">{{item.idx}}</text>
+            <view class="gc-bar-track">
+              <!-- 左半轴（我转出/本局净输：红条向左延伸） -->
+              <view class="gc-bar-half gc-bar-half-left">
+                <view wx:if="{{item.type === 'out'}}" class="gc-bar-fill gc-bar-fill-out" style="width: {{item.pct}}%;"></view>
+              </view>
+              <!-- 0 基准轴线 -->
+              <view class="gc-bar-zero"></view>
+              <!-- 右半轴（我收到/本局净赢：绿条向右；他人互转/平水：灰条向右） -->
+              <view class="gc-bar-half gc-bar-half-right">
+                <view wx:if="{{item.type === 'in'}}" class="gc-bar-fill gc-bar-fill-in" style="width: {{item.pct}}%;"></view>
+                <view wx:elif="{{item.type === 'other'}}" class="gc-bar-fill gc-bar-fill-other" style="width: {{item.pct}}%;"></view>
+              </view>
+            </view>
+            <text class="gc-bar-val gc-bar-val-{{item.type}}">{{item.amountText}}</text>
+          </view>
+        </view>
+        <view class="gc-bar-empty" wx:else><text>暂无转分流水</text></view>
+        <view class="gc-bar-more" wx:if="{{flowBars.length > barPageSize}}">
+          <text wx:if="{{flowBars.length > barShown}}" bindtap="loadMoreBars">展开其余 {{flowBars.length - barShown}} {{isRoundMode ? '局' : '笔'}}流水 ⌄</text>
+          <text wx:else bindtap="collapseBars">收起流水 ⌃</text>
+        </view>
         <view class="gc-bar-note">
-          <view class="gc-note-item"><view class="gc-note-dot" style="background:#1b6b4a;"></view><text>绿色=我收到</text></view>
-          <view class="gc-note-item"><view class="gc-note-dot" style="background:#b91c1c;"></view><text>红色=我转出</text></view>
-          <view class="gc-note-item"><view class="gc-note-dot" style="background:#cbd5e1;"></view><text>灰色=他人互转</text></view>
+          <view class="gc-note-item"><view class="gc-note-dot" style="background:#1b6b4a;"></view><text>{{isRoundMode ? '绿色=本局净赢' : '绿色=我收到'}}</text></view>
+          <view class="gc-note-item"><view class="gc-note-dot" style="background:#b91c1c;"></view><text>{{isRoundMode ? '红色=本局净输' : '红色=我转出'}}</text></view>
+          <view class="gc-note-item"><view class="gc-note-dot" style="background:#cbd5e1;"></view><text>{{isRoundMode ? '灰色=本局平水' : '灰色=他人互转'}}</text></view>
         </view>
       </view>
     </block>

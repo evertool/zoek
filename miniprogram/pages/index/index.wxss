@@ -177,8 +177,10 @@
 .recent-item-icon { width: 80rpx; height: 80rpx; border-radius: var(--radius-default); display: flex; align-items: center; justify-content: center; font-size: 36rpx; flex-shrink: 0; background: var(--surface-container); }
 .recent-item-icon image { width: 72rpx; height: 72rpx; }
 .recent-item-info { flex: 1; min-width: 0; margin-left: var(--space-sm); }
-.recent-item-name { font-size: 28rpx; color: var(--on-surface); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.recent-item-sub { font-size: 24rpx; color: var(--on-surface-variant); display: block; }
+.recent-item-title-row { display: flex; align-items: center; gap: 12rpx; min-width: 0; }
+.recent-item-name { font-size: 28rpx; font-weight: 600; color: var(--on-surface); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-round-badge { padding: 3rpx 12rpx; border-radius: var(--radius-full); background: rgba(0, 82, 53, 0.1); color: var(--primary); font-size: 19rpx; font-weight: 600; flex-shrink: 0; line-height: 1.3; }
+.recent-item-sub { font-size: 24rpx; color: var(--on-surface-variant); display: block; margin-top: 2rpx; }
 .recent-item-score { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; padding-left: var(--space-xs); }
 .recent-score-val { font-size: 36rpx; font-weight: 700; }
 .recent-score-rank { font-size: 24rpx; color: var(--on-surface-variant); }

@@ -16,6 +16,7 @@
 .hs-day-tab.active { background: var(--primary); color: var(--on-primary); box-shadow: var(--shadow-card); }
 .hs-tab-dot { width: 12rpx; height: 12rpx; border-radius: 50%; background: var(--secondary-container); }
 .hs-tab-dot-sm { width: 8rpx; height: 8rpx; }
+.hs-round-badge { padding: 4rpx 14rpx; border-radius: var(--radius-full); background: rgba(0, 82, 53, 0.1); color: var(--primary); font-size: 20rpx; font-weight: 600; flex-shrink: 0; }
 .hs-rank-badge { padding: 2rpx 12rpx; border-radius: var(--radius-full); background: var(--secondary-fixed); color: var(--secondary-fixed-variant); font-size: 18rpx; font-weight: 600; flex-shrink: 0; }
 
 /* 本月概览 */
@@ -77,8 +78,14 @@
 .hs-card-status text { font-size: 20rpx; color: var(--on-surface-variant); }
 .hs-meta-icon { font-size: 24rpx; }
 .hs-meta-players { display: block; margin-top: 12rpx; font-size: 24rpx; color: var(--on-surface-variant); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* 时长独立一行：nowrap 防止「分」字被挤到下一行 */
-.hs-meta-duration { display: flex; align-items: center; gap: 8rpx; margin-top: 8rpx; font-size: 24rpx; color: var(--on-surface-variant); white-space: nowrap; }
+/* 时长与个人赢/输/平局数同行展示 */
+.hs-meta-bottom-row { display: flex; align-items: center; flex-wrap: wrap; gap: 16rpx; margin-top: 8rpx; }
+.hs-meta-duration { display: inline-flex; align-items: center; gap: 8rpx; font-size: 24rpx; color: var(--on-surface-variant); white-space: nowrap; }
+.hs-round-wld { display: inline-flex; align-items: center; gap: 6rpx; padding: 3rpx 14rpx; border-radius: var(--radius-full); background: var(--surface-container-low); font-size: 21rpx; font-weight: 600; white-space: nowrap; }
+.hs-wld-win { color: var(--primary); }
+.hs-wld-lose { color: #b33a3a; }
+.hs-wld-draw { color: var(--on-surface-variant); }
+.hs-wld-sep { color: var(--outline-variant); font-weight: 400; }
 .hs-card-score { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; padding-left: var(--space-xs); }
 .hs-score-val { font-size: 44rpx; font-weight: 700; }
 .hs-score-tag { margin-top: 8rpx; padding: 8rpx 12rpx; border-radius: var(--radius-default); }

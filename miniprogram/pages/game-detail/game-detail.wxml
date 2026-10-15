@@ -75,8 +75,9 @@
                 <text class="gd-flow-arrow gd-flow-arrow-{{item.dirClass}}">→</text>
                 <text class="{{item.toIsMe ? 'gd-flow-label-me' : 'gd-flow-label'}}">{{item.toLabel}}</text>
               </view>
-              <!-- 次行：时间与给分标签同行，标签跟在时间右边 -->
+              <!-- 次行：局号标签（锁局模式）+ 时间与给分标签同行，标签跟在时间右边 -->
               <view class="gd-flow-subline">
+                <view class="gd-flow-round-tag" wx:if="{{item.roundText}}"><text>{{item.roundText}}</text></view>
                 <text class="gd-flow-sub">{{item.subText}}</text>
                 <block wx:if="{{item.tags.length}}">
                   <view class="gd-flow-tag {{tag === '抽水' ? 'gd-flow-tag-rake' : ''}}" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this"><text>{{tag}}</text></view>

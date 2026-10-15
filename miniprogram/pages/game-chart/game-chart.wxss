@@ -73,8 +73,26 @@ page { overflow-x: hidden; overscroll-behavior-x: none; }
 .gc-insight-highlight { font-size: 22rpx; font-weight: 700; color: var(--primary); }
 .gc-insight-desc { font-size: 22rpx; color: var(--on-surface-variant); }
 
-/* 逐笔条形图：高度随笔数动态内联设置，这里只兜底 */
-.gc-bar-canvas { width: 100%; }
+/* 逐局/逐笔条形图：固定行高矢量条形图，再多也绝不挤压重叠 */
+.gc-bar-list { display: flex; flex-direction: column; gap: 10rpx; padding: 6rpx 0; }
+.gc-bar-row { display: flex; align-items: center; height: 38rpx; gap: 14rpx; }
+.gc-bar-idx { width: 76rpx; font-size: 20rpx; color: #9ca3af; text-align: left; flex-shrink: 0; white-space: nowrap; font-family: monospace; }
+.gc-bar-track { flex: 1; height: 100%; display: flex; align-items: center; min-width: 0; }
+.gc-bar-half { height: 22rpx; display: flex; align-items: center; }
+.gc-bar-half-left { flex: 0.38; justify-content: flex-end; }
+.gc-bar-half-right { flex: 0.62; justify-content: flex-start; }
+.gc-bar-zero { width: 2rpx; height: 38rpx; background: #e5e7eb; flex-shrink: 0; }
+.gc-bar-fill { height: 22rpx; min-width: 6rpx; transition: width 0.25s ease; }
+.gc-bar-fill-in { background: #1b6b4a; border-radius: 0 6rpx 6rpx 0; }
+.gc-bar-fill-out { background: #b91c1c; border-radius: 6rpx 0 0 6rpx; }
+.gc-bar-fill-other { background: #cbd5e1; border-radius: 0 6rpx 6rpx 0; }
+.gc-bar-val { width: 76rpx; font-size: 22rpx; font-weight: 700; text-align: right; flex-shrink: 0; font-family: monospace; }
+.gc-bar-val-in { color: #1b6b4a; }
+.gc-bar-val-out { color: #b91c1c; }
+.gc-bar-val-other { color: #6f7a72; }
+.gc-bar-empty { padding: 40rpx 0; text-align: center; font-size: 24rpx; color: var(--outline); }
+.gc-bar-more { display: flex; justify-content: center; padding: 8rpx 0 4rpx; }
+.gc-bar-more text { font-size: 24rpx; font-weight: 500; color: var(--primary); }
 .gc-bar-note { display: flex; gap: 24rpx; flex-wrap: wrap; }
 .gc-note-item { display: flex; align-items: center; gap: 8rpx; font-size: 20rpx; color: var(--on-surface-variant); }
 .gc-note-dot { width: 12rpx; height: 12rpx; border-radius: 50%; }

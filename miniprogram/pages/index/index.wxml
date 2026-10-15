@@ -133,7 +133,10 @@
             <view class="recent-item" bindtap="goRecentDetail" data-id="{{rec.game_id}}">
               <view class="recent-item-icon {{rec.my_score >= 0 ? 'recent-item-icon-win' : 'recent-item-icon-loss'}}"><image src="{{rec.rankIcon}}" mode="aspectFit" /></view>
               <view class="recent-item-info">
-                <text class="recent-item-name">{{rec.name}}</text>
+                <view class="recent-item-title-row">
+                  <text class="recent-item-name">{{rec.name}}</text>
+                  <view class="recent-round-badge" wx:if="{{rec.roundsText}}">{{rec.roundsText}}</view>
+                </view>
                 <text class="recent-item-sub">{{rec.timeText}} · 对局: {{rec.playersText}}</text>
               </view>
               <view class="recent-item-score">

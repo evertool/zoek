@@ -844,6 +844,62 @@ func (s *Store) GetTotalsByGameIDs(gameIDs []int64) (map[int64]map[int64]int, er
 	return out, nil
 }
 
+// GetRoundScoresByGameIDs 批量获取多场牌局中每个锁定局各玩家的本局净得分：game_id -> round_id -> game_player_id -> score。
+func (s *Store) GetRoundScoresByGameIDs(gameIDs []int64) (map[int64]map[int64]map[int64]int, error) {
+	out := make(map[int64]map[int64]map[int64]int, len(gameIDs))
+	if len(gameIDs) == 0 {
+		return out, nil
+	}
+	var rounds []model.Round
+	if err := s.DB.Where("game_id IN ? AND status IN ('ready_for_next', 'locked')", gameIDs).Find(&rounds).Error; err != nil {
+		return nil, err
+	}
+	roundIDs := make([]int64, 0, len(rounds))
+	for _, r := range rounds {
+		if out[r.GameID] == nil {
+			out[r.GameID] = make(map[int64]map[int64]int)
+		}
+		out[r.GameID][r.ID] = make(map[int64]int)
+		roundIDs = append(roundIDs, r.ID)
+	}
+	if len(roundIDs) == 0 {
+		return out, nil
+	}
+	var subs []struct {
+		GameID       int64
+		RoundID      int64
+		GamePlayerID int64
+		Score        int
+	}
+	if err := s.DB.Table("round_submissions rs").
+		Select("r.game_id AS game_id, rs.round_id AS round_id, rs.game_player_id AS game_player_id, rs.score AS score").
+		Joins("JOIN rounds r ON r.id = rs.round_id").
+		Where("rs.round_id IN ?", roundIDs).
+		Scan(&subs).Error; err != nil {
+		return nil, err
+	}
+	for _, sub := range subs {
+		if out[sub.GameID] != nil && out[sub.GameID][sub.RoundID] != nil {
+			out[sub.GameID][sub.RoundID][sub.GamePlayerID] += sub.Score
+		}
+	}
+	var adjs []model.ScoreAdjustment
+	if err := s.DB.Where("game_id IN ? AND round_id IN ? AND status = 'accepted'", gameIDs, roundIDs).Find(&adjs).Error; err != nil {
+		return nil, err
+	}
+	for _, adj := range adjs {
+		if out[adj.GameID] == nil || out[adj.GameID][adj.RoundID] == nil {
+			continue
+		}
+		rm := out[adj.GameID][adj.RoundID]
+		rm[adj.FromPlayerID] -= adj.Amount
+		if adj.AdjustmentType != "rake" {
+			rm[adj.ToPlayerID] += adj.Amount
+		}
+	}
+	return out, nil
+}
+
 // CountAdjustmentsByGameIDs 批量统计各局的改分记录数。
 func (s *Store) CountAdjustmentsByGameIDs(gameIDs []int64) (map[int64]int64, error) {
 	var rows []struct {
@@ -1103,7 +1159,29 @@ func (s *Store) UpdateGameStatus(gameID int64, expectedStatus, newStatus string)
 	case "active":
 		game.StartedAt = &now
 	case "ended":
-		game.EndedAt = &now
+		endedAt := now
+		// 若该牌局距最后一笔流水已超过 5 小时超时阈值（陈旧遗留台被手动点散台），
+		// ended_at 与 AutoExpireStaleGame 保持同口径，按最后一笔账时间归档，避免旧台混入近期记录
+		var lastEntry time.Time
+		var lastAdj model.ScoreAdjustment
+		if err := s.DB.Where("game_id = ?", game.ID).Order("created_at DESC").First(&lastAdj).Error; err == nil {
+			lastEntry = lastAdj.CreatedAt
+		}
+		var lastSub model.RoundSubmission
+		if err := s.DB.Table("round_submissions").
+			Joins("JOIN rounds r ON round_submissions.round_id = r.id").
+			Where("r.game_id = ?", game.ID).
+			Order("round_submissions.updated_at DESC").
+			First(&lastSub).Error; err == nil && lastSub.UpdatedAt.After(lastEntry) {
+			lastEntry = lastSub.UpdatedAt
+		}
+		if !lastEntry.IsZero() && now.Sub(lastEntry) >= gameAutoCleanAfter {
+			endedAt = lastEntry
+			if game.StartedAt != nil && game.StartedAt.After(endedAt) {
+				endedAt = *game.StartedAt
+			}
+		}
+		game.EndedAt = &endedAt
 		game.SettlementUpdatedAt = &now
 		// 时长散台时一次性落库，读侧直接取字段不再现算
 		if game.StartedAt != nil {

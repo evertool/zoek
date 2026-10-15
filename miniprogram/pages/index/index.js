@@ -215,18 +215,25 @@ Page({
   /** 最近战绩（真实数据，最近 3 场） */
   loadRecent() {
     api.get('/games/history', { page: 1, page_size: 3 }).then(res => {
-      const recent = (res.games || []).map(g => ({
-        game_id: g.game_id,
-        name: g.name || '未命名牌局',
-        statusText: util.statusText(g.status),
-        timeText: this.formatRecentTime(g.ended_at || g.created_at),
-        playersText: (g.players || []).filter(function(p) { return !p.is_me }).map(function(p) { return p.nickname }).slice(0, 4).join('、'),
-        my_score: g.my_score || 0,
-        my_rank: g.my_rank || 0,
-        // 名次徽章：1~4 名对应 金/银/铜/铁，其余走中性兜底
-        rankIcon: RANK_BADGE_ICONS[g.my_rank] || '/assets/icons/rank-9-novice.svg',
-        resultText: g.result === 'win' ? '胜' : (g.result === 'lose' ? '负' : '平')
-      }))
+      const recent = (res.games || []).map(g => {
+        const isRoundMode = g.mode === 'round'
+        const completedRounds = Number(g.completed_rounds) || 0
+        const roundsText = (isRoundMode && completedRounds > 0) ? ('共' + completedRounds + '局') : ''
+        const myScore = Number(g.my_score) || 0
+        return {
+          game_id: g.game_id,
+          name: g.name || '未命名牌局',
+          statusText: util.statusText(g.status),
+          timeText: this.formatRecentTime(g.ended_at || g.created_at),
+          roundsText: roundsText,
+          playersText: (g.players || []).filter(function(p) { return !p.is_me }).map(function(p) { return p.nickname }).slice(0, 4).join('、'),
+          my_score: myScore,
+          my_rank: g.my_rank || 0,
+          // 名次徽章：1~4 名对应 金/银/铜/铁，其余走中性兜底
+          rankIcon: RANK_BADGE_ICONS[g.my_rank] || '/assets/icons/rank-9-novice.svg',
+          resultText: myScore > 0 ? '赢' : (myScore < 0 ? '输' : (g.result === 'win' ? '赢' : (g.result === 'lose' ? '输' : '和')))
+        }
+      })
       this.setData({ recent })
     }).catch(function() {})
   },

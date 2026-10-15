@@ -29,9 +29,9 @@ Page({
     result: '',
     resultTabs: [
       { label: '全部', value: '' },
-      { label: '胜', value: 'win' },
-      { label: '平', value: 'draw' },
-      { label: '负', value: 'lose' }
+      { label: '赢', value: 'win' },
+      { label: '和', value: 'draw' },
+      { label: '输', value: 'lose' }
     ],
     overviewLabel: '全部概览',
     navPadding: 0
@@ -47,7 +47,7 @@ Page({
     guard.ensureAsync().then(ok => {
       if (!ok) return
       this.setData({ isLoggedIn: !!app.globalData.token })
-      if (app.globalData.token && !this.data.games.length) {
+      if (app.globalData.token && !this._hasLoadedOnce && !this.data.games.length) {
         this.reload()
       } else if (!app.globalData.token) {
         this.setData({ loading: false })
@@ -68,6 +68,7 @@ Page({
 
   // 重置分页并按当前筛选重新加载
   reload() {
+    this._hasLoadedOnce = true
     this.setData({ games: [], groups: [], page: 1, hasMore: true, loading: true })
     this.loadHistory()
   },
@@ -89,57 +90,90 @@ Page({
 
   loadHistory() {
     if (!app.globalData.token) return Promise.resolve()
+    var reqSeq = (this._loadSeq = (this._loadSeq || 0) + 1)
+    var reqPage = this.data.page
+    var reqDays = Number(this.data.days) || 0
+    var reqResult = this.data.result
     this.setData({ loading: true })
     return api.get('/games/history', {
-      page: this.data.page,
+      page: reqPage,
       page_size: this.data.pageSize,
-      days: this.data.days,
-      result: this.data.result
+      days: reqDays,
+      result: reqResult
     }).then(res => {
-      const games = (res.games || []).map(g => this.decorate(g))
-      const allGames = this.data.games.concat(games)
-      const hasMore = !!res.has_more && allGames.length < res.total
+      // 丢弃已被后续筛选/刷新覆盖的过期并发响应，防止「全部(days=0)」慢响应回写污染「近7天」列表
+      if (reqSeq !== this._loadSeq) return
+
+      var rawGames = res.games || []
+      var cutoffMs = reqDays > 0 ? (Date.now() - reqDays * 24 * 60 * 60 * 1000) : 0
+      var filteredRaw = cutoffMs > 0 ? rawGames.filter(function(g) {
+        var d = util.toDate(g.ended_at || g.created_at)
+        return d && d.getTime() >= cutoffMs
+      }) : rawGames
+
+      const games = filteredRaw.map(g => this.decorate(g))
+      const allGames = reqPage === 1 ? games : this.data.games.concat(games)
+      const clientFilteredOut = filteredRaw.length !== rawGames.length
+      const total = clientFilteredOut ? allGames.length : (res.total || 0)
+      const hasMore = !clientFilteredOut && !!res.has_more && allGames.length < total
       this.setData({
         games: allGames,
-        total: res.total || 0,
+        total: total,
         hasMore: hasMore,
-        page: this.data.page + 1,
+        page: reqPage + 1,
         loading: false
       })
       this.buildGroups(allGames)
-      // 概览用整个筛选结果集的汇总（分页不影响数字）
-      const sum = res.summary || {}
-      this.setData({
-        overview: {
-          games: sum.games || 0,
-          score: sum.net || 0,
-          win_rate: sum.win_rate || 0
-        }
-      })
+      if (clientFilteredOut) {
+        this.buildOverview(allGames)
+      } else {
+        // 概览用整个筛选结果集的汇总（分页不影响数字）
+        const sum = res.summary || {}
+        this.setData({
+          overview: {
+            games: sum.games || 0,
+            score: sum.net || 0,
+            win_rate: sum.win_rate || 0
+          }
+        })
+      }
     }).catch(() => {
+      if (reqSeq !== this._loadSeq) return
       this.setData({ loading: false })
     })
   },
 
   // 把接口数据转成视图字段
   decorate(g) {
-    var resultMap = { win: '胜', draw: '平', lose: '负' }
+    var resultMap = { win: '赢', draw: '和', lose: '输' }
     var duration = '—'
     if (g.duration_minutes > 0) {
       duration = g.duration_minutes >= 60
         ? Math.floor(g.duration_minutes / 60) + '时' + (g.duration_minutes % 60) + '分'
         : g.duration_minutes + '分钟'
     }
+    var isRoundMode = g.mode === 'round'
+    var completedRounds = Number(g.completed_rounds) || 0
+    var roundsText = (isRoundMode && completedRounds > 0) ? ('共' + completedRounds + '局') : ''
+    var roundWins = Number(g.round_wins) || 0
+    var roundLosses = Number(g.round_losses) || 0
+    var roundDraws = Number(g.round_draws) || 0
+    var myScore = Number(g.my_score) || 0
     return {
       ...g,
       statusText: this.statusText(g.status),
       timeText: this.formatTime(g.ended_at || g.created_at),
       dateText: this.formatDate(g.ended_at || g.created_at),
-      my_score: g.my_score || 0,
+      my_score: myScore,
       my_rank: g.my_rank || 0,
       duration: duration,
+      roundsText: roundsText,
+      hasRoundStats: isRoundMode && completedRounds > 0,
+      roundWins: roundWins,
+      roundLosses: roundLosses,
+      roundDraws: roundDraws,
       playersText: (g.players || []).filter(function(p) { return !p.is_me }).map(function(p) { return p.nickname }).join('、') || '—',
-      resultText: resultMap[g.result] || '平',
+      resultText: myScore > 0 ? '赢' : (myScore < 0 ? '输' : (resultMap[g.result] || '和')),
       has_adjustment: g.has_adjustment || false,
       footerText: '已平账',
       detailText: '查看详细账单'
@@ -150,14 +184,16 @@ Page({
     var groups = []
     var currentDate = ''
     var currentGroup = null
+    var todayStr = this.formatDate(new Date())
     for (var i = 0; i < games.length; i++) {
       var g = games[i]
       var dateStr = g.dateText || this.formatDate(g.ended_at || g.created_at)
       if (dateStr !== currentDate) {
+        var isToday = dateStr === todayStr
         currentGroup = {
           date: dateStr,
-          dotClass: groups.length === 0 ? 'today' : (groups.length < 2 ? 'recent' : 'old'),
-          tagText: groups.length === 0 ? '今日' : '',
+          dotClass: isToday ? 'today' : (groups.length < 2 ? 'recent' : 'old'),
+          tagText: isToday ? '今日' : '',
           subText: '',
           items: []
         }

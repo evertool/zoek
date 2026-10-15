@@ -280,6 +280,9 @@ func (h *GameHandler) GetHistoryGames(c *gin.Context) {
 		myRank        int
 		tag           string
 		rounds        int64
+		roundWins     int
+		roundLosses   int
+		roundDraws    int
 		players       []model.GamePlayer
 		hasAdjustment bool
 	}
@@ -298,6 +301,7 @@ func (h *GameHandler) GetHistoryGames(c *gin.Context) {
 		totalsByGame, _ := h.Store.GetTotalsByGameIDs(gameIDs)
 		adjCount, _ := h.Store.CountAdjustmentsByGameIDs(gameIDs)
 		roundCounts, _ := h.Store.CountLockedRoundsByGameIDs(gameIDs)
+		roundScoresByGame, _ := h.Store.GetRoundScoresByGameIDs(gameIDs)
 
 		for _, g := range games {
 			players := playersByGame[g.ID]
@@ -324,20 +328,41 @@ func (h *GameHandler) GetHistoryGames(c *gin.Context) {
 				}
 			}
 			tag := "draw"
-			if len(players) >= 2 {
-				if myRank == 1 {
-					tag = "win"
-				} else if myRank == len(players) {
-					tag = "lose"
-				}
+			if myScore > 0 {
+				tag = "win"
+			} else if myScore < 0 {
+				tag = "lose"
 			}
 			if result != "" && tag != result {
 				continue
 			}
+			lockedRounds := roundCounts[g.ID]
+			if g.Mode != model.GameModeRound || lockedRounds == 0 {
+				g.Mode = model.GameModeFree
+				lockedRounds = 0
+			}
+			var rWins, rLosses, rDraws int
+			if g.Mode == model.GameModeRound {
+				if rMap := roundScoresByGame[g.ID]; rMap != nil {
+					for _, pScores := range rMap {
+						sc := pScores[myGP.ID]
+						if sc > 0 {
+							rWins++
+						} else if sc < 0 {
+							rLosses++
+						} else {
+							rDraws++
+						}
+					}
+				}
+			}
 			items = append(items, histItem{
 				game: g, myScore: myScore, myRank: myRank, tag: tag,
-				rounds:  roundCounts[g.ID],
-				players: players, hasAdjustment: adjCount[g.ID] > 0,
+				rounds:      lockedRounds,
+				roundWins:   rWins,
+				roundLosses: rLosses,
+				roundDraws:  rDraws,
+				players:     players, hasAdjustment: adjCount[g.ID] > 0,
 			})
 		}
 	}
@@ -387,8 +412,12 @@ func (h *GameHandler) GetHistoryGames(c *gin.Context) {
 		result2 = append(result2, gin.H{
 			"game_id":          g.ID,
 			"name":             g.Name,
+			"mode":             g.Mode,
 			"status":           g.Status,
 			"completed_rounds": it.rounds,
+			"round_wins":       it.roundWins,
+			"round_losses":     it.roundLosses,
+			"round_draws":      it.roundDraws,
 			"player_count":     len(it.players),
 			"players":          playerItems,
 			"my_score":         it.myScore,
@@ -945,6 +974,9 @@ func (h *GameHandler) EndGame(c *gin.Context) {
 				c.JSON(http.StatusInternalServerError, errs.ErrInternal)
 				return
 			}
+		} else if game.Mode == model.GameModeRound {
+			// 锁局模式下若最后一局已有转分流水但尚未点拍钟锁局即散台，自动锁局收尾（计入总局数并完成尾局抽水）
+			_, _, _, _ = h.Store.DingLockRound(gameID, round.RoundNumber, userID)
 		}
 	}
 
