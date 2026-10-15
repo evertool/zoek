@@ -79,10 +79,10 @@
       <view class="table-center-dial">
         <view class="dial-bezel"></view>
         <view class="dial-face">
-          <text class="dial-wind dial-wind-top">东</text>
-          <text class="dial-wind dial-wind-bottom">南</text>
-          <text class="dial-wind dial-wind-left">西</text>
-          <text class="dial-wind dial-wind-right">北</text>
+          <text class="dial-wind dial-wind-left">东</text>
+          <text class="dial-wind dial-wind-top">南</text>
+          <text class="dial-wind dial-wind-right">西</text>
+          <text class="dial-wind dial-wind-bottom">北</text>
           <view class="dial-ring-groove"></view>
           <view class="dial-jade-ring">
             <view class="dial-mahjong-tile">
