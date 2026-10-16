@@ -80,14 +80,14 @@
             <text class="my-stat-val">{{stats.games}}</text>
           </view>
           <view class="my-stat">
-            <text class="my-stat-label">胜场 (胜率)</text>
+            <text class="my-stat-label">赢场 (赢率)</text>
             <view class="my-stat-inline">
               <text class="my-stat-val text-positive">{{stats.wins}}</text>
               <text class="my-stat-sub">{{stats.win_rate}}%</text>
             </view>
           </view>
           <view class="my-stat">
-            <text class="my-stat-label">连胜</text>
+            <text class="my-stat-label">连赢</text>
             <text class="my-stat-val">{{stats.best_streak || 0}}</text>
           </view>
           <view class="my-stat">
@@ -143,8 +143,8 @@
                 <text class="rank-name">{{item.nickname}}</text>
                 <view class="tier-chip {{item.displayRank === 1 ? 'tier-chip-gold' : ''}}" wx:if="{{item.tier_short}}"><image class="tier-chip-icon" src="{{item.tier_icon}}" mode="aspectFit" /><text>{{item.tier_short}} {{item.stars || 0}}★</text></view>
               </view>
-              <text class="rank-line">{{item.games}} 场 · {{item.wins}} 胜 · {{item.draws || 0}} 平</text>
-              <text class="rank-line rank-line-sub">连胜 {{item.best_streak || 0}} · 单场最高 {{item.best_score || 0}}</text>
+              <text class="rank-line">{{item.games}} 场 · {{item.wins}} 赢 · {{item.draws || 0}} 平</text>
+              <text class="rank-line rank-line-sub">连赢 {{item.best_streak || 0}} · 单场最高 {{item.best_score || 0}}</text>
             </view>
 
             <!-- 分数与互动 -->

@@ -18,6 +18,11 @@ function getCtx() {
       ctx = null
     }
   }
+  if (ctx && ctx.state === 'suspended' && typeof ctx.resume === 'function') {
+    try {
+      ctx.resume()
+    } catch (e) {}
+  }
   return ctx
 }
 
@@ -291,6 +296,38 @@ function teaPour() {
   } catch (e) {}
 }
 
+// 7. 拍钟锁局叮声：复用全局单例 WebAudioContext，避免 Android 每次新建 AudioContext 耗尽底层 AudioTrack 导致后续静音
+function dingBell() {
+  var c = getCtx()
+  if (!c) return
+  try {
+    var now = c.currentTime
+    // 基频 1760Hz (A6) + 金属泛频 3520Hz (A7)
+    var tones = [
+      { freq: 1760, gain: 0.62, dur: 1.1 },
+      { freq: 3520, gain: 0.28, dur: 0.48 }
+    ]
+    for (var i = 0; i < tones.length; i++) {
+      (function(t) {
+        var osc = c.createOscillator()
+        var g = c.createGain()
+        osc.type = 'sine'
+        osc.frequency.setValueAtTime(t.freq, now)
+        g.gain.setValueAtTime(t.gain, now)
+        g.gain.exponentialRampToValueAtTime(0.0001, now + t.dur)
+        osc.connect(g)
+        g.connect(c.destination)
+        osc.start(now)
+        osc.stop(now + t.dur + 0.02)
+        setTimeout(function() {
+          try { osc.disconnect() } catch (e) {}
+          try { g.disconnect() } catch (e) {}
+        }, Math.ceil((t.dur + 0.08) * 1000))
+      })(tones[i])
+    }
+  } catch (e) {}
+}
+
 module.exports = {
   warmup: warmup,
   setEnabled: setEnabled,
@@ -302,5 +339,6 @@ module.exports = {
   slipperHit: slipperHit,
   tomatoWhoosh: tomatoWhoosh,
   tomatoSplat: tomatoSplat,
-  teaPour: teaPour
+  teaPour: teaPour,
+  dingBell: dingBell
 }

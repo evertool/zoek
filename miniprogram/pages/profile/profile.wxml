@@ -101,12 +101,12 @@
         </view>
         <view class="pf-stat-div"></view>
         <view class="pf-stat">
-          <text class="pf-stat-label">胜率</text>
+          <text class="pf-stat-label">赢率</text>
           <view class="pf-stat-valrow">
             <text class="pf-stat-num">{{stats.win_rate}}</text>
             <text class="pf-stat-unit">%</text>
           </view>
-          <view class="pf-pill-amber"><text>近7场 {{stats.recent_wins}}胜</text></view>
+          <view class="pf-pill-amber"><text>近7场 {{stats.recent_wins}}赢</text></view>
         </view>
       </view>
 
@@ -204,7 +204,7 @@
           <view class="pf-menu-item pf-menu-item-slim" bindtap="showAbout">
             <text class="pf-menu-slim-label">关于得闲开台</text>
             <view class="pf-menu-right">
-              <text class="pf-menu-right-text pf-menu-mono">v1.0.3</text>
+              <text class="pf-menu-right-text pf-menu-mono">v1.1.2</text>
               <text class="pf-menu-arrow">›</text>
             </view>
           </view>
@@ -296,7 +296,7 @@
       </view>
       <view class="pf-bp-rules" wx:if="{{badgeRules}}">
         <text class="pf-bp-rules-title">规则说明</text>
-        <text class="pf-bp-rules-text">徽章由真实对局数据自动计算，规则透明可解释：胜场、连胜、逐局流水时间线、期间峰值积分、终局记分、参与场次。数据不足时不会点亮，亦不会随机生成；同一场牌局可获多个徽章。</text>
+        <text class="pf-bp-rules-text">徽章由真实对局数据自动计算，规则透明可解释：赢场、连赢、逐局流水时间线、期间峰值积分、终局记分、参与场次。数据不足时不会点亮，亦不会随机生成；同一场牌局可获多个徽章。</text>
       </view>
       <view class="pf-bp-state" wx:if="{{badgeLoading}}">
         <text class="pf-bp-state-text">正在读取徽章战绩…</text>

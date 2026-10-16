@@ -89,7 +89,7 @@ Page({
   onShareAppMessage() {
     var r = this.data.rank
     return {
-      title: '我的排位段位：' + (r ? r.tier.tier_name : '新手雀仔') + (r && r.streak > 1 ? ' · ' + r.streak + '连胜进行中' : ''),
+      title: '我的排位段位：' + (r ? r.tier.tier_name : '新手雀仔') + (r && r.streak > 1 ? ' · ' + r.streak + '连赢进行中' : ''),
       path: '/pages/rank/rank'
     }
   }

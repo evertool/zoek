@@ -50,23 +50,23 @@
         <!-- 连胜横幅 -->
         <view class="rk-streak" wx:if="{{rank.streak >= 2}}">
           <text class="rk-streak-icon">🔥</text>
-          <text class="rk-streak-text">{{rank.streak}} 连胜进行中</text>
-          <text class="rk-streak-sub" wx:if="{{rank.streak >= 6}}">下胜再额外 +2 星（共得 3 颗）</text>
-          <text class="rk-streak-sub" wx:elif="{{rank.streak >= 2}}">再胜一场额外 +{{rank.streak + 1 >= 6 ? 2 : 1}} 星</text>
+          <text class="rk-streak-text">{{rank.streak}} 连赢进行中</text>
+          <text class="rk-streak-sub" wx:if="{{rank.streak >= 6}}">下赢再额外 +2 星（共得 3 颗）</text>
+          <text class="rk-streak-sub" wx:elif="{{rank.streak >= 2}}">再赢一场额外 +{{rank.streak + 1 >= 6 ? 2 : 1}} 星</text>
         </view>
 
         <!-- 数据 -->
         <view class="rk-stats">
           <view class="rk-stat">
-            <text class="rk-stat-label">胜场 / 总局</text>
+            <text class="rk-stat-label">赢场 / 总局</text>
             <view class="rk-stat-val-row"><text class="rk-stat-val">{{rank.wins}} / {{rank.total_games}}</text></view>
           </view>
           <view class="rk-stat">
-            <text class="rk-stat-label">排位胜率</text>
+            <text class="rk-stat-label">排位赢率</text>
             <view class="rk-stat-val-row"><text class="rk-stat-val rk-stat-orange">{{rank.winRateText}}</text></view>
           </view>
           <view class="rk-stat">
-            <text class="rk-stat-label">赛季净胜分</text>
+            <text class="rk-stat-label">赛季净赢分</text>
             <view class="rk-stat-val-row"><text class="rk-stat-val {{rank.points >= 0 ? 'text-positive' : 'text-negative'}}">{{rank.pointsText}}</text></view>
           </view>
         </view>
@@ -75,7 +75,7 @@
       <!-- 升星与连胜爆发机制 -->
       <view class="rk-section anim-fade-up delay-1">
         <view class="rk-section-head">
-          <text class="rk-section-title">⬆ 升星与连胜爆发机制</text>
+          <text class="rk-section-title">⬆ 升星与连赢爆发机制</text>
           <text class="rk-section-sub">纯积分常规则</text>
         </view>
         <view class="rk-rules card">
@@ -90,16 +90,16 @@
           <view class="rk-rule">
             <view class="rk-rule-icon rk-rule-orange"><text>🔥</text></view>
             <view class="rk-rule-body">
-              <text class="rk-rule-title">基础连胜（3~5 连）</text>
-              <text class="rk-rule-desc">连续霸台达到 3 场，每场获胜额外加 1 星。</text>
+              <text class="rk-rule-title">基础连赢（3~5 连）</text>
+              <text class="rk-rule-desc">连续霸台达到 3 场，每场获赢额外加 1 星。</text>
             </view>
             <view class="rk-rule-badge rk-badge-orange"><text>额外 +1 星</text></view>
           </view>
           <view class="rk-rule">
             <view class="rk-rule-icon rk-rule-red"><text>⚡</text></view>
             <view class="rk-rule-body">
-              <text class="rk-rule-title">超神连胜（≥6 连）</text>
-              <text class="rk-rule-desc">霸台耐炼，全台服单场最高连胜环 3 星，触发爆发极速跳级升阶。</text>
+              <text class="rk-rule-title">超神连赢（≥6 连）</text>
+              <text class="rk-rule-desc">霸台耐炼，全台服单场最高连赢环 3 星，触发爆发极速跳级升阶。</text>
             </view>
             <view class="rk-rule-badge rk-badge-red"><text>额外 +2 星</text></view>
           </view>

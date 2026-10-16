@@ -715,40 +715,9 @@ Page({
     this.loadQRCode()
   },
 
-  // 围棋对局钟 / 前台拍铃叮叮声音合成（双频正弦波金属泛音衰减，纯本地离线无网络延迟）
+  // 围棋对局钟 / 前台拍铃叮叮声音合成（复用 fxsound 全局单例 WebAudioContext，避免 Android 重复创建耗尽 AudioTrack 导致后续静音）
   playDingSound() {
-    try {
-      if (wx.createWebAudioContext) {
-        var ctx = wx.createWebAudioContext()
-        var now = ctx.currentTime
-
-        // 基频 1760Hz (A6音高)
-        var osc1 = ctx.createOscillator()
-        var gain1 = ctx.createGain()
-        osc1.type = 'sine'
-        osc1.frequency.setValueAtTime(1760, now)
-        gain1.gain.setValueAtTime(0.001, now)
-        gain1.gain.linearRampToValueAtTime(0.65, now + 0.01)
-        gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.2)
-        osc1.connect(gain1)
-        gain1.connect(ctx.destination)
-        osc1.start(now)
-        osc1.stop(now + 1.2)
-
-        // 泛频 3520Hz (A7音高，增强金属清脆撞击质感)
-        var osc2 = ctx.createOscillator()
-        var gain2 = ctx.createGain()
-        osc2.type = 'sine'
-        osc2.frequency.setValueAtTime(3520, now)
-        gain2.gain.setValueAtTime(0.001, now)
-        gain2.gain.linearRampToValueAtTime(0.28, now + 0.008)
-        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.5)
-        osc2.connect(gain2)
-        gain2.connect(ctx.destination)
-        osc2.start(now)
-        osc2.stop(now + 0.5)
-      }
-    } catch (e) {}
+    fxsound.dingBell()
 
     // 实体触感短震动
     try {
@@ -770,12 +739,10 @@ Page({
       return
     }
 
-    // 规则约束：不考虑流局，无积分记录不可锁局
+    // 规则约束：不考虑流局，无积分记录不可锁局（仍播放拍钟叮声反馈）
     if (!this.data.hasRoundScores) {
+      this.playDingSound()
       this.showToast('今局仲未有流水')
-      try {
-        wx.vibrateShort({ type: 'light' })
-      } catch (e) {}
       return
     }
 
